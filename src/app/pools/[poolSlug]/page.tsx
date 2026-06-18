@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BarChart3, Calculator, Trophy } from "lucide-react";
+import { ArrowRight, BarChart3, Calculator, Trophy, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
@@ -104,6 +104,12 @@ export default async function PoolPage({ params }: PoolPageProps) {
         <LedgerPanel title="Pool tools">
           <LedgerRows>
             {[
+              {
+                title: "Locker Room",
+                body: "Enter the Czechia vs South Africa game day room.",
+                href: `/pools/${publicSlug}/locker-room`,
+                icon: Users,
+              },
               {
                 title: "Leaderboard",
                 body: "Current standings with score subtotals.",

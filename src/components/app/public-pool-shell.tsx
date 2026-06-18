@@ -1,25 +1,19 @@
-import Link from "next/link";
-
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
-import { PublicPoolHeader } from "@/components/app/mock-auth";
-import { cn } from "@/lib/utils";
+import {
+  PublicPoolHeader,
+  type PublicPoolNavKey,
+} from "@/components/app/mock-auth";
 
 type PublicPoolShellProps = {
   poolName: string;
   poolSlug: string;
-  active: "overview" | "leaderboard" | "projections" | "entry";
+  active: PublicPoolNavKey;
   eyebrow?: string;
   title: string;
   description: string;
   meta?: React.ReactNode;
   children: React.ReactNode;
 };
-
-const navItems = [
-  { key: "overview", label: "Overview", href: "" },
-  { key: "leaderboard", label: "Leaderboard", href: "/leaderboard" },
-  { key: "projections", label: "Projections", href: "/projections" },
-] as const;
 
 export function PublicPoolShell({
   poolName,
@@ -31,32 +25,12 @@ export function PublicPoolShell({
   meta,
   children,
 }: PublicPoolShellProps) {
-  const baseHref = `/pools/${poolSlug}`;
-
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-background">
       <AbstractShapeBackground />
-      <PublicPoolHeader />
+      <PublicPoolHeader poolSlug={poolSlug} active={active} />
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-6 md:gap-9 md:py-8">
-        <nav aria-label="Pool navigation" className="flex justify-center">
-          <div className="flex rounded-full border border-border/80 bg-surface-paper/95 p-1 shadow-sm">
-            {navItems.map((item) => (
-              <Link
-                key={item.key}
-                href={`${baseHref}${item.href}`}
-                aria-current={active === item.key ? "page" : undefined}
-                className={cn(
-                  "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  active === item.key &&
-                    "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground",
-                )}
-              >
-                {item.label}
-              </Link>
-            ))}
-          </div>
-        </nav>
         <section className="overflow-hidden rounded-lg border border-black/5 bg-surface-paper shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_82%)]">
           <div
             className="min-h-[20rem] bg-cover bg-center"

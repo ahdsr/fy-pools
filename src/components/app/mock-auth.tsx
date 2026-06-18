@@ -41,10 +41,29 @@ type HeaderBrandWordmarkProps = {
   variant?: "dark" | "light";
 };
 
+export type PublicPoolNavKey =
+  | "overview"
+  | "leaderboard"
+  | "projections"
+  | "locker-room"
+  | "entry";
+
+type PublicPoolHeaderProps = {
+  poolSlug?: string;
+  active?: PublicPoolNavKey;
+};
+
 const signedOutNavItems = [
   { label: "Pools", href: "/dashboard/pools" },
   { label: "Templates", href: "/dashboard/templates" },
   { label: "Upload", href: "/upload-your-own" },
+] as const;
+
+const publicPoolNavItems = [
+  { key: "overview", label: "Overview", href: "" },
+  { key: "leaderboard", label: "Leaderboard", href: "/leaderboard" },
+  { key: "projections", label: "Projections", href: "/projections" },
+  { key: "locker-room", label: "Locker Room", href: "/locker-room" },
 ] as const;
 
 const adminNavItems = [
@@ -138,9 +157,11 @@ export function HeaderBrandWordmark({
   );
 }
 
-export function PublicPoolHeader() {
+export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
   const { user, hydrated } = useMockUser();
   const signedIn = hydrated && user;
+  const showPoolNav = Boolean(poolSlug && active);
+  const poolBaseHref = poolSlug ? `/pools/${poolSlug}` : "";
 
   return (
     <header
@@ -149,13 +170,47 @@ export function PublicPoolHeader() {
         signedIn
           ? "border-white/10 bg-accent text-accent-foreground"
           : "border-border/70 bg-white text-foreground",
-      )}
+        )}
     >
-      <nav className="flex min-h-16 w-full items-center justify-between gap-4 px-5 py-3 md:px-[43px]">
+      <nav className="grid min-h-16 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 md:px-[43px]">
         <BrandWordmark
           href={signedIn ? "/dashboard" : "/"}
           variant={signedIn ? "light" : "dark"}
         />
+        {showPoolNav ? (
+          <div className="flex min-w-0 justify-center overflow-x-auto px-1">
+            <div
+              className={cn(
+                "flex shrink-0 rounded-full border p-1 shadow-sm",
+                signedIn
+                  ? "border-white/12 bg-white/8"
+                  : "border-border/80 bg-surface-paper/95",
+              )}
+            >
+              {publicPoolNavItems.map((item) => (
+                <Link
+                  key={item.key}
+                  href={`${poolBaseHref}${item.href}`}
+                  aria-current={active === item.key ? "page" : undefined}
+                  className={cn(
+                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
+                    signedIn
+                      ? "text-white/72 hover:bg-white/10 hover:text-white"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                    active === item.key &&
+                      (signedIn
+                        ? "bg-white text-accent shadow-sm hover:bg-white hover:text-accent"
+                        : "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"),
+                  )}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div />
+        )}
         {signedIn ? (
           <HeaderAccountControls />
         ) : (
