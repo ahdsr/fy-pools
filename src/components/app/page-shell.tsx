@@ -1,10 +1,9 @@
-import Link from "next/link";
-import { ArrowLeft } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
-import { BrandWordmark } from "@/components/app/brand";
+import {
+  HeaderBrandWordmark,
+  HeaderAccountControls,
+  SiteHeaderNav,
+} from "@/components/app/mock-auth";
 
 type PageShellProps = {
   eyebrow?: string;
@@ -12,6 +11,7 @@ type PageShellProps = {
   description: string;
   children: React.ReactNode;
   backHref?: string;
+  heroAction?: React.ReactNode;
   status?: string;
   topContent?: React.ReactNode;
 };
@@ -21,45 +21,36 @@ export function PageShell({
   title,
   description,
   children,
-  backHref = "/dashboard",
-  status = "Placeholder",
+  heroAction,
   topContent,
 }: PageShellProps) {
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-background">
       <AbstractShapeBackground />
       <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
-        <nav className="flex h-20 w-full items-center justify-between gap-4 px-8 md:px-[43px]">
-          <BrandWordmark className="[&_[aria-hidden=true]]:border-white/15 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-black [&_span]:text-white" />
-          <div className="flex items-center gap-2">
-            <Button
-              asChild
-              variant="ghost"
-              className="text-white hover:bg-white/10 hover:text-white"
-            >
-              <Link href={backHref}>
-                <ArrowLeft />
-                Back
-              </Link>
-            </Button>
-            <Badge className="border-white/15 bg-white/10 text-white">
-              {status}
-            </Badge>
-          </div>
+        <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-8 md:px-[43px]">
+          <HeaderBrandWordmark />
+          <SiteHeaderNav />
+          <HeaderAccountControls showDashboardLink={false} />
         </nav>
       </header>
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-6 md:gap-9 md:py-8">
         {topContent ? <div>{topContent}</div> : null}
         <section className="py-14 md:py-16">
-          <div className="prose flex max-w-[625px] flex-col prose-h1:my-0 prose-h1:text-[clamp(2.75rem,6vw,3.5rem)] prose-h1:font-normal prose-h1:leading-[1.14] prose-h1:tracking-[-0.02em] prose-h1:text-brand-ink prose-p:mb-0 prose-p:mt-8 prose-p:max-w-[625px] prose-p:text-base prose-p:font-light prose-p:leading-[1.4375rem] prose-p:text-foreground/80">
-            {eyebrow ? (
-              <p className="not-prose mb-4 text-sm font-bold uppercase tracking-normal text-brand-hot">
-                {eyebrow}
-              </p>
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-end lg:justify-between">
+            <div className="prose flex max-w-[625px] flex-col prose-h1:my-0 prose-h1:text-[clamp(2.75rem,6vw,3.5rem)] prose-h1:font-normal prose-h1:leading-[1.14] prose-h1:tracking-[-0.02em] prose-h1:text-brand-ink prose-p:mb-0 prose-p:mt-8 prose-p:max-w-[625px] prose-p:text-base prose-p:font-light prose-p:leading-[1.4375rem] prose-p:text-foreground/80">
+              {eyebrow ? (
+                <p className="not-prose mb-4 text-sm font-bold uppercase tracking-normal text-brand-hot">
+                  {eyebrow}
+                </p>
+              ) : null}
+              <h1>{title}</h1>
+              <p>{description}</p>
+            </div>
+            {heroAction ? (
+              <div className="flex shrink-0 lg:pb-1">{heroAction}</div>
             ) : null}
-            <h1>{title}</h1>
-            <p>{description}</p>
           </div>
         </section>
         {children}

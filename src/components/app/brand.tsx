@@ -1,9 +1,15 @@
 import Link from "next/link";
+import Image from "next/image";
 
 import { cn } from "@/lib/utils";
 
 type BrandMarkProps = {
   className?: string;
+};
+
+type BrandWordmarkProps = BrandMarkProps & {
+  href?: string;
+  variant?: "dark" | "light";
 };
 
 export function BrandMark({ className }: BrandMarkProps) {
@@ -20,14 +26,33 @@ export function BrandMark({ className }: BrandMarkProps) {
   );
 }
 
-export function BrandWordmark({ className }: BrandMarkProps) {
+export function BrandWordmark({
+  className,
+  href = "/",
+  variant = "dark",
+}: BrandWordmarkProps) {
+  const logoSrc =
+    variant === "light"
+      ? "/brand/poolwaffle-logo-light.png"
+      : "/brand/poolwaffle-logo-dark.png";
+
   return (
     <Link
-      href="/"
-      className={cn("inline-flex items-center gap-2.5 font-normal", className)}
+      href={href}
+      aria-label="PoolWaffle home"
+      className={cn(
+        "inline-flex items-center transition-opacity hover:opacity-85",
+        className,
+      )}
     >
-      <BrandMark />
-      <span className="text-base tracking-normal text-brand-ink">FY Pools</span>
+      <Image
+        src={logoSrc}
+        alt="PoolWaffle"
+        width={628}
+        height={104}
+        priority
+        className="h-[21px] w-auto sm:h-6"
+      />
     </Link>
   );
 }

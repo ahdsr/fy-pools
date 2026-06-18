@@ -27,8 +27,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "FY Pools",
-  description: "Private sports pool hosting for commissioners and players.",
+  title: {
+    default: "PoolWaffle",
+    template: "%s | PoolWaffle",
+  },
+  description:
+    "Private sports pool hosting for commissioners, with templates, spreadsheet imports, player picks, scoring, projections, and leaderboards.",
+  applicationName: "PoolWaffle",
 };
 
 export default function RootLayout({

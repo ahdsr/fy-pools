@@ -1,9 +1,7 @@
 import Link from "next/link";
 
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
-import { BrandWordmark } from "@/components/app/brand";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
+import { PublicPoolHeader } from "@/components/app/mock-auth";
 import { cn } from "@/lib/utils";
 
 type PublicPoolShellProps = {
@@ -38,44 +36,27 @@ export function PublicPoolShell({
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-background">
       <AbstractShapeBackground />
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-accent text-accent-foreground">
-        <nav className="flex min-h-20 w-full flex-col gap-3 px-5 py-4 md:flex-row md:items-center md:justify-between md:px-[43px]">
-          <div className="flex items-center justify-between gap-4">
-            <BrandWordmark className="[&_[aria-hidden=true]]:border-white/15 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-black [&_span]:text-white" />
-            <Badge className="border-white/15 bg-white/10 text-white md:hidden">
-              Public
-            </Badge>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex rounded-lg border border-white/15 bg-white/10 p-1">
-              {navItems.map((item) => (
-                <Link
-                  key={item.key}
-                  href={`${baseHref}${item.href}`}
-                  className={cn(
-                    "rounded-md px-3 py-1.5 text-sm font-medium text-white/78 transition-colors hover:bg-white/10 hover:text-white",
-                    active === item.key && "bg-white text-accent hover:bg-white hover:text-accent",
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-            <Button
-              asChild
-              variant="ghost"
-              className="text-white hover:bg-white/10 hover:text-white"
-            >
-              <Link href="/sign-in">Sign in</Link>
-            </Button>
-            <Button asChild variant="primaryGreen">
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
-          </div>
-        </nav>
-      </header>
+      <PublicPoolHeader />
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-6 md:gap-9 md:py-8">
+        <nav aria-label="Pool navigation" className="flex justify-center">
+          <div className="flex rounded-full border border-border/80 bg-surface-paper/95 p-1 shadow-sm">
+            {navItems.map((item) => (
+              <Link
+                key={item.key}
+                href={`${baseHref}${item.href}`}
+                aria-current={active === item.key ? "page" : undefined}
+                className={cn(
+                  "rounded-full px-4 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                  active === item.key &&
+                    "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground",
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        </nav>
         <section className="overflow-hidden rounded-lg border border-black/5 bg-surface-paper shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_82%)]">
           <div
             className="min-h-[20rem] bg-cover bg-center"

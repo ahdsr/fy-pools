@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>FY Pools Visual Comparison</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f4f5f7;
+        --card: #ffffff;
+        --text: #111827;
+        --muted: #5f6673;
+        --line: #d9dde3;
+      }
+
+      * {
+        box-sizing: border-box;
+      }
+
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+
+      main {
+        width: min(1440px, calc(100vw - 40px));
+        margin: 32px auto 56px;
+      }
+
+      header {
+        margin-bottom: 24px;
+      }
+
+      h1 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        line-height: 1.15;
+      }
+
+      p {
+        margin: 0;
+        color: var(--muted);
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+        gap: 24px;
+      }
+
+      figure {
+        margin: 0;
+        overflow: hidden;
+        background: var(--card);
+        border: 1px solid var(--line);
+        border-radius: 8px;
+      }
+
+      figcaption {
+        display: flex;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 14px 16px;
+        font-weight: 700;
+      }
+
+      figcaption a {
+        color: inherit;
+        font-weight: 400;
+      }
+
+      img {
+        display: block;
+        width: 100%;
+        height: auto;
+        border-top: 1px solid var(--line);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <header>
+        <h1>FY Pools Visual Comparison</h1>
+        <p>Desktop captures at 1440 by 1200 from June 18, 2026.</p>
+      </header>
+
+      <section class="grid">
+        <figure>
+          <figcaption>
+            <span>Your site - local</span>
+            <a href="http://localhost:3001/">Source</a>
+          </figcaption>
+          <img src="screenshots/fy-pools-local.png" alt="FY Pools local screenshot" />
+        </figure>
+
+        <figure>
+          <figcaption>
+            <span>RunYourPool</span>
+            <a href="https://www.runyourpool.com/">Source</a>
+          </figcaption>
+          <img src="screenshots/runyourpool.png" alt="RunYourPool screenshot" />
+        </figure>
+
+        <figure>
+          <figcaption>
+            <span>OfficePools</span>
+            <a href="https://www.officepools.com/">Source</a>
+          </figcaption>
+          <img src="screenshots/officepools.png" alt="OfficePools screenshot" />
+        </figure>
+
+        <figure>
+          <figcaption>
+            <span>OfficePoolJunkie</span>
+            <a href="https://www.officepooljunkie.com/">Source</a>
+          </figcaption>
+          <img src="screenshots/officepooljunkie.png" alt="OfficePoolJunkie screenshot" />
+        </figure>
+
+        <figure>
+          <figcaption>
+            <span>PoolHost</span>
+            <a href="https://www.poolhost.com/">Source</a>
+          </figcaption>
+          <img src="screenshots/poolhost.png" alt="PoolHost screenshot" />
+        </figure>
+
+        <figure>
+          <figcaption>
+            <span>PoolExpert</span>
+            <a href="https://www.poolexpert.com/en">Source</a>
+          </figcaption>
+          <img src="screenshots/poolexpert.png" alt="PoolExpert screenshot" />
+        </figure>
+      </section>
+    </main>
+  </body>
+</html>

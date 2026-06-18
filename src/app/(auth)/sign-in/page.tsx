@@ -1,10 +1,15 @@
 import Link from "next/link";
 
 import { BrandWordmark } from "@/components/app/brand";
+import { MockSignInForm } from "@/components/app/mock-auth";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 
 export default function SignInPage() {
   return (
@@ -13,20 +18,13 @@ export default function SignInPage() {
         <div className="ledger-rule h-1" />
         <CardHeader>
           <BrandWordmark />
-          <CardTitle>Sign in to FY Pools</CardTitle>
+          <CardTitle>Sign in to PoolWaffle</CardTitle>
+          <CardDescription>
+            Use the mock admin account to preview signed-in pool management.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <div className="space-y-2">
-            <Label htmlFor="email">Email</Label>
-            <Input id="email" type="email" placeholder="commissioner@example.com" />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
-            <Input id="password" type="password" placeholder="Not wired yet" />
-          </div>
-          <Button className="w-full" disabled>
-            Auth wiring comes next
-          </Button>
+          <MockSignInForm />
           <Button asChild variant="ghost" className="w-full">
             <Link href="/">Back to product home</Link>
           </Button>
