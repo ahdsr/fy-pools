@@ -1,65 +1,151 @@
-import Image from "next/image";
+import Link from "next/link";
+import { ArrowRight, CheckCircle2 } from "lucide-react";
+
+import { BrandWordmark, BracketGridMark } from "@/components/app/brand";
+import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import { SectionHeader } from "@/components/app/section-header";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 export default function Home() {
+  const steps = [
+    {
+      label: "01",
+      title: "Choose template",
+      body: "Start from World Cup, NBA series, survivor, or pick'em formats.",
+    },
+    {
+      label: "02",
+      title: "Invite players",
+      body: "Share a private pool link and track missing entries before lock.",
+    },
+    {
+      label: "03",
+      title: "Track standings",
+      body: "Publish explainable leaderboards as results and scoring update.",
+    },
+  ];
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+    <main className="min-h-screen bg-background">
+      <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
+        <nav className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3">
+          <BrandWordmark className="[&_[aria-hidden=true]]:border-white/15 [&_[aria-hidden=true]]:bg-white [&_[aria-hidden=true]]:text-black [&_span]:text-white" />
+          <div className="flex items-center gap-2">
+            <Button
+              asChild
+              variant="ghost"
+              className="text-white hover:bg-white/10 hover:text-white"
             >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
+              <Link href="/sign-in">Sign in</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+          </div>
+        </nav>
+      </header>
+
+      <section className="mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-6 md:py-8">
+        <section className="py-6 md:py-10">
+          <div className="grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-center">
+            <div className="space-y-7 lg:py-8">
+              <div className="flex flex-wrap items-center gap-3">
+                <BracketGridMark />
+                <Badge variant="secondary">Template-first pool hosting</Badge>
+              </div>
+              <div className="space-y-4">
+                <h1 className="max-w-3xl text-4xl font-extrabold leading-[1.03] tracking-[0.01em] text-brand-ink md:text-6xl">
+                  Private sports pools, run like a premium event.
+                </h1>
+                <p className="max-w-2xl text-lg font-normal leading-8 text-muted-foreground">
+                  FY Pools helps commissioners create polished pools, collect
+                  clean picks, lock entries, and publish standings players can
+                  trust.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button asChild size="lg">
+                  <Link href="/dashboard/pools">
+                    Create pool <ArrowRight />
+                  </Link>
+                </Button>
+                <Button asChild variant="outline" size="lg">
+                  <Link href="/dashboard/templates">View templates</Link>
+                </Button>
+              </div>
+            </div>
+
+            <LedgerPanel
+              title="Commissioner preview"
+              description="A clean operating surface for private pools."
+              className="bg-surface-paper"
             >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+              <LedgerRows>
+                {[
+                  ["World Cup Full Predictor", "48 entries", "Picks open"],
+                  ["NBA Series Bracket", "22 entries", "Locks Friday"],
+                  ["Office Survivor Pool", "31 entries", "Invite live"],
+                ].map(([name, entries, status]) => (
+                  <LedgerRow
+                    key={name}
+                    className="grid gap-3 sm:grid-cols-[1fr_auto_auto] sm:items-center"
+                  >
+                    <div>
+                      <p className="font-medium text-brand-ink">{name}</p>
+                      <p className="text-base font-normal text-muted-foreground">
+                        Template ready
+                      </p>
+                    </div>
+                    <span className="text-base font-normal text-muted-foreground">
+                      {entries}
+                    </span>
+                    <Badge variant="outline">{status}</Badge>
+                  </LedgerRow>
+                ))}
+              </LedgerRows>
+            </LedgerPanel>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-3">
+          {steps.map((step) => (
+            <div
+              key={step.title}
+              className="border-t pt-5"
+            >
+              <p className="text-base font-semibold text-brand-mark">
+                {step.label}
+              </p>
+              <h2 className="mt-3 text-xl font-bold tracking-[0.005em] text-brand-ink">
+                {step.title}
+              </h2>
+              <p className="mt-2 text-base font-normal leading-7 text-muted-foreground">
+                {step.body}
+              </p>
+            </div>
+          ))}
+        </section>
+
+        <section className="space-y-5">
+          <SectionHeader
+            title="Built for clarity"
+            description="The brand system is bright, legible, and easy to theme."
+          />
+          <div className="grid gap-4 md:grid-cols-3">
+            {[
+              "Template-led setup",
+              "Readable pool operations",
+              "Explainable scoring ledger",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3 border-t pt-4">
+                <CheckCircle2 className="size-5 text-brand-success" />
+                <span className="font-medium text-brand-ink">{item}</span>
+              </div>
+            ))}
+          </div>
+        </section>
+      </section>
+    </main>
   );
 }

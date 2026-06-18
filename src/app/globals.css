@@ -1,26 +1,252 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@plugin "@tailwindcss/typography";
+
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-momo-trust-sans);
   --font-mono: var(--font-geist-mono);
+  --font-heading: var(--font-sans);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-mark: var(--brand-mark);
+  --color-brand-rule: var(--brand-rule);
+  --color-brand-success: var(--brand-success);
+  --color-brand-warning: var(--brand-warning);
+  --color-brand-coral: var(--brand-coral);
+  --color-brand-lime: var(--brand-lime);
+  --color-brand-sky: var(--brand-sky);
+  --color-brand-hot: var(--brand-hot);
+  --color-cta-green: var(--cta-green);
+  --color-cta-green-foreground: var(--cta-green-foreground);
+  --color-cta-green-soft: var(--cta-green-soft);
+  --color-filter-foreground: var(--filter-foreground);
+  --color-filter-lime: var(--filter-lime);
+  --color-filter-sky: var(--filter-sky);
+  --color-filter-coral: var(--filter-coral);
+  --color-surface-paper: var(--surface-paper);
+  --color-surface-ledger: var(--surface-ledger);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.625);
+  --radius-md: calc(var(--radius) * 0.875);
+  --radius-lg: var(--radius);
+  --radius-xl: var(--radius);
+  --radius-2xl: calc(var(--radius) * 1.25);
+  --radius-3xl: calc(var(--radius) * 1.5);
+  --radius-4xl: calc(var(--radius) * 1.75);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+:root {
+  color-scheme: light;
+  --background: oklch(0.94 0.035 211);
+  --foreground: oklch(0.17 0.028 173);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.17 0.028 173);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.17 0.028 173);
+  --primary: oklch(0.27 0.07 170);
+  --primary-foreground: oklch(0.99 0.012 110);
+  --secondary: oklch(0.955 0.022 197);
+  --secondary-foreground: oklch(0.24 0.045 173);
+  --muted: oklch(0.965 0.012 200);
+  --muted-foreground: oklch(0.46 0.027 210);
+  --accent: oklch(0.935 0.105 111);
+  --accent-foreground: oklch(0.22 0.044 173);
+  --destructive: oklch(0.55 0.2 25);
+  --border: oklch(0.88 0.015 207);
+  --input: oklch(0.88 0.015 207);
+  --ring: oklch(0.48 0.08 170);
+  --chart-1: oklch(0.52 0.12 170);
+  --chart-2: oklch(0.86 0.14 108);
+  --chart-3: oklch(0.82 0.08 230);
+  --chart-4: oklch(0.76 0.16 29);
+  --chart-5: oklch(0.7 0.16 350);
+  --radius: 0.5rem;
+  --sidebar: oklch(0.98 0.012 205);
+  --sidebar-foreground: oklch(0.17 0.028 173);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: oklch(0.95 0.024 197);
+  --sidebar-accent-foreground: oklch(0.22 0.044 173);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --brand-ink: oklch(0.17 0.035 173);
+  --brand-mark: oklch(0.3 0.075 170);
+  --brand-rule: oklch(0.82 0.12 30);
+  --brand-success: oklch(0.58 0.15 154);
+  --brand-warning: oklch(0.84 0.15 88);
+  --brand-coral: oklch(0.74 0.18 28);
+  --brand-lime: oklch(0.9 0.19 115);
+  --brand-sky: oklch(0.86 0.065 230);
+  --cta-green: oklch(0.31 0.078 168);
+  --cta-green-foreground: oklch(0.99 0.012 110);
+  --cta-green-soft: oklch(0.92 0.055 158);
+  --filter-foreground: oklch(0.18 0.028 170);
+  --filter-lime: oklch(0.91 0.17 112);
+  --filter-sky: oklch(0.87 0.065 230);
+  --filter-coral: oklch(0.89 0.07 38);
+  --surface-paper: oklch(0.995 0.004 205);
+  --surface-ledger: oklch(0.975 0.016 205);
+}
+
+html[data-theme="paper-ledger"] {
+  --background: oklch(0.94 0.035 211);
+  --foreground: oklch(0.17 0.028 173);
+  --primary: oklch(0.27 0.07 170);
+  --primary-foreground: oklch(0.99 0.012 110);
+  --brand-ink: oklch(0.17 0.035 173);
+  --brand-mark: oklch(0.3 0.075 170);
+  --brand-rule: oklch(0.82 0.12 30);
+  --surface-ledger: oklch(0.975 0.016 205);
+}
+
+html[data-theme="command-green"] {
+  --primary: oklch(0.34 0.11 154);
+  --brand-ink: oklch(0.24 0.08 154);
+  --brand-mark: oklch(0.4 0.13 154);
+  --brand-rule: oklch(0.76 0.06 154);
+  --brand-success: oklch(0.47 0.13 154);
+}
+
+html[data-theme="live-table"] {
+  --primary: oklch(0.55 0.13 225);
+  --brand-ink: oklch(0.23 0.075 250);
+  --brand-mark: oklch(0.55 0.13 225);
+  --brand-rule: oklch(0.78 0.07 225);
+  --brand-success: oklch(0.48 0.13 154);
+}
+
+html[data-theme="premium-pools"] {
+  color-scheme: light;
+  --background: oklch(0.995 0 0);
+  --foreground: oklch(0.21 0.004 286);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.21 0.004 286);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.21 0.004 286);
+  --primary: oklch(0.03 0 0);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.94 0.004 286);
+  --secondary-foreground: oklch(0.21 0.004 286);
+  --muted: oklch(0.945 0.004 286);
+  --muted-foreground: oklch(0.43 0.008 286);
+  --accent: oklch(0.03 0 0);
+  --accent-foreground: oklch(1 0 0);
+  --destructive: oklch(0.58 0.2 28);
+  --border: oklch(0.86 0.004 286);
+  --input: oklch(0.86 0.004 286);
+  --ring: oklch(0.55 0.28 292);
+  --chart-1: oklch(0.55 0.28 292);
+  --chart-2: oklch(0.89 0.055 37);
+  --chart-3: oklch(0.94 0.07 96);
+  --chart-4: oklch(0.72 0.21 142);
+  --chart-5: oklch(0.67 0.21 25);
+  --sidebar: oklch(1 0 0);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --brand-ink: oklch(0.21 0.004 286);
+  --brand-mark: oklch(0.55 0.28 292);
+  --brand-hot: oklch(0.55 0.28 292);
+  --brand-rule: oklch(0.82 0.004 286);
+  --brand-success: oklch(0.72 0.21 142);
+  --brand-warning: oklch(0.94 0.07 96);
+  --brand-coral: oklch(0.9 0.055 37);
+  --brand-lime: oklch(0.83 0.2 132);
+  --brand-sky: oklch(0.9 0.04 230);
+  --cta-green: oklch(0.3 0.08 168);
+  --cta-green-foreground: oklch(0.995 0 0);
+  --cta-green-soft: oklch(0.91 0.055 154);
+  --filter-foreground: oklch(0.18 0.01 286);
+  --filter-lime: oklch(0.93 0.17 111);
+  --filter-sky: oklch(0.88 0.06 232);
+  --filter-coral: oklch(0.9 0.065 38);
+  --surface-paper: oklch(1 0 0);
+  --surface-ledger: oklch(0.965 0.003 286);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-base font-normal text-foreground;
+    background:
+      radial-gradient(
+        circle at 102% 18rem,
+        color-mix(in oklch, var(--brand-warning), white 22%) 0 10.5rem,
+        transparent 10.6rem
+      ),
+      radial-gradient(
+        ellipse 22rem 30rem at 78% 15rem,
+        color-mix(in oklch, var(--brand-coral), white 18%) 0 15.5rem,
+        transparent 15.6rem
+      ),
+      var(--background);
+  }
+  html {
+    @apply font-sans;
+    font-size: 16px;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer utilities {
+  .ledger-surface {
+    background:
+      linear-gradient(
+        180deg,
+        color-mix(in oklch, var(--surface-paper), white 4%) 0,
+        var(--surface-paper) 13rem
+      ),
+      var(--surface-paper);
+  }
+
+  .ledger-rule {
+    background: linear-gradient(
+      to right,
+      var(--primary) 0 42%,
+      color-mix(in oklch, var(--primary), var(--brand-sky) 35%) 42% 68%,
+      color-mix(in oklch, var(--primary), var(--brand-coral) 25%) 68% 100%
+    );
+  }
+
+  .row-surface {
+    @apply border-b last:border-b-0;
+  }
 }

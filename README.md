@@ -1,36 +1,71 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# FY Pools
 
-## Getting Started
+Foundation project for a commissioner-first sports pool product.
 
-First, run the development server:
+## Stack
+
+- Next.js App Router
+- TypeScript
+- Tailwind CSS
+- shadcn/ui
+- Supabase/Postgres migration structure
+- Vercel-first app deployment target
+- Cloudflare reserved for scheduled result jobs later
+
+## Local Development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```text
+http://localhost:3000
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+This setup also supports any available port, for example:
 
-## Learn More
+```bash
+npm run dev -- --port 3001
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Foundation Routes
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+- `/`
+- `/sign-in`
+- `/dashboard`
+- `/dashboard/pools`
+- `/dashboard/templates`
+- `/pools/[poolSlug]`
+- `/pools/[poolSlug]/leaderboard`
+- `/pools/[poolSlug]/make-picks`
+- `/pools/[poolSlug]/commissioner`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Database Direction
 
-## Deploy on Vercel
+The first schema draft is in `supabase/migrations`. It models pools,
+memberships, invites, entries, reusable templates, stages, matches, series,
+bracket slots, flexible pick items, results, scoring breakdowns, standings,
+lock rules, audit events, payouts, and subscriptions.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Flexible pick values live in `entry_pick_items.value` as `jsonb`; core product
+entities remain relational.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Next Feature
+
+Build Template Library v1 before auth polish:
+
+- World Cup Full Predictor
+- NBA Playoff Series Bracket
+
+See `docs/next-feature.md`.
+
+## Design System
+
+The selected baseline is **FY Paper Ledger**: ink-blue actions, paper surfaces,
+bracket-grid brand rules, and simple row-first layouts. Theme swap support is
+based on semantic CSS variables under `html[data-theme]`.
+
+See `docs/design-system.md`.
