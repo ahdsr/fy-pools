@@ -20,7 +20,7 @@ export function SectionHeader({
         className,
       )}
     >
-      <div className="prose max-w-2xl prose-h2:my-0 prose-h2:text-2xl prose-h2:font-bold prose-h2:tracking-[0.005em] prose-h2:text-brand-ink prose-p:mb-0 prose-p:mt-2 prose-p:text-base prose-p:font-normal prose-p:leading-7 prose-p:text-muted-foreground">
+      <div className="prose max-w-2xl prose-h2:my-0 prose-h2:text-2xl prose-h2:font-bold prose-h2:tracking-[0.005em] prose-h2:text-brand-ink prose-p:mb-0 prose-p:mt-2 prose-p:text-sm prose-p:font-normal prose-p:leading-6 prose-p:text-muted-foreground">
         {title && <h2>{title}</h2>}
         {description && <p>{description}</p>}
       </div>

@@ -11,7 +11,7 @@ export function PlaceholderGrid({ items }: { items: PlaceholderItem[] }) {
           <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
             {item.title}
           </h2>
-          <p className="text-base font-normal leading-7 text-muted-foreground">
+          <p className="text-sm font-normal leading-6 text-muted-foreground">
             {item.body}
           </p>
         </div>

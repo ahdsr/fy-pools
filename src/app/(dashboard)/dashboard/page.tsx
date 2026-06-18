@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, CalendarClock, ClipboardList } from "lucide-react";
+import { ArrowRight, ClipboardList, FileSpreadsheet } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PageShell } from "@/components/app/page-shell";
@@ -16,7 +16,7 @@ export default function DashboardPage() {
     >
       <LedgerPanel
         title="Workspace"
-        description="Two starting points define the MVP: pool operations and templates."
+        description="Two starting points define the MVP: pool operations and spreadsheet import."
       >
         <LedgerRows className="grid md:grid-cols-2 md:divide-x md:divide-y-0">
           <LedgerRow className="space-y-5">
@@ -25,7 +25,7 @@ export default function DashboardPage() {
               <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
                 Pool operations
               </h2>
-              <p className="text-base font-normal leading-7 text-muted-foreground">
+              <p className="text-sm font-normal leading-6 text-muted-foreground">
                 Create pools, invite players, track entries, and review lock
                 status from one workspace.
               </p>
@@ -37,19 +37,19 @@ export default function DashboardPage() {
             </Button>
           </LedgerRow>
           <LedgerRow className="space-y-5">
-            <CalendarClock className="size-5 text-brand-mark" />
+            <FileSpreadsheet className="size-5 text-brand-mark" />
             <div className="space-y-2">
               <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
-                Template library
+                Spreadsheet import
               </h2>
-              <p className="text-base font-normal leading-7 text-muted-foreground">
-                Start from reusable tournament, bracket, series, and bonus
-                question templates.
+              <p className="text-sm font-normal leading-6 text-muted-foreground">
+                Bring an Excel pool you already use and turn it into hosted
+                picks, brackets, scoring, and standings.
               </p>
             </div>
             <Button asChild variant="outline">
-              <Link href="/dashboard/templates">
-                View templates <ArrowRight />
+              <Link href="/upload-your-own">
+                Upload your own <ArrowRight />
               </Link>
             </Button>
           </LedgerRow>

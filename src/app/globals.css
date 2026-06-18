@@ -11,7 +11,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-momo-trust-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-momo-trust-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -183,16 +183,16 @@ html[data-theme="premium-pools"] {
   --sidebar-ring: var(--ring);
   --brand-ink: oklch(0.21 0.004 286);
   --brand-mark: oklch(0.55 0.28 292);
-  --brand-hot: oklch(0.55 0.28 292);
+  --brand-hot: #6100e9;
   --brand-rule: oklch(0.82 0.004 286);
   --brand-success: oklch(0.72 0.21 142);
   --brand-warning: oklch(0.94 0.07 96);
   --brand-coral: oklch(0.9 0.055 37);
   --brand-lime: oklch(0.83 0.2 132);
   --brand-sky: oklch(0.9 0.04 230);
-  --cta-green: oklch(0.3 0.08 168);
-  --cta-green-foreground: oklch(0.995 0 0);
-  --cta-green-soft: oklch(0.91 0.055 154);
+  --cta-green: #b3e802;
+  --cta-green-foreground: #000000;
+  --cta-green-soft: #f6ffd7;
   --filter-foreground: oklch(0.18 0.01 286);
   --filter-lime: oklch(0.93 0.17 111);
   --filter-sky: oklch(0.88 0.06 232);
@@ -206,7 +206,7 @@ html[data-theme="premium-pools"] {
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-base font-normal text-foreground;
+    @apply bg-background text-sm font-normal text-foreground;
     background:
       radial-gradient(
         circle at 102% 18rem,
@@ -223,6 +223,14 @@ html[data-theme="premium-pools"] {
   html {
     @apply font-sans;
     font-size: 16px;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: var(--font-heading);
+    font-weight: 400;
+    letter-spacing: -0.02em;
   }
 }
 

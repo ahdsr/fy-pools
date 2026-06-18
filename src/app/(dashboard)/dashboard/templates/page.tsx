@@ -3,19 +3,23 @@ import { ArrowRight } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PageShell } from "@/components/app/page-shell";
-import { SectionHeader } from "@/components/app/section-header";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { FilterPill } from "@/components/ui/filter-pill";
 import {
   getAllTemplates,
   getCategoryBySlug,
   TEMPLATE_CATEGORIES,
+  type TemplateCategory,
 } from "@/lib/templates/catalog";
-import { TEMPLATE_PICK_TYPES } from "@/lib/templates/pick-types";
 
 type DashboardTemplatesPageProps = {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 };
+
+function getCategoryDisplayName(category: TemplateCategory) {
+  return category.slug === "world-cup" ? "2026 World Cup" : category.name;
+}
 
 export default async function DashboardTemplatesPage({
   searchParams,
@@ -25,6 +29,9 @@ export default async function DashboardTemplatesPage({
     ? params.category[0]
     : params.category;
   const selectedCategory = getCategoryBySlug(categorySlug);
+  const selectedCategoryName = selectedCategory
+    ? getCategoryDisplayName(selectedCategory)
+    : undefined;
   const templates = selectedCategory
     ? selectedCategory.templates.map((template) => ({
         ...template,
@@ -34,50 +41,38 @@ export default async function DashboardTemplatesPage({
 
   return (
     <PageShell
-      eyebrow="Template engine"
-      title={selectedCategory ? `${selectedCategory.name} templates` : "Templates"}
+      title={selectedCategoryName ?? "Templates"}
       description={
         selectedCategory
-          ? `All available ${selectedCategory.name} pool formats, ready to launch into the setup wizard.`
+          ? `All available ${selectedCategoryName} pool formats, ready to launch into the setup wizard.`
           : "Browse every template category so commissioners start from a clear format, not blank setup."
       }
-    >
-      <section className="space-y-5">
-        <SectionHeader
-          title="Template categories"
-          description="Filter by sport or event type, then launch the exact format you want to create."
-          action={
-            selectedCategory ? (
-              <Button asChild variant="outline">
-                <Link href="/dashboard/templates">All templates</Link>
-              </Button>
-            ) : (
-              <Badge variant="secondary">{templates.length} templates</Badge>
-            )
-          }
-        />
-        <div className="flex flex-wrap gap-2">
+      topContent={
+        <nav
+          aria-label="Template categories"
+          className="flex flex-wrap gap-3 pt-1"
+        >
+          <FilterPill asChild variant={selectedCategory ? "neutral" : "active"}>
+            <Link href="/dashboard/templates">All Templates</Link>
+          </FilterPill>
           {TEMPLATE_CATEGORIES.map((category) => (
-            <Button
+            <FilterPill
               key={category.slug}
               asChild
               variant={
-                selectedCategory?.slug === category.slug
-                  ? "default"
-                  : "outline"
+                selectedCategory?.slug === category.slug ? "active" : "neutral"
               }
-              size="sm"
             >
               <Link href={`/dashboard/templates?category=${category.slug}`}>
                 {category.name}
               </Link>
-            </Button>
+            </FilterPill>
           ))}
-        </div>
-      </section>
-
+        </nav>
+      }
+    >
       <LedgerPanel
-        title={selectedCategory ? selectedCategory.name : "Template library"}
+        title={selectedCategoryName ?? "Template library"}
         description={
           selectedCategory
             ? selectedCategory.description
@@ -97,14 +92,14 @@ export default async function DashboardTemplatesPage({
                   </h2>
                   <Badge variant="outline">{template.popularity}</Badge>
                 </div>
-                <p className="mt-1 text-base font-normal text-muted-foreground">
+                <p className="mt-1 text-sm font-normal text-muted-foreground">
                   {template.category.name}
                 </p>
               </div>
-              <p className="text-base font-normal text-muted-foreground">
+              <p className="text-sm font-normal text-muted-foreground">
                 {template.bestFor}
               </p>
-              <p className="text-base font-normal text-muted-foreground">
+              <p className="text-sm font-normal text-muted-foreground">
                 {template.picks}
               </p>
               <Badge variant="outline">{template.lock}</Badge>
@@ -117,20 +112,6 @@ export default async function DashboardTemplatesPage({
           ))}
         </LedgerRows>
       </LedgerPanel>
-
-      <section className="space-y-4">
-        <SectionHeader
-          title="Minimum pick types"
-          description="These are the first reusable field contracts."
-        />
-        <div className="flex flex-wrap gap-2">
-          {TEMPLATE_PICK_TYPES.map((type) => (
-            <Badge key={type} variant="outline">
-              {type}
-            </Badge>
-          ))}
-        </div>
-      </section>
     </PageShell>
   );
 }

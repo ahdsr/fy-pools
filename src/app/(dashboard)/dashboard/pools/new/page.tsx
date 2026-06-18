@@ -56,7 +56,7 @@ export default async function NewPoolPage({ searchParams }: NewPoolPageProps) {
               <h2 className="mt-3 text-2xl font-bold tracking-[0.005em] text-brand-ink">
                 {templateName}
               </h2>
-              <p className="mt-3 text-base font-normal leading-7 text-muted-foreground">
+              <p className="mt-3 text-sm font-normal leading-6 text-muted-foreground">
                 Commissioners land here after choosing a pool card. Next, this
                 page can collect the pool name, event dates, scoring settings,
                 and invite rules.

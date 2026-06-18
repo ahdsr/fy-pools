@@ -1,15 +1,16 @@
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
+import { Slot } from "radix-ui"
 
 import { cn } from "@/lib/utils"
 
 const filterPillVariants = cva(
-  "inline-flex h-10 shrink-0 items-center justify-center rounded-full border px-5 text-base font-semibold whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex h-[39px] shrink-0 items-center justify-center rounded-full border px-4 text-sm font-medium tracking-[-0.02em] whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
         active:
-          "border-cta-green bg-cta-green text-cta-green-foreground shadow-[0_12px_28px_color-mix(in_oklch,var(--cta-green),transparent_78%)] hover:bg-[color-mix(in_oklch,var(--cta-green),black_8%)]",
+          "border-accent bg-accent text-accent-foreground shadow-[0_12px_28px_color-mix(in_oklch,var(--accent),transparent_82%)] hover:bg-accent/90",
         lime:
           "border-filter-lime/70 bg-filter-lime text-filter-foreground hover:bg-[color-mix(in_oklch,var(--filter-lime),white_18%)]",
         sky:
@@ -30,13 +31,19 @@ function FilterPill({
   className,
   variant = "neutral",
   type = "button",
+  asChild = false,
   ...props
-}: React.ComponentProps<"button"> & VariantProps<typeof filterPillVariants>) {
+}: React.ComponentProps<"button"> &
+  VariantProps<typeof filterPillVariants> & {
+    asChild?: boolean
+  }) {
+  const Comp = asChild ? Slot.Root : "button"
+
   return (
-    <button
+    <Comp
       data-slot="filter-pill"
       data-variant={variant}
-      type={type}
+      {...(!asChild ? { type } : {})}
       className={cn(filterPillVariants({ variant, className }))}
       {...props}
     />

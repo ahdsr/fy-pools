@@ -1,10 +1,11 @@
+import Link from "next/link";
+import { ShieldCheck } from "lucide-react";
+import { notFound } from "next/navigation";
+
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
-import { PageShell } from "@/components/app/page-shell";
-import { PlaceholderGrid } from "@/components/app/placeholder-grid";
+import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
+import { getPublicPool, MARCINS_POOL_SLUG } from "@/lib/world-cup-pool/data";
 
 type CommissionerPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -14,68 +15,43 @@ export default async function CommissionerPage({
   params,
 }: CommissionerPageProps) {
   const { poolSlug } = await params;
+  const pool = await getPublicPool(poolSlug);
+  if (!pool) notFound();
 
   return (
-    <PageShell
-      eyebrow="Commissioner controls"
-      title="Commissioner"
-      description="A calm admin ledger for setup, invites, locks, scoring, and audit history."
-      backHref={`/pools/${poolSlug}`}
+    <PublicPoolShell
+      poolName={pool.entriesConfig.poolName}
+      poolSlug={MARCINS_POOL_SLUG}
+      active="overview"
+      eyebrow="Commissioner area"
+      title="Commissioner tools require sign-in"
+      description="Admin controls, imports, lock rules, and result overrides live in the signed-in dashboard rather than on Marcin's public share page."
     >
-      <LedgerPanel
-        title="Pool setup snapshot"
-        description="Commissioners should see the pool's operating state at a glance."
-      >
-        <div className="grid gap-5 p-5 md:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="pool-name">Pool name</Label>
-            <Input id="pool-name" value="Sample pool" readOnly />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="invite-code">Invite code</Label>
-            <Input id="invite-code" value="FY-2026" readOnly />
-          </div>
-          <div className="space-y-2 md:col-span-2">
-            <Label htmlFor="commissioner-note">Commissioner note</Label>
-            <Textarea
-              id="commissioner-note"
-              value="Payment handling is outside the player join flow for MVP."
-              readOnly
-            />
-          </div>
-          <Button disabled>Publish controls come next</Button>
-        </div>
-      </LedgerPanel>
-      <LedgerPanel title="Setup ledger">
-        <LedgerRows className="grid md:grid-cols-3 md:divide-x md:divide-y-0">
-          {["Invite players", "Review lock rules", "Confirm scoring"].map(
-            (item) => (
-              <LedgerRow key={item}>
-                <p className="font-medium text-brand-ink">{item}</p>
-                <p className="mt-1 text-base font-normal text-muted-foreground">
-                  Ready for the next implementation pass.
-                </p>
-              </LedgerRow>
-            ),
-          )}
+      <LedgerPanel title="Private controls">
+        <LedgerRows className="grid md:grid-cols-[1fr_auto] md:items-center md:divide-x md:divide-y-0">
+          <LedgerRow className="flex gap-4">
+            <ShieldCheck className="mt-1 size-5 shrink-0 text-brand-mark" />
+            <div>
+              <p className="font-semibold text-brand-ink">
+                Public viewers cannot administer this pool
+              </p>
+              <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                The public route is designed for friends and entrants. Marcin&apos;s
+                commissioner workflow should stay in the dashboard mock until
+                auth and role checks are wired.
+              </p>
+            </div>
+          </LedgerRow>
+          <LedgerRow className="flex flex-wrap gap-3">
+            <Button asChild variant="primaryGreen">
+              <Link href="/dashboard">Open dashboard</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={`/pools/${MARCINS_POOL_SLUG}`}>Back to pool</Link>
+            </Button>
+          </LedgerRow>
         </LedgerRows>
       </LedgerPanel>
-      <PlaceholderGrid
-        items={[
-          {
-            title: "Members",
-            body: "Invite, remove, and assign commissioner/player roles.",
-          },
-          {
-            title: "Overrides",
-            body: "Manual corrections should create audit events and explainable score deltas.",
-          },
-          {
-            title: "Exports",
-            body: "CSV exports should cover entries, picks, standings, and payout tracking.",
-          },
-        ]}
-      />
-    </PageShell>
+    </PublicPoolShell>
   );
 }

@@ -24,10 +24,10 @@ export function BrandWordmark({ className }: BrandMarkProps) {
   return (
     <Link
       href="/"
-      className={cn("inline-flex items-center gap-3 font-bold", className)}
+      className={cn("inline-flex items-center gap-2.5 font-normal", className)}
     >
       <BrandMark />
-      <span className="text-lg tracking-normal text-brand-ink">FY Pools</span>
+      <span className="text-base tracking-normal text-brand-ink">FY Pools</span>
     </Link>
   );
 }

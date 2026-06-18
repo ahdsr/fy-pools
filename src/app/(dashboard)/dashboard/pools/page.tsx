@@ -2,14 +2,23 @@ import Link from "next/link";
 import { ArrowRight, CircleArrowRight, Plus } from "lucide-react";
 
 import { PageShell } from "@/components/app/page-shell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterPill } from "@/components/ui/filter-pill";
 import { TEMPLATE_CATEGORIES } from "@/lib/templates/catalog";
 
 const activePools = [
-  ["Marcin's 2026 World Cup Pool", "48 players", "Planning"],
-  ["Sample NBA Playoff Pool", "22 players", "Template seed"],
+  {
+    name: "Marcin's 2026 World Cup Pool",
+    players: "30 entries",
+    status: "Public page live",
+    href: "/pools/marcins-2026-world-cup-pool",
+  },
+  {
+    name: "Sample NBA Playoff Pool",
+    players: "22 players",
+    status: "Template seed",
+    href: "/dashboard/pools/new?template=nba-series-bracket",
+  },
 ];
 
 const poolFilters = [
@@ -48,11 +57,6 @@ const categoryVisuals: Record<string, { label: string; image: string }> = {
 };
 
 export default function DashboardPoolsPage() {
-  const templateCount = TEMPLATE_CATEGORIES.reduce(
-    (count, category) => count + category.templates.length,
-    0,
-  );
-
   return (
     <PageShell
       eyebrow="Pool management"
@@ -61,12 +65,12 @@ export default function DashboardPoolsPage() {
     >
       <section className="space-y-8">
         <div className="space-y-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-4">
             <div className="space-y-4">
-              <h2 className="text-4xl font-black leading-none tracking-[-0.035em] text-brand-hot md:text-5xl">
+              <h2 className="text-[2.875rem] font-normal leading-none tracking-[-0.02em] text-brand-hot">
                 Hot right now
               </h2>
-              <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2.5">
                 {poolFilters.map((filter) => (
                   <FilterPill key={filter.label} variant={filter.variant}>
                     {filter.label}
@@ -74,14 +78,11 @@ export default function DashboardPoolsPage() {
                 ))}
               </div>
             </div>
-            <Badge variant="secondary">
-              {TEMPLATE_CATEGORIES.length} sports / {templateCount} templates
-            </Badge>
           </div>
           <div className="border-t border-dashed border-brand-rule" />
         </div>
 
-        <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-x-8 gap-y-12 sm:grid-cols-2 xl:grid-cols-[repeat(4,279px)] xl:gap-x-[49px]">
           {TEMPLATE_CATEGORIES.map((category) => {
             const visual = categoryVisuals[category.slug] ?? {
               label: category.name,
@@ -93,7 +94,7 @@ export default function DashboardPoolsPage() {
             return (
               <article key={category.slug} className="space-y-4">
                 <div className="space-y-3">
-                  <h3 className="text-3xl font-black leading-none tracking-[-0.035em] text-brand-ink">
+                  <h3 className="text-[2.125rem] font-normal leading-[2.75rem] tracking-[-0.02em] text-brand-ink">
                     {visual.label}
                   </h3>
 
@@ -111,24 +112,24 @@ export default function DashboardPoolsPage() {
                   </Link>
                 </div>
 
-                <p className="text-base font-normal leading-7 text-foreground/80">
+                <p className="text-base font-light leading-[1.4375rem] text-foreground/90">
                   {category.description}
                 </p>
 
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {category.templates.slice(0, 3).map((template) => (
                     <Link
                       key={template.slug}
                       href={`/dashboard/pools/new?template=${template.slug}`}
-                      className="group flex items-center gap-2 text-sm font-medium text-brand-ink transition-colors hover:text-brand-hot"
+                      className="group flex items-center gap-2 text-sm font-normal leading-[1.4375rem] text-brand-ink transition-colors hover:text-brand-hot"
                     >
-                      <CircleArrowRight className="size-5 shrink-0 text-primary transition-colors group-hover:text-brand-hot" />
+                      <CircleArrowRight className="size-[18px] shrink-0 text-primary transition-colors group-hover:text-brand-hot" />
                       <span>{template.name}</span>
                     </Link>
                   ))}
                 </div>
 
-                <div className="flex flex-col gap-3 pt-2">
+                <div className="flex flex-col gap-4 pt-2">
                   <Button asChild variant="primaryGreen" className="w-fit">
                     <Link
                       href={`/dashboard/pools/new?template=${primaryTemplate?.slug}`}
@@ -151,10 +152,10 @@ export default function DashboardPoolsPage() {
       <section className="space-y-5 border-t border-dashed border-brand-rule pt-10">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <h2 className="text-3xl font-black tracking-[-0.03em] text-brand-ink">
+            <h2 className="text-[2.125rem] font-normal leading-[2.75rem] tracking-[-0.02em] text-brand-ink">
               Existing pools
             </h2>
-            <p className="mt-2 max-w-2xl text-base leading-7 text-foreground/75">
+            <p className="mt-2 max-w-2xl text-base font-light leading-[1.4375rem] text-foreground/75">
               Active pools stay close by, but creating the next one starts with
               choosing a sport category above.
             </p>
@@ -165,19 +166,22 @@ export default function DashboardPoolsPage() {
         </div>
 
         <div className="grid gap-3 md:grid-cols-2">
-          {activePools.map(([name, players, status]) => (
-            <div
-              key={name}
-              className="flex items-center justify-between gap-4 rounded-lg bg-muted px-4 py-3"
+          {activePools.map((pool) => (
+            <Link
+              key={pool.name}
+              href={pool.href}
+              className="flex items-center justify-between gap-4 rounded-lg bg-muted px-4 py-3 transition-colors hover:bg-cta-green-soft"
             >
               <div>
-                <p className="font-semibold text-brand-ink">{name}</p>
-                <p className="text-base font-normal text-foreground/70">
-                  {players}
+                <p className="font-semibold text-brand-ink">{pool.name}</p>
+                <p className="text-sm font-normal leading-[1.4375rem] text-foreground/70">
+                  {pool.players}
                 </p>
               </div>
-              <Badge variant="outline">{status}</Badge>
-            </div>
+              <span className="rounded-full border border-border bg-white/72 px-2.5 py-1 text-xs font-medium text-foreground">
+                {pool.status}
+              </span>
+            </Link>
           ))}
         </div>
       </section>
