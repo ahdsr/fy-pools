@@ -197,6 +197,32 @@ function isCountedMatch(match: MatchResult) {
   );
 }
 
+function isDisplayableMatch(match: MatchResult) {
+  return Boolean(match.id && match.date && match.homeTeam && match.awayTeam);
+}
+
+function matchTime(match: MatchResult) {
+  const value = new Date(match.date).getTime();
+  return Number.isFinite(value) ? value : 0;
+}
+
+function compareMatchesByRoomPriority(nowTime: number) {
+  return (a: MatchResult, b: MatchResult) => {
+    const aTime = matchTime(a);
+    const bTime = matchTime(b);
+    const aLive = a.state === "in";
+    const bLive = b.state === "in";
+    if (aLive !== bLive) return aLive ? -1 : 1;
+
+    const aUpcoming = !a.completed && a.state !== "post" && aTime >= nowTime;
+    const bUpcoming = !b.completed && b.state !== "post" && bTime >= nowTime;
+    if (aUpcoming !== bUpcoming) return aUpcoming ? -1 : 1;
+    if (aUpcoming && bUpcoming) return aTime - bTime;
+
+    return bTime - aTime;
+  };
+}
+
 function emptyStats(team: string): TeamStat {
   return {
     team,
@@ -481,6 +507,7 @@ export function buildResultsFromEvents(
   const topThirdGroups = isGroupStageFinal(groups) ? selectTopThirdGroups(groups) : [];
   const countedMatches = matches.filter(isCountedMatch).length;
   const liveMatches = matches.filter((match) => match.state === "in").length;
+  const nowTime = new Date(now).getTime();
   const statusParts = [
     "Auto-updated from ESPN",
     `${countedMatches} live/final match${countedMatches === 1 ? "" : "es"} counted`,
@@ -498,7 +525,7 @@ export function buildResultsFromEvents(
           "Group standings are computed from ESPN match scores. Third-place qualifier scoring is withheld until the group stage is final unless manually overridden.",
       },
       matches: matches
-        .filter(isCountedMatch)
+        .filter(isDisplayableMatch)
         .map((match) => ({
           id: match.id,
           date: match.date,
@@ -512,7 +539,7 @@ export function buildResultsFromEvents(
           winner: match.winner,
           loser: match.loser,
         }))
-        .sort((a, b) => String(b.date).localeCompare(String(a.date))),
+        .sort(compareMatchesByRoomPriority(nowTime)),
       groups,
       topThirdGroups,
       roundOf16: knockout.roundOf16,

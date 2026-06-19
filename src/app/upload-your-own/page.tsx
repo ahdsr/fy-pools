@@ -8,7 +8,12 @@ import {
   Users,
 } from "lucide-react";
 
-import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import {
+  LedgerFeatureRows,
+  LedgerPanel,
+  LedgerRow,
+  LedgerRows,
+} from "@/components/app/ledger";
 import { PageShell } from "@/components/app/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -65,25 +70,7 @@ export default function UploadYourOwnPage() {
           title="What we can convert"
           description="Keep the format that makes your pool yours, then make it easier to run."
         >
-          <LedgerRows className="grid md:grid-cols-2 md:divide-x md:divide-y-0">
-            {importIncludes.map((item) => {
-              const Icon = item.icon;
-
-              return (
-                <LedgerRow key={item.title} className="space-y-4">
-                  <Icon className="size-5 text-brand-mark" />
-                  <div className="space-y-2">
-                    <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
-                      {item.title}
-                    </h2>
-                    <p className="text-sm font-normal leading-6 text-muted-foreground">
-                      {item.body}
-                    </p>
-                  </div>
-                </LedgerRow>
-              );
-            })}
-          </LedgerRows>
+          <LedgerFeatureRows items={importIncludes} />
         </LedgerPanel>
 
         <LedgerPanel

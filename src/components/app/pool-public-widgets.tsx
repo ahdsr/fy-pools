@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { LucideIcon } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { Badge } from "@/components/ui/badge";
@@ -20,6 +21,13 @@ import type {
   PoolResults,
   PoolScore,
 } from "@/lib/world-cup-pool/types";
+
+type PublicToolLink = {
+  title: string;
+  body: string;
+  href: string;
+  icon: LucideIcon;
+};
 
 export function StatGrid({
   stats,
@@ -81,12 +89,24 @@ export function ScoreCards({ score }: { score: PoolScore }) {
   );
 }
 
-export function PayoutPanel({ entriesConfig }: { entriesConfig: EntriesConfig }) {
+export function PayoutPanel({
+  entriesConfig,
+  compact = false,
+}: {
+  entriesConfig: EntriesConfig;
+  compact?: boolean;
+}) {
   if (!entriesConfig.payouts?.length) return null;
 
   return (
     <LedgerPanel title="Prize ledger" description={entriesConfig.prizePoolLabel}>
-      <LedgerRows className="grid sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4">
+      <LedgerRows
+        className={
+          compact
+            ? undefined
+            : "grid sm:grid-cols-2 sm:divide-x sm:divide-y-0 lg:grid-cols-4"
+        }
+      >
         {entriesConfig.payouts.map((payout) => (
           <LedgerRow key={payout.place}>
             <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
@@ -97,6 +117,36 @@ export function PayoutPanel({ entriesConfig }: { entriesConfig: EntriesConfig })
             </p>
           </LedgerRow>
         ))}
+      </LedgerRows>
+    </LedgerPanel>
+  );
+}
+
+export function PublicToolsPanel({ tools }: { tools: PublicToolLink[] }) {
+  return (
+    <LedgerPanel title="Pool tools">
+      <LedgerRows>
+        {tools.map((item) => {
+          const Icon = item.icon;
+
+          return (
+            <LedgerRow key={item.title} className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Icon className="size-5 text-brand-mark" />
+                <Badge variant="outline">Public</Badge>
+              </div>
+              <div>
+                <p className="font-semibold text-brand-ink">{item.title}</p>
+                <p className="mt-1 text-sm font-normal leading-5 text-muted-foreground">
+                  {item.body}
+                </p>
+              </div>
+              <Button asChild variant="outline">
+                <Link href={item.href}>Open</Link>
+              </Button>
+            </LedgerRow>
+          );
+        })}
       </LedgerRows>
     </LedgerPanel>
   );
@@ -153,13 +203,11 @@ export function LeaderboardTable({
 }
 
 export function LatestUpdatesPanel({
-  rows,
   results,
 }: {
   rows: LeaderboardRow[];
   results: PoolResults;
 }) {
-  const leaders = rows.filter((row) => row.rank === 1);
   const matches = (results.matches ?? []).slice(0, 5);
 
   return (
@@ -168,25 +216,16 @@ export function LatestUpdatesPanel({
       description={results.meta?.status ?? "Latest standings update"}
     >
       <LedgerRows>
-        {leaders.length ? (
-          <LedgerRow>
-            <p className="font-medium text-brand-ink">
-              {leaders.map((leader) => leader.name).join(" and ")}{" "}
-              {leaders.length === 1 ? "leads" : "share first"} with{" "}
-              {leaders[0].score.total} points.
-            </p>
-          </LedgerRow>
-        ) : null}
         {matches.map((match) => (
           <LedgerRow key={match.id} className="grid gap-2 md:grid-cols-[7rem_1fr_auto] md:items-center">
             <Badge variant={match.state === "in" ? "secondary" : "outline"}>
-              {match.detail || (match.completed ? "FT" : "Live")}
+              {match.detail || (match.completed ? "FT" : "Scheduled")}
             </Badge>
             <p className="font-medium text-brand-ink">
               {renderMatchText(match)}
             </p>
             <p className="text-sm font-normal text-muted-foreground">
-              {match.homeScore ?? "-"}-{match.awayScore ?? "-"}
+              {renderMatchScore(match)}
             </p>
           </LedgerRow>
         ))}
@@ -204,7 +243,15 @@ function renderMatchText(match: MatchResult) {
   if (match.state === "in" && !match.completed) {
     return `Live: ${home} vs ${away}`;
   }
+  if (!match.completed) {
+    return `Upcoming: ${home} vs ${away}`;
+  }
   return `${home} drew ${away}`;
+}
+
+function renderMatchScore(match: MatchResult) {
+  if (!match.completed && match.state !== "in") return "-";
+  return `${match.homeScore ?? "-"}-${match.awayScore ?? "-"}`;
 }
 
 export function TeamPill({ team, picks }: { team?: string; picks?: EntryPicks }) {

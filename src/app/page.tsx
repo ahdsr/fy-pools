@@ -7,6 +7,7 @@ import {
   HeaderAccountControls,
   SiteHeaderNav,
 } from "@/components/app/mock-auth";
+import { SiteFooter } from "@/components/app/site-footer";
 import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
@@ -216,6 +217,7 @@ export default function Home() {
           </ul>
         </section>
       </section>
+      <SiteFooter />
     </main>
   );
 }

@@ -86,14 +86,12 @@ const SIDE_STYLES = {
     chip: "border-[#ff6b75]/35 bg-[#d82d3a]/18 text-white",
     glow: "shadow-[0_0_32px_rgb(216_45_58_/_0.35)]",
     color: "#d82d3a",
-    label: "Czechia",
   },
   away: {
     jersey: "bg-[#0d7143] text-white ring-white/40",
     chip: "border-[#31d989]/35 bg-[#0d7143]/20 text-white",
     glow: "shadow-[0_0_32px_rgb(13_113_67_/_0.35)]",
     color: "#0d7143",
-    label: "South Africa",
   },
   neutral: {
     jersey: "bg-zinc-950 text-white ring-white/40",
@@ -181,11 +179,34 @@ const MESSAGE_PRESETS = [
   "This side has the room.",
 ];
 
-const STARTER_CHAT_MESSAGES: LockerRoomChatMessage[] = [
-  { id: "chat-1", name: "Patryk", side: "home" as const, body: "Czechia has to press early." },
-  { id: "chat-2", name: "Pawel", side: "away" as const, body: "South Africa only needs one counter." },
-  { id: "chat-3", name: "Joseph", side: "home" as const, body: "Group A is still wide open." },
-];
+function starterChatMessages(match: LockerRoomMatch): LockerRoomChatMessage[] {
+  return [
+    {
+      id: "chat-1",
+      name: "Patryk",
+      side: "home",
+      body: `${match.homeTeam} has to press early.`,
+    },
+    {
+      id: "chat-2",
+      name: "Pawel",
+      side: "away",
+      body: `${match.awayTeam} only needs one counter.`,
+    },
+    {
+      id: "chat-3",
+      name: "Joseph",
+      side: "home",
+      body: `${match.groupLabel} is still wide open.`,
+    },
+  ];
+}
+
+function sideLabel(side: LockerRoomSide, match: LockerRoomMatch) {
+  if (side === "home") return match.homeTeam;
+  if (side === "away") return match.awayTeam;
+  return SIDE_STYLES.neutral.label;
+}
 
 function playerCoordinates(
   player: LockerRoomParticipant,
@@ -798,7 +819,9 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
     useState<LockerRoomPosition>("MID");
   const [message, setMessage] = useState(MESSAGE_PRESETS[0]);
   const [draftMessage, setDraftMessage] = useState("");
-  const [chatMessages, setChatMessages] = useState(STARTER_CHAT_MESSAGES);
+  const [chatMessages, setChatMessages] = useState(() =>
+    starterChatMessages(match),
+  );
   const [activeBubbles, setActiveBubbles] = useState<ActiveSpeechBubble[]>([]);
   const [menuOpen, setMenuOpen] = useState(false);
   const [cheerSide, setCheerSide] = useState<LockerRoomSide | null>(null);
@@ -995,7 +1018,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
                 Your avatar
               </p>
               <p className="mt-1 truncate text-sm font-semibold">
-                {SIDE_STYLES[selectedSide].label} {selectedPosition}
+                {sideLabel(selectedSide, match)} {selectedPosition}
               </p>
             </div>
             <Badge
@@ -1140,7 +1163,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
           </MenuSection>
 
           <MenuSection title="Talk track">
-            <TalkTrack participants={participants} />
+            <TalkTrack match={match} participants={participants} />
           </MenuSection>
         </div>
       </aside>
@@ -1166,6 +1189,19 @@ function TeamFlag({
   name: string;
   className?: string;
 }) {
+  if (!code) {
+    return (
+      <div
+        className={cn(
+          "grid h-8 w-11 place-items-center rounded border border-white/24 bg-white/10 text-xs font-bold uppercase text-white/72 shadow-sm",
+          className,
+        )}
+      >
+        {name.slice(0, 2)}
+      </div>
+    );
+  }
+
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -1290,7 +1326,13 @@ function RoomPulse({
   );
 }
 
-function TalkTrack({ participants }: { participants: LockerRoomParticipant[] }) {
+function TalkTrack({
+  match,
+  participants,
+}: {
+  match: LockerRoomMatch;
+  participants: LockerRoomParticipant[];
+}) {
   return (
     <div className="grid gap-2">
       <div className="rounded-lg border border-white/12 bg-white/8 px-3 py-3">
@@ -1307,7 +1349,7 @@ function TalkTrack({ participants }: { participants: LockerRoomParticipant[] }) 
           <div className="flex items-center justify-between gap-3">
             <p className="truncate font-semibold text-white">{player.name}</p>
             <Badge className={SIDE_STYLES[player.side].chip} variant="outline">
-              {SIDE_STYLES[player.side].label}
+              {sideLabel(player.side, match)}
             </Badge>
           </div>
           <p className="mt-2 text-sm leading-5 text-white/68">{player.take}</p>

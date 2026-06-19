@@ -4,6 +4,8 @@ import {
   Momo_Trust_Display,
   Momo_Trust_Sans,
 } from "next/font/google";
+
+import { MockAuthProvider } from "@/components/app/mock-auth";
 import "./globals.css";
 
 const momoTrustSans = Momo_Trust_Sans({
@@ -47,7 +49,9 @@ export default function RootLayout({
       data-theme="premium-pools"
       className={`${momoTrustSans.variable} ${momoTrustDisplay.variable} ${geistMono.variable} ${momoTrustSans.className} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="min-h-full flex flex-col">
+        <MockAuthProvider>{children}</MockAuthProvider>
+      </body>
     </html>
   );
 }

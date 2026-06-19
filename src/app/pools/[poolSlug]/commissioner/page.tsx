@@ -21,8 +21,6 @@ export default async function CommissionerPage({
   return (
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
-      poolSlug={MARCINS_POOL_SLUG}
-      active="overview"
       eyebrow="Commissioner area"
       title="Commissioner tools require sign-in"
       description="Admin controls, imports, lock rules, and result overrides live in the signed-in dashboard rather than on Marcin's public share page."

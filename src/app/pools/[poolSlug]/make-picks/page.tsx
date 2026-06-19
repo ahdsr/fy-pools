@@ -19,8 +19,6 @@ export default async function MakePicksPage({ params }: MakePicksPageProps) {
   return (
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
-      poolSlug={MARCINS_POOL_SLUG}
-      active="overview"
       eyebrow="Player entry"
       title="Sign in to make picks"
       description="Marcin's public pool page is read-only for friends. Pick entry belongs behind the player sign-in flow so drafts, locks, and private picks stay controlled."

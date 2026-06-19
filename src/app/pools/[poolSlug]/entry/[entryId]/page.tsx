@@ -6,7 +6,10 @@ import {
   ScoreCards,
   TeamPill,
 } from "@/components/app/pool-public-widgets";
-import { PublicPoolShell } from "@/components/app/public-pool-shell";
+import {
+  PublicPoolMetaCard,
+  PublicPoolShell,
+} from "@/components/app/public-pool-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime, getPublicPool, MARCINS_POOL_SLUG } from "@/lib/world-cup-pool/data";
+import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
 
 type EntryPageProps = {
@@ -36,34 +39,29 @@ export default async function EntryPage({ params }: EntryPageProps) {
   if (!picks) notFound();
 
   const score = scorePool(picks, pool.results);
+  const publicSlug = pool.slug;
 
   return (
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
-      poolSlug={MARCINS_POOL_SLUG}
-      active="entry"
       eyebrow="Entry detail"
       title={entry.name}
       description="A public read-only view of this entry's picks and scoring breakdown."
       meta={
-        <div className="rounded-lg border border-white/18 bg-black/30 p-4 backdrop-blur-md">
-          <p className="text-sm font-medium uppercase tracking-normal text-white/62">
-            Updated
-          </p>
-          <p className="mt-2 text-xl font-semibold leading-tight text-white">
-            {formatDateTime(pool.results.meta?.lastUpdated)}
-          </p>
-        </div>
+        <PublicPoolMetaCard
+          label="Updated"
+          value={formatDateTime(pool.results.meta?.lastUpdated)}
+        />
       }
     >
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="secondaryGreen">
-          <Link href={`/pools/${MARCINS_POOL_SLUG}/leaderboard`}>
-            Back to leaderboard
+          <Link href={`/pools/${publicSlug}#leaderboard`}>
+            Back to standings
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={`/pools/${MARCINS_POOL_SLUG}/projections`}>
+          <Link href={`/pools/${publicSlug}?standings=projection#leaderboard`}>
             View projections
           </Link>
         </Button>

@@ -37,6 +37,7 @@ export default async function NewPoolPage({ searchParams }: NewPoolPageProps) {
       description="This is the first step of the pool creation flow. The selected template is carried in so setup can start from a proven format."
       backHref="/dashboard/pools"
       status="Wizard"
+      showHeader={false}
     >
       <LedgerPanel
         title="Wizard start"

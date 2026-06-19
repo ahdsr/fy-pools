@@ -1,9 +1,6 @@
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
-import {
-  HeaderBrandWordmark,
-  HeaderAccountControls,
-  SiteHeaderNav,
-} from "@/components/app/mock-auth";
+import { DashboardHeader } from "@/components/app/mock-auth";
+import { SiteFooter } from "@/components/app/site-footer";
 
 type PageShellProps = {
   eyebrow?: string;
@@ -14,6 +11,7 @@ type PageShellProps = {
   heroAction?: React.ReactNode;
   status?: string;
   topContent?: React.ReactNode;
+  showHeader?: boolean;
 };
 
 export function PageShell({
@@ -23,17 +21,12 @@ export function PageShell({
   children,
   heroAction,
   topContent,
+  showHeader = true,
 }: PageShellProps) {
   return (
     <main className="relative isolate min-h-screen overflow-hidden bg-background">
       <AbstractShapeBackground />
-      <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
-        <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-8 md:px-[43px]">
-          <HeaderBrandWordmark />
-          <SiteHeaderNav />
-          <HeaderAccountControls showDashboardLink={false} />
-        </nav>
-      </header>
+      {showHeader ? <DashboardHeader /> : null}
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-6 md:gap-9 md:py-8">
         {topContent ? <div>{topContent}</div> : null}
@@ -55,6 +48,7 @@ export function PageShell({
         </section>
         {children}
       </div>
+      <SiteFooter />
     </main>
   );
 }

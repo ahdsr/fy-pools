@@ -47,6 +47,7 @@ export default async function DashboardTemplatesPage({
           ? `All available ${selectedCategoryName} pool formats, ready to launch into the setup wizard.`
           : "Browse every template category so commissioners start from a clear format, not blank setup."
       }
+      showHeader={false}
       topContent={
         <nav
           aria-label="Template categories"

@@ -43,8 +43,6 @@ type HeaderBrandWordmarkProps = {
 
 export type PublicPoolNavKey =
   | "overview"
-  | "leaderboard"
-  | "projections"
   | "locker-room"
   | "entry";
 
@@ -60,9 +58,7 @@ const signedOutNavItems = [
 ] as const;
 
 const publicPoolNavItems = [
-  { key: "overview", label: "Overview", href: "" },
-  { key: "leaderboard", label: "Leaderboard", href: "/leaderboard" },
-  { key: "projections", label: "Projections", href: "/projections" },
+  { key: "overview", label: "Pool", href: "" },
   { key: "locker-room", label: "Locker Room", href: "/locker-room" },
 ] as const;
 
@@ -72,6 +68,13 @@ const adminNavItems = [
   { label: "Templates", href: "/dashboard/templates" },
   { label: "Import", href: "/upload-your-own" },
 ] as const;
+
+type MockAuthContextValue = {
+  user: MockUser | null;
+  hydrated: boolean;
+};
+
+const MockAuthContext = React.createContext<MockAuthContextValue | null>(null);
 
 function getStoredUser() {
   if (typeof window === "undefined") {
@@ -103,6 +106,16 @@ function storeUser(user: MockUser | null) {
 }
 
 function useMockUser() {
+  const context = React.useContext(MockAuthContext);
+
+  if (!context) {
+    throw new Error("useMockUser must be used within MockAuthProvider");
+  }
+
+  return context;
+}
+
+export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<MockUser | null>(null);
   const [hydrated, setHydrated] = React.useState(false);
 
@@ -122,7 +135,11 @@ function useMockUser() {
     };
   }, []);
 
-  return { user, hydrated };
+  return (
+    <MockAuthContext.Provider value={{ user, hydrated }}>
+      {children}
+    </MockAuthContext.Provider>
+  );
 }
 
 function getInitials(name: string) {
@@ -153,6 +170,40 @@ export function HeaderBrandWordmark({
       className={className}
       href={hydrated && user ? "/dashboard" : "/"}
       variant={variant}
+    />
+  );
+}
+
+export function DashboardHeader() {
+  return (
+    <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
+      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-8 md:px-[43px]">
+        <HeaderBrandWordmark />
+        <SiteHeaderNav />
+        <HeaderAccountControls showDashboardLink={false} />
+      </nav>
+    </header>
+  );
+}
+
+function getPublicPoolActiveRoute(pathname: string): PublicPoolNavKey {
+  if (pathname.includes("/locker-room")) return "locker-room";
+  if (pathname.includes("/entry/")) return "entry";
+  return "overview";
+}
+
+export function PublicPoolRouteHeader() {
+  const pathname = usePathname();
+  const poolSlug = pathname.match(/^\/pools\/([^/]+)/)?.[1];
+
+  if (!poolSlug) {
+    return null;
+  }
+
+  return (
+    <PublicPoolHeader
+      poolSlug={decodeURIComponent(poolSlug)}
+      active={getPublicPoolActiveRoute(pathname)}
     />
   );
 }

@@ -1,7 +1,7 @@
 import { cn } from "@/lib/utils";
 
 type SectionHeaderProps = {
-  title?: string;
+  title?: React.ReactNode;
   description?: string;
   action?: React.ReactNode;
   className?: string;
@@ -16,7 +16,7 @@ export function SectionHeader({
   return (
     <div
       className={cn(
-        "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+        "flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between",
         className,
       )}
     >

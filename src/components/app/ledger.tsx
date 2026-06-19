@@ -1,8 +1,10 @@
+import type { LucideIcon } from "lucide-react";
+
 import { cn } from "@/lib/utils";
 import { SectionHeader } from "@/components/app/section-header";
 
-type LedgerPanelProps = React.ComponentProps<"section"> & {
-  title?: string;
+type LedgerPanelProps = Omit<React.ComponentProps<"section">, "title"> & {
+  title?: React.ReactNode;
   description?: string;
   action?: React.ReactNode;
 };
@@ -53,5 +55,48 @@ export function LedgerRow({
     <div className={cn("px-5 py-4", className)} {...props}>
       {children}
     </div>
+  );
+}
+
+type LedgerFeatureItem = {
+  title: string;
+  body: string;
+  icon: LucideIcon;
+  action?: React.ReactNode;
+};
+
+type LedgerFeatureRowsProps = Omit<React.ComponentProps<"div">, "children"> & {
+  items: LedgerFeatureItem[];
+};
+
+export function LedgerFeatureRows({
+  items,
+  className,
+  ...props
+}: LedgerFeatureRowsProps) {
+  return (
+    <LedgerRows
+      className={cn("grid md:grid-cols-2 md:divide-x md:divide-y-0", className)}
+      {...props}
+    >
+      {items.map((item) => {
+        const Icon = item.icon;
+
+        return (
+          <LedgerRow key={item.title} className="space-y-5">
+            <Icon className="size-5 text-brand-mark" />
+            <div className="space-y-2">
+              <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
+                {item.title}
+              </h2>
+              <p className="text-sm font-normal leading-6 text-muted-foreground">
+                {item.body}
+              </p>
+            </div>
+            {item.action}
+          </LedgerRow>
+        );
+      })}
+    </LedgerRows>
   );
 }
