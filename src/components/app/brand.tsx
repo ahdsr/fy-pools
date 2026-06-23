@@ -31,10 +31,11 @@ export function BrandWordmark({
   href = "/",
   variant = "dark",
 }: BrandWordmarkProps) {
+  const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
   const logoSrc =
     variant === "light"
-      ? "/brand/poolwaffle-logo-light.png"
-      : "/brand/poolwaffle-logo-dark.png";
+      ? `${basePath}/brand/poolwaffle-logo-light.png`
+      : `${basePath}/brand/poolwaffle-logo-dark.png`;
 
   return (
     <Link

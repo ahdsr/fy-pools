@@ -1,5 +1,6 @@
 import { Info, Trophy, Users } from "lucide-react";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import { LeaderboardTable } from "@/components/app/leaderboard-table";
@@ -121,12 +122,14 @@ export default async function PoolPage({ params }: PoolPageProps) {
             </div>
           }
         >
-          <LeaderboardTable
-            rows={rows}
-            analyticsRows={analytics.rows}
-            poolSlug={publicSlug}
-            payoutPlaces={analytics.payoutPlaces}
-          />
+          <Suspense>
+            <LeaderboardTable
+              rows={rows}
+              analyticsRows={analytics.rows}
+              poolSlug={publicSlug}
+              payoutPlaces={analytics.payoutPlaces}
+            />
+          </Suspense>
         </LedgerPanel>
 
         <aside className="grid gap-5">

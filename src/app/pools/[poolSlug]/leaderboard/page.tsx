@@ -1,10 +1,15 @@
-import { redirect } from "next/navigation";
+"use client";
 
-type LeaderboardPageProps = {
-  params: Promise<{ poolSlug: string }>;
-};
+import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default async function LeaderboardPage({ params }: LeaderboardPageProps) {
-  const { poolSlug } = await params;
-  redirect(`/pools/${poolSlug}`);
+export default function LeaderboardPage() {
+  const params = useParams<{ poolSlug: string }>();
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(`/pools/${params.poolSlug}`);
+  }, [params.poolSlug, router]);
+
+  return null;
 }

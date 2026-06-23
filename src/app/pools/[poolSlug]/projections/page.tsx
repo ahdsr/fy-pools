@@ -1,10 +1,15 @@
-import { redirect } from "next/navigation";
+"use client";
 
-type ProjectionsPageProps = {
-  params: Promise<{ poolSlug: string }>;
-};
+import { useParams, useRouter } from "next/navigation";
+import { useEffect } from "react";
 
-export default async function ProjectionsPage({ params }: ProjectionsPageProps) {
-  const { poolSlug } = await params;
-  redirect(`/pools/${poolSlug}?standings=projection#leaderboard`);
+export default function ProjectionsPage() {
+  const params = useParams<{ poolSlug: string }>();
+  const router = useRouter();
+
+  useEffect(() => {
+    router.replace(`/pools/${params.poolSlug}?standings=projection#leaderboard`);
+  }, [params.poolSlug, router]);
+
+  return null;
 }

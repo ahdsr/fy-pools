@@ -13,10 +13,14 @@ import type {
 
 export const MARCINS_POOL_SLUG = "marcins-2026-world-cup-pool";
 
-const POOL_ALIASES = new Set([
+export const PUBLIC_POOL_SLUGS = [
   MARCINS_POOL_SLUG,
   "marcins-world-cup-2026",
   "marcin-world-cup-2026",
+] as const;
+
+const POOL_ALIASES = new Set<string>([
+  ...PUBLIC_POOL_SLUGS,
 ]);
 
 const DATA_DIR = path.join(

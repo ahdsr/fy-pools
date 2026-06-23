@@ -36,6 +36,22 @@ type EntryPageProps = {
   params: Promise<{ poolSlug: string; entryId: string }>;
 };
 
+export const dynamicParams = false;
+
+export async function generateStaticParams({
+  params,
+}: {
+  params: { poolSlug: string };
+}) {
+  const pool = await getPublicPool(params.poolSlug);
+
+  return (
+    pool?.entriesConfig.entries
+      .filter((entry) => Boolean(entry.picksPath))
+      .map((entry) => ({ entryId: entry.id })) ?? []
+  );
+}
+
 export default async function EntryPage({ params }: EntryPageProps) {
   const { poolSlug, entryId } = await params;
   const pool = await getPublicPool(poolSlug);
