@@ -49,6 +49,8 @@ export type LockerRoomMatch = {
   groupLabel: string;
   homeTeam: string;
   awayTeam: string;
+  scoreLabel: string;
+  chanceLabel: string;
   homeFlagCode: string;
   awayFlagCode: string;
   homeRankLabel: string;
@@ -967,9 +969,13 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
               {match.competition} - {match.timeLabel}
             </p>
             <h1 className="mt-1 truncate font-heading text-base leading-none text-white sm:text-lg">
-              {match.homeTeam} <span className="text-white/48">vs</span>{" "}
+              {match.homeTeam}{" "}
+              <span className="text-cta-green">{match.scoreLabel}</span>{" "}
               {match.awayTeam}
             </h1>
+            <p className="mt-1 truncate text-[0.68rem] font-semibold uppercase text-cta-green/80">
+              {match.chanceLabel}
+            </p>
           </div>
           <TeamFlag code={match.awayFlagCode} name={match.awayTeam} />
         </div>

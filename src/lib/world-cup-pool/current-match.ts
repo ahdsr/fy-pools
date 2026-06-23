@@ -1,4 +1,5 @@
 import type { LockerRoomMatch } from "@/components/app/locker-room";
+import { calculateMatchChances } from "@/lib/world-cup-pool/match-chances";
 import { displayTeamName, normalizeName } from "@/lib/world-cup-pool/scoring";
 import type {
   EntryPicks,
@@ -138,6 +139,21 @@ function formatMatchTime(match: MatchResult) {
   return formattedDate || match.detail || "Match day";
 }
 
+function formatMatchScore(match: MatchResult | undefined) {
+  if (!match) return "-";
+
+  const homeScore = match.homeScore ?? "-";
+  const awayScore = match.awayScore ?? "-";
+  return `${homeScore}-${awayScore}`;
+}
+
+function formatChanceLabel(match: MatchResult | undefined) {
+  if (!match) return "Chance unavailable";
+
+  const chances = calculateMatchChances(match);
+  return `Chance: Home ${chances.home}% / Draw ${chances.draw}% / Away ${chances.away}%`;
+}
+
 export function buildCurrentLockerRoomMatch(
   results: PoolResults,
   referencePicks: EntryPicks | undefined,
@@ -153,6 +169,8 @@ export function buildCurrentLockerRoomMatch(
     groupLabel: groupId ? `Group Stage - Group ${groupId}` : "Match Room",
     homeTeam,
     awayTeam,
+    scoreLabel: formatMatchScore(match),
+    chanceLabel: formatChanceLabel(match),
     homeFlagCode: flagCodeForTeam(referencePicks, homeTeam),
     awayFlagCode: flagCodeForTeam(referencePicks, awayTeam),
     homeRankLabel: rankLabel(results, groupId, homeTeam),

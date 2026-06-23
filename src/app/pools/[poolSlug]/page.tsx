@@ -31,9 +31,10 @@ export default async function PoolPage({ params }: PoolPageProps) {
 
   const { pool, rows, analytics, publicSlug } = standings;
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
+  const referencePicks = getReferencePicks(pool.picksByPath);
   const currentMatchLabel = describeCurrentPoolMatch(
     pool.results,
-    getReferencePicks(pool.picksByPath),
+    referencePicks,
   );
   const poolTools = [
     {
@@ -129,7 +130,11 @@ export default async function PoolPage({ params }: PoolPageProps) {
         </LedgerPanel>
 
         <aside className="grid gap-5">
-          <LatestUpdatesPanel rows={rows} results={pool.results} />
+          <LatestUpdatesPanel
+            rows={rows}
+            results={pool.results}
+            referencePicks={referencePicks}
+          />
           <PayoutPanel entriesConfig={pool.entriesConfig} compact />
           <PublicToolsPanel tools={poolTools} />
         </aside>

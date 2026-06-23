@@ -1,220 +1,12 @@
 {
   "meta": {
-    "lastUpdated": "2026-06-19T11:23:04.742Z",
-    "status": "Auto-updated from ESPN: 28 live/final matches counted.",
+    "lastUpdated": "2026-06-23T10:51:17.979Z",
+    "status": "Auto-updated from ESPN: 44 live/final matches counted.",
     "source": "espn",
     "sourceUrl": "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719",
     "sourceNote": "Group standings are computed from ESPN match scores. Third-place qualifier scoring is withheld until the group stage is final unless manually overridden."
   },
   "matches": [
-    {
-      "id": "760442",
-      "date": "2026-06-19T19:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Fri, June 19th at 3:00 PM EDT",
-      "homeTeam": "United States",
-      "awayTeam": "Australia",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760445",
-      "date": "2026-06-19T22:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Fri, June 19th at 6:00 PM EDT",
-      "homeTeam": "Scotland",
-      "awayTeam": "Morocco",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760444",
-      "date": "2026-06-20T00:30Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Fri, June 19th at 8:30 PM EDT",
-      "homeTeam": "Brazil",
-      "awayTeam": "Haiti",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760443",
-      "date": "2026-06-20T03:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Fri, June 19th at 11:00 PM EDT",
-      "homeTeam": "Turkey",
-      "awayTeam": "Paraguay",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760447",
-      "date": "2026-06-20T17:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sat, June 20th at 1:00 PM EDT",
-      "homeTeam": "Netherlands",
-      "awayTeam": "Sweden",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760448",
-      "date": "2026-06-20T20:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sat, June 20th at 4:00 PM EDT",
-      "homeTeam": "Germany",
-      "awayTeam": "Ivory Coast",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760446",
-      "date": "2026-06-21T00:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sat, June 20th at 8:00 PM EDT",
-      "homeTeam": "Ecuador",
-      "awayTeam": "Curaçao",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760449",
-      "date": "2026-06-21T04:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sun, June 20th at 12:00 AM EDT",
-      "homeTeam": "Tunisia",
-      "awayTeam": "Japan",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760453",
-      "date": "2026-06-21T16:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sun, June 21st at 12:00 PM EDT",
-      "homeTeam": "Spain",
-      "awayTeam": "Saudi Arabia",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760451",
-      "date": "2026-06-21T19:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sun, June 21st at 3:00 PM EDT",
-      "homeTeam": "Belgium",
-      "awayTeam": "Iran",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760450",
-      "date": "2026-06-21T22:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sun, June 21st at 6:00 PM EDT",
-      "homeTeam": "Uruguay",
-      "awayTeam": "Cape Verde",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760452",
-      "date": "2026-06-22T01:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sun, June 21st at 9:00 PM EDT",
-      "homeTeam": "New Zealand",
-      "awayTeam": "Egypt",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760456",
-      "date": "2026-06-22T17:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Mon, June 22nd at 1:00 PM EDT",
-      "homeTeam": "Argentina",
-      "awayTeam": "Austria",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760457",
-      "date": "2026-06-22T21:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Mon, June 22nd at 5:00 PM EDT",
-      "homeTeam": "France",
-      "awayTeam": "Iraq",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760454",
-      "date": "2026-06-23T00:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Mon, June 22nd at 8:00 PM EDT",
-      "homeTeam": "Norway",
-      "awayTeam": "Senegal",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
-    {
-      "id": "760455",
-      "date": "2026-06-23T03:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Mon, June 22nd at 11:00 PM EDT",
-      "homeTeam": "Jordan",
-      "awayTeam": "Algeria",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
     {
       "id": "760461",
       "date": "2026-06-23T17:00Z",
@@ -611,7 +403,7 @@
       "state": "pre",
       "completed": false,
       "detail": "Mon, June 29th at 4:30 PM EDT",
-      "homeTeam": "Group E Winner",
+      "homeTeam": "Germany",
       "awayTeam": "Third Place Group A/B/C/D/F",
       "homeScore": 0,
       "awayScore": 0,
@@ -702,7 +494,7 @@
       "state": "pre",
       "completed": false,
       "detail": "Wed, July 1st at 8:00 PM EDT",
-      "homeTeam": "Group D Winner",
+      "homeTeam": "United States",
       "awayTeam": "Third Place Group B/E/F/I/J",
       "homeScore": 0,
       "awayScore": 0,
@@ -767,7 +559,7 @@
       "state": "pre",
       "completed": false,
       "detail": "Fri, July 3rd at 6:00 PM EDT",
-      "homeTeam": "Group J Winner",
+      "homeTeam": "Argentina",
       "awayTeam": "Group H 2nd Place",
       "homeScore": 0,
       "awayScore": 0,
@@ -994,6 +786,214 @@
       "awayScore": 0,
       "winner": "",
       "loser": ""
+    },
+    {
+      "id": "760455",
+      "date": "2026-06-23T03:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Jordan",
+      "awayTeam": "Algeria",
+      "homeScore": 1,
+      "awayScore": 2,
+      "winner": "Algeria",
+      "loser": "Jordan"
+    },
+    {
+      "id": "760454",
+      "date": "2026-06-23T00:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Norway",
+      "awayTeam": "Senegal",
+      "homeScore": 3,
+      "awayScore": 2,
+      "winner": "Norway",
+      "loser": "Senegal"
+    },
+    {
+      "id": "760457",
+      "date": "2026-06-22T21:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "France",
+      "awayTeam": "Iraq",
+      "homeScore": 3,
+      "awayScore": 0,
+      "winner": "France",
+      "loser": "Iraq"
+    },
+    {
+      "id": "760456",
+      "date": "2026-06-22T17:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Argentina",
+      "awayTeam": "Austria",
+      "homeScore": 2,
+      "awayScore": 0,
+      "winner": "Argentina",
+      "loser": "Austria"
+    },
+    {
+      "id": "760452",
+      "date": "2026-06-22T01:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "New Zealand",
+      "awayTeam": "Egypt",
+      "homeScore": 1,
+      "awayScore": 3,
+      "winner": "Egypt",
+      "loser": "New Zealand"
+    },
+    {
+      "id": "760450",
+      "date": "2026-06-21T22:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Uruguay",
+      "awayTeam": "Cape Verde",
+      "homeScore": 2,
+      "awayScore": 2,
+      "winner": "",
+      "loser": ""
+    },
+    {
+      "id": "760451",
+      "date": "2026-06-21T19:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Belgium",
+      "awayTeam": "Iran",
+      "homeScore": 0,
+      "awayScore": 0,
+      "winner": "",
+      "loser": ""
+    },
+    {
+      "id": "760453",
+      "date": "2026-06-21T16:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Spain",
+      "awayTeam": "Saudi Arabia",
+      "homeScore": 4,
+      "awayScore": 0,
+      "winner": "Spain",
+      "loser": "Saudi Arabia"
+    },
+    {
+      "id": "760449",
+      "date": "2026-06-21T04:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Tunisia",
+      "awayTeam": "Japan",
+      "homeScore": 0,
+      "awayScore": 4,
+      "winner": "Japan",
+      "loser": "Tunisia"
+    },
+    {
+      "id": "760446",
+      "date": "2026-06-21T00:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Ecuador",
+      "awayTeam": "Curaçao",
+      "homeScore": 0,
+      "awayScore": 0,
+      "winner": "",
+      "loser": ""
+    },
+    {
+      "id": "760448",
+      "date": "2026-06-20T20:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Germany",
+      "awayTeam": "Ivory Coast",
+      "homeScore": 2,
+      "awayScore": 1,
+      "winner": "Germany",
+      "loser": "Ivory Coast"
+    },
+    {
+      "id": "760447",
+      "date": "2026-06-20T17:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Netherlands",
+      "awayTeam": "Sweden",
+      "homeScore": 5,
+      "awayScore": 1,
+      "winner": "Netherlands",
+      "loser": "Sweden"
+    },
+    {
+      "id": "760443",
+      "date": "2026-06-20T03:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Turkey",
+      "awayTeam": "Paraguay",
+      "homeScore": 0,
+      "awayScore": 1,
+      "winner": "Paraguay",
+      "loser": "Turkey"
+    },
+    {
+      "id": "760444",
+      "date": "2026-06-20T00:30Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Brazil",
+      "awayTeam": "Haiti",
+      "homeScore": 3,
+      "awayScore": 0,
+      "winner": "Brazil",
+      "loser": "Haiti"
+    },
+    {
+      "id": "760445",
+      "date": "2026-06-19T22:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "Scotland",
+      "awayTeam": "Morocco",
+      "homeScore": 0,
+      "awayScore": 1,
+      "winner": "Morocco",
+      "loser": "Scotland"
+    },
+    {
+      "id": "760442",
+      "date": "2026-06-19T19:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "United States",
+      "awayTeam": "Australia",
+      "homeScore": 2,
+      "awayScore": 0,
+      "winner": "United States",
+      "loser": "Australia"
     },
     {
       "id": "760441",
@@ -1449,44 +1449,44 @@
     },
     "C": {
       "currentOrder": [
-        "Scotland",
         "Brazil",
         "Morocco",
+        "Scotland",
         "Haiti"
       ],
       "status": "active",
       "stats": [
         {
-          "team": "Scotland",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 1,
-          "goalsAgainst": 0,
-          "goalDifference": 1
-        },
-        {
           "team": "Brazil",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 1,
+          "played": 2,
+          "points": 4,
+          "goalsFor": 4,
           "goalsAgainst": 1,
-          "goalDifference": 0
+          "goalDifference": 3
         },
         {
           "team": "Morocco",
-          "played": 1,
-          "points": 1,
+          "played": 2,
+          "points": 4,
+          "goalsFor": 2,
+          "goalsAgainst": 1,
+          "goalDifference": 1
+        },
+        {
+          "team": "Scotland",
+          "played": 2,
+          "points": 3,
           "goalsFor": 1,
           "goalsAgainst": 1,
           "goalDifference": 0
         },
         {
           "team": "Haiti",
-          "played": 1,
+          "played": 2,
           "points": 0,
           "goalsFor": 0,
-          "goalsAgainst": 1,
-          "goalDifference": -1
+          "goalsAgainst": 4,
+          "goalDifference": -4
         }
       ]
     },
@@ -1494,41 +1494,41 @@
       "currentOrder": [
         "United States",
         "Australia",
-        "Turkey",
-        "Paraguay"
+        "Paraguay",
+        "Turkey"
       ],
       "status": "active",
       "stats": [
         {
           "team": "United States",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 4,
+          "played": 2,
+          "points": 6,
+          "goalsFor": 6,
           "goalsAgainst": 1,
-          "goalDifference": 3
+          "goalDifference": 5
         },
         {
           "team": "Australia",
-          "played": 1,
+          "played": 2,
           "points": 3,
           "goalsFor": 2,
-          "goalsAgainst": 0,
-          "goalDifference": 2
-        },
-        {
-          "team": "Turkey",
-          "played": 1,
-          "points": 0,
-          "goalsFor": 0,
           "goalsAgainst": 2,
-          "goalDifference": -2
+          "goalDifference": 0
         },
         {
           "team": "Paraguay",
-          "played": 1,
-          "points": 0,
-          "goalsFor": 1,
+          "played": 2,
+          "points": 3,
+          "goalsFor": 2,
           "goalsAgainst": 4,
+          "goalDifference": -2
+        },
+        {
+          "team": "Turkey",
+          "played": 2,
+          "points": 0,
+          "goalsFor": 0,
+          "goalsAgainst": 3,
           "goalDifference": -3
         }
       ]
@@ -1544,32 +1544,32 @@
       "stats": [
         {
           "team": "Germany",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 7,
-          "goalsAgainst": 1,
-          "goalDifference": 6
+          "played": 2,
+          "points": 6,
+          "goalsFor": 9,
+          "goalsAgainst": 2,
+          "goalDifference": 7
         },
         {
           "team": "Ivory Coast",
-          "played": 1,
+          "played": 2,
           "points": 3,
-          "goalsFor": 1,
-          "goalsAgainst": 0,
-          "goalDifference": 1
+          "goalsFor": 2,
+          "goalsAgainst": 2,
+          "goalDifference": 0
         },
         {
           "team": "Ecuador",
-          "played": 1,
-          "points": 0,
+          "played": 2,
+          "points": 1,
           "goalsFor": 0,
           "goalsAgainst": 1,
           "goalDifference": -1
         },
         {
           "team": "Curaçao",
-          "played": 1,
-          "points": 0,
+          "played": 2,
+          "points": 1,
           "goalsFor": 1,
           "goalsAgainst": 7,
           "goalDifference": -6
@@ -1578,173 +1578,173 @@
     },
     "F": {
       "currentOrder": [
-        "Sweden",
-        "Japan",
         "Netherlands",
+        "Japan",
+        "Sweden",
         "Tunisia"
       ],
       "status": "active",
       "stats": [
         {
-          "team": "Sweden",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 5,
-          "goalsAgainst": 1,
+          "team": "Netherlands",
+          "played": 2,
+          "points": 4,
+          "goalsFor": 7,
+          "goalsAgainst": 3,
           "goalDifference": 4
         },
         {
           "team": "Japan",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 2,
+          "played": 2,
+          "points": 4,
+          "goalsFor": 6,
           "goalsAgainst": 2,
-          "goalDifference": 0
+          "goalDifference": 4
         },
         {
-          "team": "Netherlands",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 2,
-          "goalsAgainst": 2,
+          "team": "Sweden",
+          "played": 2,
+          "points": 3,
+          "goalsFor": 6,
+          "goalsAgainst": 6,
           "goalDifference": 0
         },
         {
           "team": "Tunisia",
-          "played": 1,
+          "played": 2,
           "points": 0,
           "goalsFor": 1,
-          "goalsAgainst": 5,
-          "goalDifference": -4
+          "goalsAgainst": 9,
+          "goalDifference": -8
         }
       ]
     },
     "G": {
       "currentOrder": [
+        "Egypt",
         "Iran",
-        "New Zealand",
         "Belgium",
-        "Egypt"
+        "New Zealand"
       ],
       "status": "active",
       "stats": [
         {
-          "team": "Iran",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 2,
+          "team": "Egypt",
+          "played": 2,
+          "points": 4,
+          "goalsFor": 4,
           "goalsAgainst": 2,
-          "goalDifference": 0
+          "goalDifference": 2
         },
         {
-          "team": "New Zealand",
-          "played": 1,
-          "points": 1,
+          "team": "Iran",
+          "played": 2,
+          "points": 2,
           "goalsFor": 2,
           "goalsAgainst": 2,
           "goalDifference": 0
         },
         {
           "team": "Belgium",
-          "played": 1,
-          "points": 1,
+          "played": 2,
+          "points": 2,
           "goalsFor": 1,
           "goalsAgainst": 1,
           "goalDifference": 0
         },
         {
-          "team": "Egypt",
-          "played": 1,
+          "team": "New Zealand",
+          "played": 2,
           "points": 1,
-          "goalsFor": 1,
-          "goalsAgainst": 1,
-          "goalDifference": 0
+          "goalsFor": 3,
+          "goalsAgainst": 5,
+          "goalDifference": -2
         }
       ]
     },
     "H": {
       "currentOrder": [
-        "Saudi Arabia",
+        "Spain",
         "Uruguay",
         "Cape Verde",
-        "Spain"
+        "Saudi Arabia"
       ],
       "status": "active",
       "stats": [
         {
-          "team": "Saudi Arabia",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 1,
-          "goalsAgainst": 1,
-          "goalDifference": 0
+          "team": "Spain",
+          "played": 2,
+          "points": 4,
+          "goalsFor": 4,
+          "goalsAgainst": 0,
+          "goalDifference": 4
         },
         {
           "team": "Uruguay",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 1,
-          "goalsAgainst": 1,
+          "played": 2,
+          "points": 2,
+          "goalsFor": 3,
+          "goalsAgainst": 3,
           "goalDifference": 0
         },
         {
           "team": "Cape Verde",
-          "played": 1,
-          "points": 1,
-          "goalsFor": 0,
-          "goalsAgainst": 0,
+          "played": 2,
+          "points": 2,
+          "goalsFor": 2,
+          "goalsAgainst": 2,
           "goalDifference": 0
         },
         {
-          "team": "Spain",
-          "played": 1,
+          "team": "Saudi Arabia",
+          "played": 2,
           "points": 1,
-          "goalsFor": 0,
-          "goalsAgainst": 0,
-          "goalDifference": 0
+          "goalsFor": 1,
+          "goalsAgainst": 5,
+          "goalDifference": -4
         }
       ]
     },
     "I": {
       "currentOrder": [
-        "Norway",
         "France",
+        "Norway",
         "Senegal",
         "Iraq"
       ],
       "status": "active",
       "stats": [
         {
-          "team": "Norway",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 4,
+          "team": "France",
+          "played": 2,
+          "points": 6,
+          "goalsFor": 6,
           "goalsAgainst": 1,
-          "goalDifference": 3
+          "goalDifference": 5
         },
         {
-          "team": "France",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 3,
-          "goalsAgainst": 1,
-          "goalDifference": 2
+          "team": "Norway",
+          "played": 2,
+          "points": 6,
+          "goalsFor": 7,
+          "goalsAgainst": 3,
+          "goalDifference": 4
         },
         {
           "team": "Senegal",
-          "played": 1,
+          "played": 2,
           "points": 0,
-          "goalsFor": 1,
-          "goalsAgainst": 3,
-          "goalDifference": -2
+          "goalsFor": 3,
+          "goalsAgainst": 6,
+          "goalDifference": -3
         },
         {
           "team": "Iraq",
-          "played": 1,
+          "played": 2,
           "points": 0,
           "goalsFor": 1,
-          "goalsAgainst": 4,
-          "goalDifference": -3
+          "goalsAgainst": 7,
+          "goalDifference": -6
         }
       ]
     },
@@ -1752,41 +1752,41 @@
       "currentOrder": [
         "Argentina",
         "Austria",
-        "Jordan",
-        "Algeria"
+        "Algeria",
+        "Jordan"
       ],
       "status": "active",
       "stats": [
         {
           "team": "Argentina",
-          "played": 1,
-          "points": 3,
-          "goalsFor": 3,
+          "played": 2,
+          "points": 6,
+          "goalsFor": 5,
           "goalsAgainst": 0,
-          "goalDifference": 3
+          "goalDifference": 5
         },
         {
           "team": "Austria",
-          "played": 1,
+          "played": 2,
           "points": 3,
           "goalsFor": 3,
-          "goalsAgainst": 1,
-          "goalDifference": 2
-        },
-        {
-          "team": "Jordan",
-          "played": 1,
-          "points": 0,
-          "goalsFor": 1,
           "goalsAgainst": 3,
-          "goalDifference": -2
+          "goalDifference": 0
         },
         {
           "team": "Algeria",
-          "played": 1,
+          "played": 2,
+          "points": 3,
+          "goalsFor": 2,
+          "goalsAgainst": 4,
+          "goalDifference": -2
+        },
+        {
+          "team": "Jordan",
+          "played": 2,
           "points": 0,
-          "goalsFor": 0,
-          "goalsAgainst": 3,
+          "goalsFor": 2,
+          "goalsAgainst": 5,
           "goalDifference": -3
         }
       ]
@@ -1891,12 +1891,10 @@
   },
   "bonus": {
     "mostGoalsScored": [
-      "Canada",
       "Germany"
     ],
     "mostGoalsConceded": [
-      "Curaçao",
-      "Qatar"
+      "Tunisia"
     ],
     "farthestGoal": [],
     "bestPassCompletion": [],

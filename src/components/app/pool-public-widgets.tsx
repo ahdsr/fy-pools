@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
+import type { ReactNode } from "react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { Badge } from "@/components/ui/badge";
@@ -21,6 +22,7 @@ import type {
   PoolResults,
   PoolScore,
 } from "@/lib/world-cup-pool/types";
+import { cn } from "@/lib/utils";
 
 type PublicToolLink = {
   title: string;
@@ -99,7 +101,10 @@ export function PayoutPanel({
   if (!entriesConfig.payouts?.length) return null;
 
   return (
-    <LedgerPanel title="Prize ledger" description={entriesConfig.prizePoolLabel}>
+    <LedgerPanel
+      title="Prize ledger"
+      description={entriesConfig.prizePoolLabel}
+    >
       <LedgerRows
         className={
           compact
@@ -204,9 +209,11 @@ export function LeaderboardTable({
 
 export function LatestUpdatesPanel({
   results,
+  referencePicks,
 }: {
   rows: LeaderboardRow[];
   results: PoolResults;
+  referencePicks?: EntryPicks;
 }) {
   const matches = (results.matches ?? []).slice(0, 5);
 
@@ -217,16 +224,28 @@ export function LatestUpdatesPanel({
     >
       <LedgerRows>
         {matches.map((match) => (
-          <LedgerRow key={match.id} className="grid gap-2 md:grid-cols-[7rem_1fr_auto] md:items-center">
-            <Badge variant={match.state === "in" ? "secondary" : "outline"}>
-              {match.detail || (match.completed ? "FT" : "Scheduled")}
-            </Badge>
-            <p className="font-medium text-brand-ink">
-              {renderMatchText(match)}
-            </p>
-            <p className="text-sm font-normal text-muted-foreground">
-              {renderMatchScore(match)}
-            </p>
+          <LedgerRow key={match.id} className="space-y-2">
+            <div className="min-w-0">
+              <div className="mb-2 flex min-w-0 flex-wrap items-center gap-2">
+                <StatusBadge
+                  tone={match.state === "in" ? "live" : "neutral"}
+                  label={
+                    match.detail || (match.completed ? "Final" : "Upcoming")
+                  }
+                />
+                <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  {renderMatchStatus(match)}
+                </span>
+              </div>
+              <MatchupLine
+                homeTeam={match.homeTeam}
+                awayTeam={match.awayTeam}
+                picks={referencePicks}
+                homeScore={shouldShowScore(match) ? match.homeScore : undefined}
+                awayScore={shouldShowScore(match) ? match.awayScore : undefined}
+                className="text-sm"
+              />
+            </div>
           </LedgerRow>
         ))}
       </LedgerRows>
@@ -234,27 +253,63 @@ export function LatestUpdatesPanel({
   );
 }
 
-function renderMatchText(match: MatchResult) {
-  const home = displayTeamName(match.homeTeam);
-  const away = displayTeamName(match.awayTeam);
+function renderMatchStatus(match: MatchResult) {
   if (match.winner) {
-    return `${displayTeamName(match.winner)} beat ${displayTeamName(match.loser)}`;
+    return `${displayTeamName(match.winner)} won`;
   }
   if (match.state === "in" && !match.completed) {
-    return `Live: ${home} vs ${away}`;
+    return "Live";
   }
   if (!match.completed) {
-    return `Upcoming: ${home} vs ${away}`;
+    return "Upcoming";
   }
-  return `${home} drew ${away}`;
+  return "Draw";
 }
 
-function renderMatchScore(match: MatchResult) {
-  if (!match.completed && match.state !== "in") return "-";
-  return `${match.homeScore ?? "-"}-${match.awayScore ?? "-"}`;
+function shouldShowScore(match: MatchResult) {
+  return match.completed || match.state === "in";
 }
 
-export function TeamPill({ team, picks }: { team?: string; picks?: EntryPicks }) {
+export function StatusBadge({
+  label,
+  tone = "neutral",
+  className,
+}: {
+  label: ReactNode;
+  tone?: "neutral" | "live" | "helpful";
+  className?: string;
+}) {
+  return (
+    <Badge
+      variant={tone === "neutral" ? "outline" : "secondary"}
+      className={cn("max-w-full", className)}
+    >
+      <span className="truncate">{label}</span>
+    </Badge>
+  );
+}
+
+export function PointsBadge({
+  points,
+  active,
+}: {
+  points: number;
+  active?: boolean;
+}) {
+  return <Badge variant={active ? "secondary" : "outline"}>{points} pts</Badge>;
+}
+
+export function TeamPill({
+  team,
+  picks,
+  score,
+  className,
+}: {
+  team?: string;
+  picks?: EntryPicks;
+  score?: string | number | null;
+  className?: string;
+}) {
   if (!team) {
     return <span className="text-muted-foreground">Not entered</span>;
   }
@@ -264,7 +319,12 @@ export function TeamPill({ team, picks }: { team?: string; picks?: EntryPicks })
     .find((item) => item.name === team);
 
   return (
-    <span className="inline-flex min-w-0 items-center gap-2 font-medium text-brand-ink">
+    <span
+      className={cn(
+        "inline-flex min-w-0 items-center gap-2 font-medium text-brand-ink",
+        className,
+      )}
+    >
       {option?.flagCode ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img
@@ -275,7 +335,41 @@ export function TeamPill({ team, picks }: { team?: string; picks?: EntryPicks })
         />
       ) : null}
       <span className="truncate">{displayTeamName(team)}</span>
+      {score !== undefined ? (
+        <span className="shrink-0 text-muted-foreground">({score ?? "-"})</span>
+      ) : null}
     </span>
+  );
+}
+
+export function MatchupLine({
+  homeTeam,
+  awayTeam,
+  picks,
+  homeScore,
+  awayScore,
+  className,
+}: {
+  homeTeam?: string;
+  awayTeam?: string;
+  picks?: EntryPicks;
+  homeScore?: string | number | null;
+  awayScore?: string | number | null;
+  className?: string;
+}) {
+  return (
+    <div
+      className={cn(
+        "flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 font-semibold text-brand-ink",
+        className,
+      )}
+    >
+      <TeamPill team={homeTeam} picks={picks} score={homeScore} />
+      <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+        vs
+      </span>
+      <TeamPill team={awayTeam} picks={picks} score={awayScore} />
+    </div>
   );
 }
 
