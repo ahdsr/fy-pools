@@ -14,7 +14,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { cn } from "@/lib/utils";
 import type { PoolAnalyticsRow } from "@/lib/world-cup-pool/leaderboard";
 import type { LeaderboardRow } from "@/lib/world-cup-pool/types";
 
@@ -30,7 +29,6 @@ type StandingsView = "current" | "projection";
 
 export function LeaderboardTable({
   rows,
-  analyticsRows,
   poolSlug,
   payoutPlaces,
   limit,
@@ -41,7 +39,9 @@ export function LeaderboardTable({
   const view: StandingsView =
     searchParams.get("standings") === "projection" ? "projection" : "current";
   const visibleRows = limit ? rows.slice(0, limit) : rows;
-  const projectionsById = new Map(analyticsRows.map((row) => [row.id, row]));
+  const leaderTotal = rows[0]?.score.total ?? 0;
+  const payoutCutoff =
+    rows[Math.min(payoutPlaces, rows.length) - 1]?.score.total ?? leaderTotal;
 
   function setView(nextView: StandingsView) {
     const params = new URLSearchParams(searchParams);
@@ -62,7 +62,7 @@ export function LeaderboardTable({
       <div className="flex flex-col gap-3 border-b bg-background/65 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="text-sm text-muted-foreground">
           {view === "projection"
-            ? "Projection columns show each entry's remaining ceiling."
+            ? "Race view shows the current chase for prizes and first place."
             : "Current mode ranks entries by points scored so far."}
         </div>
         <div
@@ -99,25 +99,29 @@ export function LeaderboardTable({
           <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
             <TableHead>Rank</TableHead>
             <TableHead>Entry</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Group</TableHead>
-            <TableHead>Knockout</TableHead>
-            <TableHead>Finals</TableHead>
-            <TableHead>Bonus</TableHead>
             {view === "projection" ? (
               <>
-                <TableHead>Max</TableHead>
-                <TableHead>Remaining</TableHead>
-                <TableHead>Best rank</TableHead>
+                <TableHead>Points</TableHead>
                 <TableHead>Top {payoutPlaces}</TableHead>
-                <TableHead>Status</TableHead>
+                <TableHead>1st place</TableHead>
               </>
-            ) : null}
+            ) : (
+              <>
+                <TableHead>Total</TableHead>
+                <TableHead>Group</TableHead>
+                <TableHead>Knockout</TableHead>
+                <TableHead>Finals</TableHead>
+                <TableHead>Bonus</TableHead>
+              </>
+            )}
           </TableRow>
         </TableHeader>
         <TableBody>
           {visibleRows.map((row) => {
-            const projection = projectionsById.get(row.id);
+            const topFourGap = Math.max(0, payoutCutoff - row.score.total);
+            const leaderGap = Math.max(0, leaderTotal - row.score.total);
+            const isInPayout = row.score.total >= payoutCutoff;
+            const isLeader = leaderGap === 0;
 
             return (
               <TableRow key={row.id}>
@@ -132,51 +136,40 @@ export function LeaderboardTable({
                     {row.name}
                   </Link>
                 </TableCell>
-                <TableCell className="font-semibold">{row.score.total}</TableCell>
-                <TableCell>{row.score.subtotals.group}</TableCell>
-                <TableCell>{row.score.subtotals.knockout}</TableCell>
-                <TableCell>{row.score.subtotals.finals}</TableCell>
-                <TableCell>{row.score.subtotals.bonus}</TableCell>
                 {view === "projection" ? (
                   <>
                     <TableCell className="font-semibold text-brand-ink">
-                      {projection?.maxPossible ?? row.score.total}
+                      {row.score.total}
                     </TableCell>
                     <TableCell>
-                      <span className="font-semibold">
-                        {projection?.remaining.total ?? 0}
-                      </span>
-                      {projection ? (
-                        <span className="ml-2 text-xs text-muted-foreground">
-                          G {projection.remaining.group} / K{" "}
-                          {projection.remaining.knockout} / F{" "}
-                          {projection.remaining.finals} / B{" "}
-                          {projection.remaining.bonus}
-                        </span>
-                      ) : null}
-                    </TableCell>
-                    <TableCell>{projection?.ceilingRank ?? row.rank}</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={projection?.canReachPayout ? "secondary" : "outline"}
-                      >
-                        {projection?.canReachPayout ? "In reach" : "Out"}
+                      <Badge variant={isInPayout ? "secondary" : "outline"}>
+                        {isInPayout ? `Top ${payoutPlaces}` : `${topFourGap} back`}
                       </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge
-                        variant={projection?.canWin ? "secondary" : "outline"}
-                        className={cn(
-                          projection?.canWin
+                        variant={isLeader ? "secondary" : "outline"}
+                        className={
+                          isLeader
                             ? "border-cta-green/25 bg-cta-green-soft text-brand-ink"
-                            : "",
-                        )}
+                            : ""
+                        }
                       >
-                        {projection?.canWin ? "Alive" : "Eliminated"}
+                        {isLeader ? "Leader" : `${leaderGap} back`}
                       </Badge>
                     </TableCell>
                   </>
-                ) : null}
+                ) : (
+                  <>
+                    <TableCell className="font-semibold">
+                      {row.score.total}
+                    </TableCell>
+                    <TableCell>{row.score.subtotals.group}</TableCell>
+                    <TableCell>{row.score.subtotals.knockout}</TableCell>
+                    <TableCell>{row.score.subtotals.finals}</TableCell>
+                    <TableCell>{row.score.subtotals.bonus}</TableCell>
+                  </>
+                )}
               </TableRow>
             );
           })}

@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import {
+  CollapsibleLedgerPanel,
+  LedgerPanel,
+  LedgerRow,
+  LedgerRows,
+} from "@/components/app/ledger";
 import { OpponentPathsPanel } from "@/components/app/opponent-paths-panel";
 import {
   MatchupLine,
@@ -11,10 +16,9 @@ import {
   TeamPill,
 } from "@/components/app/pool-public-widgets";
 import {
-  PublicPoolMetaCard,
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
-import { Badge } from "@/components/ui/badge";
+import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import {
   Table,
@@ -24,7 +28,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
+import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
+import { getPublicPool } from "@/lib/world-cup-pool/data";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
 import { buildTodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
@@ -37,6 +42,15 @@ type EntryPageProps = {
 };
 
 export const dynamicParams = false;
+
+function getEntryInitials(name: string) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase())
+    .join("");
+}
 
 export async function generateStaticParams({
   params,
@@ -64,6 +78,7 @@ export default async function EntryPage({ params }: EntryPageProps) {
   if (!picks) notFound();
 
   const score = scorePool(picks, pool.results);
+  const submittedBracket = buildPickedBracketView(picks);
   const publicSlug = pool.slug;
   const todaysResults = buildTodaysResultsReport({
     entriesConfig: pool.entriesConfig,
@@ -82,15 +97,20 @@ export default async function EntryPage({ params }: EntryPageProps) {
   return (
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
-      eyebrow="Entry detail"
-      title={entry.name}
-      description="A public read-only view of this entry's picks and scoring breakdown."
-      meta={
-        <PublicPoolMetaCard
-          label="Updated"
-          value={formatDateTime(pool.results.meta?.lastUpdated)}
-        />
+      eyebrow={null}
+      title={
+        <span className="flex min-w-0 items-center gap-4 sm:gap-5">
+          <span
+            aria-hidden="true"
+            className="flex size-16 shrink-0 items-center justify-center rounded-full border border-brand-rule/70 bg-surface-paper text-lg font-semibold leading-none text-brand-mark shadow-[0_12px_28px_color-mix(in_oklch,black,transparent_86%)] sm:size-20 sm:text-2xl"
+          >
+            {getEntryInitials(entry.name)}
+          </span>
+          <span className="min-w-0 break-words">{entry.name}</span>
+        </span>
       }
+      description={entry.quote ?? entry.celebrationQuote ?? "Winning it all!"}
+      descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
     >
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="secondaryGreen">
@@ -208,6 +228,24 @@ export default async function EntryPage({ params }: EntryPageProps) {
         </LedgerPanel>
       </section>
 
+      {submittedBracket ? (
+        <LedgerPanel
+          title="Submitted bracket"
+          description="This entry's knockout path from the Round of 32 through the final."
+        >
+          <WorldCupBracket
+            rounds={submittedBracket.rounds}
+            thirdPlace={submittedBracket.thirdPlace}
+            picks={picks}
+          />
+        </LedgerPanel>
+      ) : null}
+
+      <section className="grid gap-5 lg:grid-cols-[1fr_24rem]">
+        <AdvancementPicksPanel picks={picks} />
+        <ThirdPlaceQualifierPicksPanel picks={picks} />
+      </section>
+
       <LedgerPanel title="Knockout scoring">
         <Table>
           <TableHeader>
@@ -243,6 +281,87 @@ export default async function EntryPage({ params }: EntryPageProps) {
         </Table>
       </LedgerPanel>
     </PublicPoolShell>
+  );
+}
+
+const advancementStages = [
+  { key: "roundOf16", label: "Round of 16" },
+  { key: "quarterFinalists", label: "Quarter-finals" },
+  { key: "semifinalists", label: "Semi-finals" },
+  { key: "finalists", label: "Final" },
+  { key: "thirdPlaceMatch", label: "Third-place match" },
+] as const;
+
+function AdvancementPicksPanel({ picks }: { picks: EntryPicks }) {
+  return (
+    <LedgerPanel
+      title="Advancement picks"
+      description="Every team this entry picked to reach each knockout round."
+    >
+      <Table>
+        <TableHeader>
+          <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
+            <TableHead>Round</TableHead>
+            <TableHead>Teams</TableHead>
+            <TableHead className="text-right">Count</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {advancementStages.map((stage) => {
+            const teams = picks.advancement[stage.key];
+
+            return (
+              <TableRow key={stage.key}>
+                <TableCell className="font-medium text-brand-ink">
+                  {stage.label}
+                </TableCell>
+                <TableCell>
+                  <div className="flex flex-wrap gap-2">
+                    {teams.map((team) => (
+                      <TeamPill key={team} team={team} picks={picks} />
+                    ))}
+                  </div>
+                </TableCell>
+                <TableCell className="text-right font-semibold">
+                  {teams.length}
+                </TableCell>
+              </TableRow>
+            );
+          })}
+        </TableBody>
+      </Table>
+    </LedgerPanel>
+  );
+}
+
+function ThirdPlaceQualifierPicksPanel({ picks }: { picks: EntryPicks }) {
+  const selectedGroups = Object.entries(picks.thirdPlace).filter(
+    ([, pick]) => pick.selected,
+  );
+
+  return (
+    <LedgerPanel
+      title="Third-place qualifiers"
+      description="The third-place group teams this entry selected to advance."
+    >
+      <LedgerRows>
+        <LedgerRow>
+          <div className="flex flex-wrap gap-2">
+            {selectedGroups.map(([groupId, pick]) => (
+              <div
+                key={groupId}
+                className="flex items-center gap-2 rounded-full border bg-background px-3 py-2"
+              >
+                <span className="text-xs font-semibold uppercase text-muted-foreground">
+                  Group {groupId}
+                </span>
+                <TeamPill team={pick.team} picks={picks} />
+              </div>
+            ))}
+          </div>
+        </LedgerRow>
+      </LedgerRows>
+    </LedgerPanel>
   );
 }
 
@@ -295,13 +414,24 @@ function TodaysResultsPanel({
     if (scenario.rank < report.currentRank) visibleRisingScenarioCount += 1;
   }
   const primaryScenario = uniqueBestScenarios[0];
-  const alternateScenarios = uniqueBestScenarios.slice(1);
+  const bestRouteScenarios = primaryScenario
+    ? uniqueBestScenarios.filter(
+        (scenario) => scenario.rank === primaryScenario.rank,
+      )
+    : [];
+  const bestRouteSummary = primaryScenario
+    ? scenarioSummary({
+        scenarios: bestRouteScenarios,
+        matches: report.matches,
+        directImpactMatchIds,
+      })
+    : "";
   const impactMatches = report.matches.filter((item) =>
     directImpactMatchIds.has(item.match.id),
   );
 
   return (
-    <LedgerPanel title="Today's results" description={description}>
+    <CollapsibleLedgerPanel title="Today's results" description={description}>
       <LedgerRows className="grid md:grid-cols-4 md:divide-x md:divide-y-0">
         <LedgerRow className="py-3">
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
@@ -376,13 +506,9 @@ function TodaysResultsPanel({
                       label={`+${primaryScenario.pointChange} pts`}
                     />
                   </div>
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <ScenarioOutcomeBadges
-                      outcomes={primaryScenario.outcomes}
-                      directImpactMatchIds={directImpactMatchIds}
-                      showNoImpact={false}
-                    />
-                  </div>
+                  <p className="mt-4 text-lg font-semibold leading-7 text-brand-ink">
+                    {bestRouteSummary}
+                  </p>
                   <p className="mt-4 text-sm leading-5 text-muted-foreground">
                     Helps{" "}
                     <span className="font-semibold text-brand-ink">
@@ -395,32 +521,6 @@ function TodaysResultsPanel({
                     chasers could still rise above it.
                   </p>
                 </div>
-
-                {alternateScenarios.length ? (
-                  <div className="rounded-lg border bg-background">
-                    <div className="border-b px-4 py-3">
-                      <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-                        Other paths to #{report.bestRank}
-                      </p>
-                    </div>
-                    <div className="divide-y">
-                      {alternateScenarios.map((scenario, index) => (
-                        <div
-                          key={`${scenario.rank}-${scenario.total}-${index}`}
-                          className="px-4 py-3"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <ScenarioOutcomeBadges
-                              outcomes={scenario.outcomes}
-                              directImpactMatchIds={directImpactMatchIds}
-                              showNoImpact={false}
-                            />
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null}
               </div>
             ) : (
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
@@ -553,36 +653,75 @@ function TodaysResultsPanel({
           </div>
         </div>
       )}
-    </LedgerPanel>
+    </CollapsibleLedgerPanel>
   );
 }
 
-function ScenarioOutcomeBadges({
-  outcomes,
+function scenarioSummary({
+  scenarios,
+  matches,
   directImpactMatchIds,
-  showNoImpact = true,
 }: {
-  outcomes: TodaysResultsReport["bestScenarios"][number]["outcomes"];
+  scenarios: TodaysResultsReport["bestScenarios"];
+  matches: TodaysResultsReport["matches"];
   directImpactMatchIds: Set<string>;
-  showNoImpact?: boolean;
 }) {
-  const impactOutcomes = outcomes.filter((outcome) =>
-    directImpactMatchIds.has(outcome.matchId),
-  );
-  const noImpactCount = outcomes.length - impactOutcomes.length;
+  const firstScenario = scenarios[0];
+  if (!firstScenario) return "";
 
-  return (
-    <>
-      {impactOutcomes.map((outcome) => (
-        <Badge key={outcome.matchId} variant="outline">
-          {outcome.label}
-        </Badge>
-      ))}
-      {showNoImpact && noImpactCount > 0 ? (
-        <Badge variant="outline">
-          No impact{noImpactCount > 1 ? ` x${noImpactCount}` : ""}
-        </Badge>
-      ) : null}
-    </>
-  );
+  const phrases = matches
+    .filter((item) => directImpactMatchIds.has(item.match.id))
+    .map((item) => {
+      const outcomes = new Set(
+        scenarios
+          .map((scenario) =>
+            scenario.outcomes.find(
+              (outcome) => outcome.matchId === item.match.id,
+            ),
+          )
+          .filter((outcome): outcome is NonNullable<typeof outcome> =>
+            Boolean(outcome),
+          )
+          .map((outcome) => outcome.outcome),
+      );
+
+      return matchOutcomePhrase(item.match.homeTeam, item.match.awayTeam, outcomes);
+    })
+    .filter(Boolean);
+
+  return `${formatSentenceList(phrases)}.`;
+}
+
+function matchOutcomePhrase(
+  homeTeam: string,
+  awayTeam: string,
+  outcomes: Set<string>,
+) {
+  const homeWins = outcomes.has("home");
+  const awayWins = outcomes.has("away");
+  const draws = outcomes.has("draw");
+
+  if (homeWins && draws && !awayWins) {
+    return `${homeTeam} draws or beats ${awayTeam}`;
+  }
+
+  if (awayWins && draws && !homeWins) {
+    return `${awayTeam} draws or beats ${homeTeam}`;
+  }
+
+  if (homeWins && awayWins && !draws) {
+    return `${homeTeam} or ${awayTeam} wins`;
+  }
+
+  if (homeWins && !awayWins && !draws) return `${homeTeam} beats ${awayTeam}`;
+  if (awayWins && !homeWins && !draws) return `${awayTeam} beats ${homeTeam}`;
+  if (draws && !homeWins && !awayWins) return `${homeTeam} draws with ${awayTeam}`;
+
+  return `${homeTeam}-${awayTeam} can finish any way`;
+}
+
+function formatSentenceList(items: string[]) {
+  if (items.length <= 1) return items[0] ?? "";
+  if (items.length === 2) return `${items[0]}, and ${items[1]}`;
+  return `${items.slice(0, -1).join(", ")}, and ${items.at(-1)}`;
 }

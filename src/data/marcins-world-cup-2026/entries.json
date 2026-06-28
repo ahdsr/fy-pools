@@ -24,151 +24,181 @@
     {
       "id": "adam-banaszek-1",
       "name": "Adam Banaszek (1)",
+      "quote": "First entry, first place. Book it.",
       "picksPath": "data/picks-adam-banaszek-1.json"
     },
     {
       "id": "adam-banaszek-2",
       "name": "Adam Banaszek (2)",
+      "quote": "The backup plan is still better than your starter.",
       "picksPath": "data/picks-adam-banaszek-2.json"
     },
     {
       "id": "adam-kolodziej",
       "name": "Adam Kolodziej",
+      "quote": "No easy fixtures on this side of the bracket.",
       "picksPath": "data/picks-adam-kolodziej.json"
     },
     {
       "id": "andrew-d-1",
       "name": "Andrew D (1)",
+      "quote": "Top bins only. No tap-ins here.",
       "picksPath": "data/picks-andrew-d-1.json"
     },
     {
       "id": "andrew-d-2",
       "name": "Andrew D (2)",
+      "quote": "Two sheets submitted, double the pressure.",
       "picksPath": "data/picks-andrew-d-2.json"
     },
     {
       "id": "bianca-c",
       "name": "Bianca C",
+      "quote": "Quiet confidence, loud scoreboard.",
       "picksPath": "data/picks-bianca-c.json"
     },
     {
       "id": "bogdan",
       "name": "Bogdan",
+      "quote": "Parking the bus all the way to the podium.",
       "picksPath": "data/picks-bogdan.json"
     },
     {
       "id": "damon-lim",
       "name": "Damon Lim",
+      "quote": "The bracket has been scouted. The group is nervous.",
       "picksPath": "data/picks-damon-lim.json"
     },
     {
       "id": "danijel-p",
       "name": "Danijel P",
+      "quote": "Clean sheet mentality, champion energy.",
       "picksPath": "data/picks-danijel-p.json"
     },
     {
       "id": "joseph-karam",
       "name": "Joseph Karam",
+      "quote": "This pool needed a proper number nine.",
       "picksPath": "data/picks-joseph-karam.json"
     },
     {
       "id": "lucas-czuchraj",
       "name": "Lucas Czuchraj",
+      "quote": "Built for knockout chaos.",
       "picksPath": "data/picks-lucas-czuchraj.json"
     },
     {
       "id": "lucas-sokolowski",
       "name": "Lucas Sokolowski",
+      "quote": "Winning it all, then checking VAR for fun.",
       "picksPath": "data/picks.json"
     },
     {
       "id": "marcin",
       "name": "Marcin",
+      "quote": "Commissioner by title, contender by destiny.",
       "picksPath": "data/picks-marcin.json"
     },
     {
       "id": "mat-rapacz-1",
       "name": "Mat Rapacz (1)",
+      "quote": "One bracket to rule the standings.",
       "picksPath": "data/picks-mat-rapacz-1.json"
     },
     {
       "id": "mat-rapacz-2",
       "name": "Mat Rapacz (2)",
+      "quote": "The second entry is where the mind games start.",
       "picksPath": "data/picks-mat-rapacz-2.json"
     },
     {
       "id": "matt-c",
       "name": "Matt C",
+      "quote": "No mercy after the opening whistle.",
       "picksPath": "data/picks-matt-c.json"
     },
     {
       "id": "matthew-woronko",
       "name": "Matthew Woronko",
+      "quote": "Form is temporary, bracket genius is forever.",
       "picksPath": "data/picks-matthew-woronko.json"
     },
     {
       "id": "matthew-wozniczka-1",
       "name": "Matthew Wozniczka (1)",
+      "quote": "This sheet came to lift the trophy.",
       "picksPath": "data/picks-matthew-wozniczka-1.json"
     },
     {
       "id": "matthew-wozniczka-2",
       "name": "Matthew Wozniczka (2)",
+      "quote": "Squad rotation, same championship standards.",
       "picksPath": "data/picks-matthew-wozniczka-2.json"
     },
     {
       "id": "michal-1",
       "name": "Michal (1)",
+      "quote": "The table will respect the process.",
       "picksPath": "data/picks-michal-1.json"
     },
     {
       "id": "michal-2",
       "name": "Michal (2)",
+      "quote": "Second lineup, first-place ambitions.",
       "picksPath": "data/picks-michal-2.json"
     },
     {
       "id": "patryk-koscielak",
       "name": "Patryk Koscielak",
+      "quote": "No one can beat this. They can only admire it.",
       "picksPath": "data/picks-patryk-koscielak.json"
     },
     {
       "id": "pawel-jaremko-1",
       "name": "Pawel Jaremko (1)",
+      "quote": "All gas, no group-stage nerves.",
       "picksPath": "data/picks-pawel-jaremko-1.json"
     },
     {
       "id": "pawel-jaremko-2",
       "name": "Pawel Jaremko (2)",
+      "quote": "Depth chart loaded. The bench scores too.",
       "picksPath": "data/picks-pawel-jaremko-2.json"
     },
     {
       "id": "rana",
       "name": "Rana",
+      "quote": "This bracket has big-match temperament.",
       "picksPath": "data/picks-rana.json"
     },
     {
       "id": "robert",
       "name": "Robert",
+      "quote": "Here to turn predictions into victory laps.",
       "picksPath": "data/picks-robert.json"
     },
     {
       "id": "tadeusz",
       "name": "Tadeusz",
+      "quote": "Old-school picks, top-table results.",
       "picksPath": "data/picks-tadeusz.json"
     },
     {
       "id": "tomasz-k-1",
       "name": "Tomasz K (1)",
+      "quote": "The scouting report says danger everywhere.",
       "picksPath": "data/picks-tomasz-k-1.json"
     },
     {
       "id": "tomasz-k-2",
       "name": "Tomasz K (2)",
+      "quote": "Plan B still has trophy parade routes.",
       "picksPath": "data/picks-tomasz-k-2.json"
     },
     {
       "id": "varun",
       "name": "Varun",
+      "quote": "Calculated chaos, maximum points.",
       "picksPath": "data/picks-varun.json"
     }
   ]

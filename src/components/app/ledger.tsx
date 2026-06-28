@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { SectionHeader } from "@/components/app/section-header";
@@ -36,6 +37,53 @@ export function LedgerPanel({
       )}
       <div>{children}</div>
     </section>
+  );
+}
+
+type CollapsibleLedgerPanelProps = Omit<
+  React.ComponentProps<"details">,
+  "title"
+> & {
+  title: React.ReactNode;
+  description?: string;
+  action?: React.ReactNode;
+  defaultOpen?: boolean;
+};
+
+export function CollapsibleLedgerPanel({
+  title,
+  description,
+  action,
+  defaultOpen = true,
+  className,
+  children,
+  ...props
+}: CollapsibleLedgerPanelProps) {
+  return (
+    <details
+      open={defaultOpen}
+      className={cn(
+        "group overflow-hidden rounded-lg border bg-surface-paper text-card-foreground shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_74%)] ring-1 ring-white/5",
+        className,
+      )}
+      {...props}
+    >
+      <summary className="flex cursor-pointer list-none items-start gap-4 border-b bg-surface-ledger/90 px-5 py-4 transition hover:bg-surface-ledger focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25 [&::-webkit-details-marker]:hidden">
+        <SectionHeader
+          title={title}
+          description={description}
+          action={action}
+          className="min-w-0 flex-1"
+        />
+        <span
+          className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full border bg-surface-paper text-muted-foreground transition group-open:rotate-180 group-hover:border-primary/35 group-hover:text-brand-ink"
+          aria-hidden="true"
+        >
+          <ChevronDown className="size-4" />
+        </span>
+      </summary>
+      <div>{children}</div>
+    </details>
   );
 }
 

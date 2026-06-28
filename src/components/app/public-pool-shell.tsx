@@ -4,9 +4,10 @@ import { cn } from "@/lib/utils";
 
 type PublicPoolShellProps = {
   poolName: string;
-  eyebrow?: string;
-  title: string;
+  eyebrow?: React.ReactNode;
+  title: React.ReactNode;
   description?: string;
+  descriptionClassName?: string;
   meta?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -15,6 +16,7 @@ export function PublicPoolShell({
   eyebrow = "Public pool",
   title,
   description,
+  descriptionClassName,
   meta,
   children,
 }: PublicPoolShellProps) {
@@ -25,14 +27,21 @@ export function PublicPoolShell({
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-6 md:gap-9 md:py-8">
         <section className="grid gap-6 py-4 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end md:py-8">
           <div className="max-w-3xl">
-            <p className="mb-4 text-sm font-bold uppercase tracking-normal text-brand-mark">
-              {eyebrow}
-            </p>
+            {eyebrow ? (
+              <p className="mb-4 text-sm font-bold uppercase tracking-normal text-brand-mark">
+                {eyebrow}
+              </p>
+            ) : null}
             <h1 className="text-[clamp(2.75rem,6vw,4.5rem)] font-normal leading-[1.02] text-brand-ink">
               {title}
             </h1>
             {description ? (
-              <p className="mt-5 max-w-2xl text-base font-normal leading-6 text-muted-foreground">
+              <p
+                className={cn(
+                  "mt-5 max-w-2xl text-base font-normal leading-6 text-muted-foreground",
+                  descriptionClassName,
+                )}
+              >
                 {description}
               </p>
             ) : null}

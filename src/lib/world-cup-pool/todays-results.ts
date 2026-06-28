@@ -176,6 +176,29 @@ function rowsById(rows: LeaderboardRow[]) {
   return new Map(rows.map((row) => [row.id, row]));
 }
 
+function protectedRank({
+  currentRows,
+  scenarioRows,
+  entryId,
+  total,
+}: {
+  currentRows: LeaderboardRow[];
+  scenarioRows: LeaderboardRow[];
+  entryId: string;
+  total: number;
+}) {
+  const scenarioById = rowsById(scenarioRows);
+
+  const entriesAbove = currentRows.filter((row) => {
+    if (row.id === entryId) return false;
+
+    const projectedTotal = scenarioById.get(row.id)?.score.total ?? row.score.total;
+    return Math.max(row.score.total, projectedTotal) > total;
+  });
+
+  return entriesAbove.length + 1;
+}
+
 function competitionImpact({
   currentRows,
   scenarioRows,
@@ -200,7 +223,10 @@ function competitionImpact({
         totals.playersAboveAlsoHelped += 1;
       }
 
-      if (row.rank >= currentRow.rank && projected.rank < scenarioRow.rank) {
+      if (
+        row.rank >= currentRow.rank &&
+        Math.max(row.score.total, projected.score.total) > scenarioRow.score.total
+      ) {
         totals.chasersCanRiseAbove += 1;
       }
 
@@ -319,14 +345,31 @@ export function buildTodaysResultsReport({
         projectedResults,
       );
       const row = targetRow(scenarioRows, entryId);
+      const protectedRow = row
+        ? {
+            ...row,
+            rank: protectedRank({
+              currentRows,
+              scenarioRows,
+              entryId,
+              total: row.score.total,
+            }),
+          }
+        : undefined;
       const impact = competitionImpact({
         currentRows,
         scenarioRows,
         currentRow,
-        scenarioRow: row ?? currentRow,
+        scenarioRow: protectedRow ?? currentRow,
       });
 
-      return optionProjection(match, outcome, row ?? currentRow, currentRow, impact);
+      return optionProjection(
+        match,
+        outcome,
+        protectedRow ?? currentRow,
+        currentRow,
+        impact,
+      );
     });
 
     return {
@@ -346,22 +389,37 @@ export function buildTodaysResultsReport({
       );
       const row = targetRow(scenarioRows, entryId);
       if (!row) return null;
+      const protectedScenarioRow = {
+        ...row,
+        rank: protectedRank({
+          currentRows,
+          scenarioRows,
+          entryId,
+          total: row.score.total,
+        }),
+      };
 
       const impact = competitionImpact({
         currentRows,
         scenarioRows,
         currentRow,
-        scenarioRow: row,
+        scenarioRow: protectedScenarioRow,
       });
 
       const outcomes = simulatedMatches.map((match) =>
-        optionProjection(match, choices.get(match.id) ?? "draw", row, currentRow, impact),
+        optionProjection(
+          match,
+          choices.get(match.id) ?? "draw",
+          protectedScenarioRow,
+          currentRow,
+          impact,
+        ),
       );
 
       return {
-        rank: row.rank,
-        total: row.score.total,
-        rankChange: currentRow.rank - row.rank,
+        rank: protectedScenarioRow.rank,
+        total: protectedScenarioRow.score.total,
+        rankChange: currentRow.rank - protectedScenarioRow.rank,
         pointChange: row.score.total - currentRow.score.total,
         playersAboveAlsoHelped: impact.playersAboveAlsoHelped,
         chasersCanRiseAbove: impact.chasersCanRiseAbove,

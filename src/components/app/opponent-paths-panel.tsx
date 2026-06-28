@@ -2,7 +2,11 @@
 
 import { useMemo, useState } from "react";
 
-import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import {
+  CollapsibleLedgerPanel,
+  LedgerRow,
+  LedgerRows,
+} from "@/components/app/ledger";
 import { StatusBadge } from "@/components/app/pool-public-widgets";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -70,7 +74,7 @@ export function OpponentPathsPanel({ report }: OpponentPathsPanelProps) {
   if (!report || report.opponents.length === 0) return null;
 
   return (
-    <LedgerPanel
+    <CollapsibleLedgerPanel
       title="Catch-up snapshots"
       description="Pick one or two opponents and scan the scoreboard snapshots that matter most."
     >
@@ -120,7 +124,7 @@ export function OpponentPathsPanel({ report }: OpponentPathsPanelProps) {
           />
         ))}
       </LedgerRows>
-    </LedgerPanel>
+    </CollapsibleLedgerPanel>
   );
 }
 
