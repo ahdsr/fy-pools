@@ -1,6 +1,6 @@
 # Backlog
 
-## Locker Room / Game Day Room
+## On the Pitch / Game Day Room
 
 Create a contained social room for each pool event so users do more than make
 picks and wait. A room opens around a specific match, lets entrants choose or
@@ -9,7 +9,7 @@ and quick reactions into a lightweight game-day layer.
 
 ### POC Slice
 
-- Add a Locker Room link to Marcin's 2026 World Cup Pool.
+- Add an On the Pitch link to Marcin's 2026 World Cup Pool.
 - Use Czechia vs South Africa as the first match-specific room.
 - Place pool entrants on a mini soccer field based on their existing Group A
   picks, inferring their side from whichever team they ranked higher.

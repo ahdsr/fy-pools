@@ -28,7 +28,7 @@ export default async function BracketPage({ params }: BracketPageProps) {
       poolName={pool.entriesConfig.poolName}
       eyebrow="Knockout bracket"
       title="Path to the final"
-      description="Every knockout match is arranged from the Round of 32 through the final, with live winners and scores filled in as results land."
+      description="Every knockout match is arranged through the final, with live winners and scores filled in as results land."
       meta={
         <>
           <PublicPoolMetaCard

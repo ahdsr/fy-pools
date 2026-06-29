@@ -43,6 +43,7 @@ type HeaderBrandWordmarkProps = {
 
 export type PublicPoolNavKey =
   | "overview"
+  | "projections"
   | "bracket"
   | "locker-room"
   | "entry";
@@ -60,8 +61,9 @@ const signedOutNavItems = [
 
 const publicPoolNavItems = [
   { key: "overview", label: "Pool", href: "" },
+  { key: "projections", label: "Projections", href: "/projections" },
   { key: "bracket", label: "Bracket", href: "/bracket" },
-  { key: "locker-room", label: "Locker Room", href: "/locker-room" },
+  { key: "locker-room", label: "On the Pitch", href: "/locker-room" },
 ] as const;
 
 const adminNavItems = [
@@ -189,6 +191,7 @@ export function DashboardHeader() {
 }
 
 function getPublicPoolActiveRoute(pathname: string): PublicPoolNavKey {
+  if (pathname.includes("/projections")) return "projections";
   if (pathname.includes("/bracket")) return "bracket";
   if (pathname.includes("/locker-room")) return "locker-room";
   if (pathname.includes("/entry/")) return "entry";

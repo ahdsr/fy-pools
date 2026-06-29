@@ -38,6 +38,25 @@ const ROUND_DEFINITIONS = [
   { key: "semiFinals", label: "Semi-finals", count: 2 },
 ] as const;
 
+const OFFICIAL_ROUND_OF_32_SLOTS: Record<string, number> = {
+  "760486": 1,
+  "760489": 2,
+  "760488": 3,
+  "760487": 4,
+  "760490": 5,
+  "760491": 6,
+  "760492": 7,
+  "760495": 8,
+  "760499": 9,
+  "760501": 10,
+  "760493": 11,
+  "760494": 12,
+  "760498": 13,
+  "760496": 14,
+  "760500": 15,
+  "760497": 16,
+};
+
 function numberedRoundLabel(label: string, index: number) {
   return `${index + 1}. ${label}`;
 }
@@ -98,6 +117,31 @@ function matchResultToBracketMatch(
   };
 }
 
+function officialRoundOf32Slot(match: MatchResult, fallbackIndex: number) {
+  return OFFICIAL_ROUND_OF_32_SLOTS[match.id] ?? fallbackIndex + 1;
+}
+
+function officialRoundMatches(
+  matches: MatchResult[],
+  round: (typeof ROUND_DEFINITIONS)[number],
+) {
+  if (round.key !== "roundOf32") {
+    return matches.map((match, index) =>
+      matchResultToBracketMatch(match, numberedRoundLabel(round.label, index)),
+    );
+  }
+
+  return matches
+    .map((match, index) => ({
+      match,
+      slot: officialRoundOf32Slot(match, index),
+    }))
+    .sort((a, b) => a.slot - b.slot)
+    .map(({ match, slot }) =>
+      matchResultToBracketMatch(match, `${slot}. ${round.label}`),
+    );
+}
+
 function officialBracket(
   results: PoolResults,
   referencePicks: EntryPicks | undefined,
@@ -120,9 +164,7 @@ function officialBracket(
     return {
       key: round.key,
       label: round.label,
-      matches: roundMatches.map((match, index) =>
-        matchResultToBracketMatch(match, numberedRoundLabel(round.label, index)),
-      ),
+      matches: officialRoundMatches(roundMatches, round),
     };
   });
   const thirdPlace = matchResultToBracketMatch(

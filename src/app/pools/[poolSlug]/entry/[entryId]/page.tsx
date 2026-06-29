@@ -121,7 +121,7 @@ export default async function EntryPage({ params }: EntryPageProps) {
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href={`/pools/${publicSlug}?standings=projection#leaderboard`}>
+          <Link href={`/pools/${publicSlug}/projections`}>
             View projections
           </Link>
         </Button>
@@ -171,4 +171,3 @@ export default async function EntryPage({ params }: EntryPageProps) {
     </PublicPoolShell>
   );
 }
-

@@ -27,6 +27,12 @@ export function normalizeName(value: unknown) {
 }
 
 export function displayTeamName(value: string) {
+  if (
+    /^(Round of \d+|Quarterfinal|Semifinal) \s*\d+\s+Winner$/i.test(value)
+  ) {
+    return "TBD";
+  }
+
   return value.replaceAll("CuraÃ§ao", "Curaçao");
 }
 

@@ -987,7 +987,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
             size="icon"
             className="text-white hover:bg-white/14 hover:text-white"
             onClick={() => setMenuOpen(true)}
-            aria-label="Open locker room menu"
+            aria-label="Open pitch menu"
           >
             <Menu />
           </Button>
@@ -1090,7 +1090,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
         <header className="flex items-center justify-between border-b border-white/12 px-4 py-4">
           <div>
             <p className="text-xs font-semibold uppercase text-white/54">
-              Locker menu
+              Pitch menu
             </p>
             <h2 className="font-heading text-2xl leading-none text-white">
               Match controls
@@ -1102,7 +1102,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
             size="icon"
             className="text-white hover:bg-white/14 hover:text-white"
             onClick={() => setMenuOpen(false)}
-            aria-label="Close locker room menu"
+            aria-label="Close pitch menu"
           >
             <X />
           </Button>
@@ -1177,7 +1177,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
       {menuOpen ? (
         <button
           type="button"
-          aria-label="Close locker room menu"
+          aria-label="Close pitch menu"
           className="absolute inset-0 z-20 bg-black/28"
           onClick={() => setMenuOpen(false)}
         />

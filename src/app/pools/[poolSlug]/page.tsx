@@ -1,6 +1,5 @@
 import { Info, Trophy, Users } from "lucide-react";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import { LeaderboardTable } from "@/components/app/leaderboard-table";
@@ -39,8 +38,8 @@ export default async function PoolPage({ params }: PoolPageProps) {
   );
   const poolTools = [
     {
-      title: "Locker Room",
-      body: `Enter the ${currentMatchLabel} game day room.`,
+      title: "On the Pitch",
+      body: `Step onto the ${currentMatchLabel} pitch.`,
       href: `/pools/${publicSlug}/locker-room`,
       icon: Users,
     },
@@ -75,9 +74,9 @@ export default async function PoolPage({ params }: PoolPageProps) {
               note: `${analytics.leaderTotal} points`,
             },
             {
-              label: "Still alive",
-              value: `${analytics.aliveCount}/${rows.length}`,
-              note: "Can still reach first",
+              label: "Score refresh",
+              value: scoreRefreshLabel,
+              note: "Results entered so far",
             },
             {
               label: "Prize pool",
@@ -122,14 +121,7 @@ export default async function PoolPage({ params }: PoolPageProps) {
             </div>
           }
         >
-          <Suspense>
-            <LeaderboardTable
-              rows={rows}
-              analyticsRows={analytics.rows}
-              poolSlug={publicSlug}
-              payoutPlaces={analytics.payoutPlaces}
-            />
-          </Suspense>
+          <LeaderboardTable rows={rows} poolSlug={publicSlug} />
         </LedgerPanel>
 
         <aside className="grid gap-5">
