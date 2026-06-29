@@ -426,15 +426,15 @@ export function TodaysResultsPanel({
                     {bestRouteSummary}
                   </p>
                   <p className="mt-4 text-sm leading-5 text-muted-foreground">
-                    Helps{" "}
+                    This same outcome also gives points to{" "}
                     <span className="font-semibold text-brand-ink">
                       {primaryScenario.playersAboveAlsoHelped}
                     </span>{" "}
-                    entries already above this one;{" "}
+                    entries already ahead;{" "}
                     <span className="font-semibold text-brand-ink">
                       {primaryScenario.chasersCanRiseAbove}
                     </span>{" "}
-                    chasers could still rise above it.
+                    entries behind could still overtake it.
                   </p>
                 </div>
               </div>
@@ -550,7 +550,7 @@ export function TodaysResultsPanel({
                             </div>
                             <p className="mt-2 text-xs leading-4 text-muted-foreground sm:ml-[7.5rem]">
                               {hasDirectImpact
-                                ? `${outcome.playersAboveAlsoHelped} above gain; ${outcome.chasersCanRiseAbove} chasers rise above.`
+                                ? `${outcome.playersAboveAlsoHelped} ahead also gain points; ${outcome.chasersCanRiseAbove} behind can overtake.`
                                 : "No standings swing."}
                             </p>
                           </div>

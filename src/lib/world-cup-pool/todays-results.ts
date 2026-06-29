@@ -19,7 +19,7 @@ import type {
   PoolResults,
 } from "@/lib/world-cup-pool/types";
 
-type OutcomeKey = MatchChanceKey;
+export type OutcomeKey = MatchChanceKey;
 
 export type TodayOutcomeProjection = {
   matchId: string;
@@ -102,7 +102,7 @@ function findGroupId(picks: EntryPicks, match: MatchResult) {
   return "";
 }
 
-function matchOutcomes(picks: EntryPicks, match: MatchResult) {
+export function matchOutcomes(picks: EntryPicks, match: MatchResult) {
   return findGroupId(picks, match) ? GROUP_OUTCOMES : KNOCKOUT_OUTCOMES;
 }
 
@@ -132,7 +132,7 @@ function outcomeScores(match: MatchResult, outcome: OutcomeKey) {
   return [tiedScore, tiedScore] as const;
 }
 
-function outcomeLabel(match: MatchResult, outcome: OutcomeKey) {
+export function outcomeLabel(match: MatchResult, outcome: OutcomeKey) {
   if (outcome === "home") return `${match.homeTeam} win`;
   if (outcome === "away") return `${match.awayTeam} win`;
   return "Draw";
@@ -164,7 +164,7 @@ function groupStageFinal(groups: NonNullable<PoolResults["groups"]>) {
   return WORLD_CUP_GROUP_IDS.every((groupId) => groups[groupId]?.status === "final");
 }
 
-function scenarioResults(
+export function scenarioResults(
   results: PoolResults,
   picks: EntryPicks,
   choices: Map<string, OutcomeKey>,

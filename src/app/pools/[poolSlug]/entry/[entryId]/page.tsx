@@ -9,6 +9,7 @@ import {
   ThirdPlaceQualifierPicksPanel,
   TodaysResultsPanel,
 } from "@/components/app/entry-detail-panels";
+import { FutureLeveragePanel } from "@/components/app/future-leverage-panel";
 import { CollapsibleLedgerPanel } from "@/components/app/ledger";
 import { OpponentPathsPanel } from "@/components/app/opponent-paths-panel";
 import { ScoreCards } from "@/components/app/pool-public-widgets";
@@ -19,6 +20,7 @@ import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { getPublicPool } from "@/lib/world-cup-pool/data";
+import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
@@ -86,6 +88,13 @@ export default async function EntryPage({ params }: EntryPageProps) {
     results: pool.results,
     entryId: entry.id,
   });
+  const futureLeverage = buildFutureLeverageReport({
+    entriesConfig: pool.entriesConfig,
+    picksByPath: pool.picksByPath,
+    results: pool.results,
+    entryId: entry.id,
+    referencePicks: picks,
+  });
 
   return (
     <PublicPoolShell
@@ -131,6 +140,8 @@ export default async function EntryPage({ params }: EntryPageProps) {
       />
 
       <TodaysResultsPanel report={todaysResults} picks={picks} />
+
+      <FutureLeveragePanel report={futureLeverage} picks={picks} />
 
       <GroupPicksPanel picks={picks} results={pool.results} score={score} />
 
