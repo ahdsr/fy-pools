@@ -4,10 +4,13 @@ import {
   type MatchChanceKey,
 } from "@/lib/world-cup-pool/match-chances";
 import {
+  buildKnockoutResults,
   buildGroupResults,
   computeBonusResults,
   selectTopThirdGroups,
+  WORLD_CUP_GROUP_IDS,
 } from "@/lib/world-cup-pool/results-updater";
+import { normalizeName } from "@/lib/world-cup-pool/scoring";
 import type {
   EntriesConfig,
   EntryPicks,
@@ -63,7 +66,8 @@ export type TodaysResultsReport = {
   note?: string;
 };
 
-const OUTCOMES: OutcomeKey[] = ["home", "draw", "away"];
+const GROUP_OUTCOMES: OutcomeKey[] = ["home", "draw", "away"];
+const KNOCKOUT_OUTCOMES: OutcomeKey[] = ["home", "away"];
 const MAX_MATCHES_TO_SIMULATE = 7;
 const DEFAULT_TIME_ZONE = "America/Toronto";
 
@@ -96,6 +100,20 @@ function findGroupId(picks: EntryPicks, match: MatchResult) {
     if (teams.has(match.homeTeam) && teams.has(match.awayTeam)) return groupId;
   }
   return "";
+}
+
+function matchOutcomes(picks: EntryPicks, match: MatchResult) {
+  return findGroupId(picks, match) ? GROUP_OUTCOMES : KNOCKOUT_OUTCOMES;
+}
+
+function mergeTeams(current: string[] | undefined, projected: string[] | undefined) {
+  const output = [...(current ?? [])];
+  for (const team of projected ?? []) {
+    if (team && !output.some((item) => normalizeName(item) === normalizeName(team))) {
+      output.push(team);
+    }
+  }
+  return output;
 }
 
 function outcomeScores(match: MatchResult, outcome: OutcomeKey) {
@@ -143,7 +161,7 @@ function scoreline(match: MatchResult, outcome: OutcomeKey) {
 }
 
 function groupStageFinal(groups: NonNullable<PoolResults["groups"]>) {
-  return "ABCDEFGHIJKL".split("").every((groupId) => groups[groupId]?.status === "final");
+  return WORLD_CUP_GROUP_IDS.every((groupId) => groups[groupId]?.status === "final");
 }
 
 function scenarioResults(
@@ -156,6 +174,7 @@ function scenarioResults(
     return outcome ? completedMatch(match, outcome) : match;
   });
   const groups = buildGroupResults(matches, picks);
+  const knockout = buildKnockoutResults(matches, picks);
 
   return {
     ...results,
@@ -164,6 +183,16 @@ function scenarioResults(
     topThirdGroups: groupStageFinal(groups)
       ? selectTopThirdGroups(groups)
       : (results.topThirdGroups ?? []),
+    roundOf16: mergeTeams(results.roundOf16, knockout.roundOf16),
+    quarterFinalists: mergeTeams(results.quarterFinalists, knockout.quarterFinalists),
+    semifinalists: mergeTeams(results.semifinalists, knockout.semifinalists),
+    thirdPlaceMatch: mergeTeams(results.thirdPlaceMatch, knockout.thirdPlaceMatch),
+    finalists: mergeTeams(results.finalists, knockout.finalists),
+    finals: {
+      champion: knockout.finals.champion || results.finals?.champion,
+      runnerUp: knockout.finals.runnerUp || results.finals?.runnerUp,
+      thirdPlace: knockout.finals.thirdPlace || results.finals?.thirdPlace,
+    },
     bonus: computeBonusResults(groups, picks),
   };
 }
@@ -239,7 +268,7 @@ function competitionImpact({
   );
 }
 
-function combinations(matches: MatchResult[]) {
+function combinations(matches: MatchResult[], picks: EntryPicks) {
   const output: Map<string, OutcomeKey>[] = [];
 
   function walk(index: number, choices: Map<string, OutcomeKey>) {
@@ -249,7 +278,7 @@ function combinations(matches: MatchResult[]) {
       return;
     }
 
-    for (const outcome of OUTCOMES) {
+    for (const outcome of matchOutcomes(picks, match)) {
       choices.set(match.id, outcome);
       walk(index + 1, choices);
     }
@@ -336,7 +365,7 @@ export function buildTodaysResultsReport({
   }
 
   const matches = simulatedMatches.map<TodayMatchProjection>((match) => {
-    const outcomes = OUTCOMES.map((outcome) => {
+    const outcomes = matchOutcomes(referencePicks, match).map((outcome) => {
       const choices = new Map([[match.id, outcome]]);
       const projectedResults = scenarioResults(results, referencePicks, choices);
       const scenarioRows = buildLeaderboardRows(
@@ -379,7 +408,7 @@ export function buildTodaysResultsReport({
     };
   });
 
-  const scenarios = combinations(simulatedMatches)
+  const scenarios = combinations(simulatedMatches, referencePicks)
     .map<TodayScenarioProjection | null>((choices) => {
       const projectedResults = scenarioResults(results, referencePicks, choices);
       const scenarioRows = buildLeaderboardRows(

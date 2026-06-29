@@ -1,25 +1,12 @@
 {
   "meta": {
-    "lastUpdated": "2026-06-28T16:28:35.242Z",
-    "status": "Auto-updated from ESPN: 72 live/final matches counted.",
+    "lastUpdated": "2026-06-29T13:38:19.881Z",
+    "status": "Auto-updated from ESPN: 73 live/final matches counted.",
     "source": "espn",
     "sourceUrl": "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719",
     "sourceNote": "Group standings are computed from ESPN match scores. Third-place qualifier scoring is withheld until the group stage is final unless manually overridden."
   },
   "matches": [
-    {
-      "id": "760486",
-      "date": "2026-06-28T19:00Z",
-      "state": "pre",
-      "completed": false,
-      "detail": "Sun, June 28th at 3:00 PM EDT",
-      "homeTeam": "South Africa",
-      "awayTeam": "Canada",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
     {
       "id": "760487",
       "date": "2026-06-29T17:00Z",
@@ -221,7 +208,7 @@
       "state": "pre",
       "completed": false,
       "detail": "Sat, July 4th at 1:00 PM EDT",
-      "homeTeam": "Round of 32 1 Winner",
+      "homeTeam": "Canada",
       "awayTeam": "Round of 32 3 Winner",
       "homeScore": 0,
       "awayScore": 0,
@@ -422,6 +409,19 @@
       "awayScore": 0,
       "winner": "",
       "loser": ""
+    },
+    {
+      "id": "760486",
+      "date": "2026-06-28T19:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT",
+      "homeTeam": "South Africa",
+      "awayTeam": "Canada",
+      "homeScore": 0,
+      "awayScore": 1,
+      "winner": "Canada",
+      "loser": "South Africa"
     },
     {
       "id": "760484",
@@ -1888,7 +1888,9 @@
     "D",
     "I"
   ],
-  "roundOf16": [],
+  "roundOf16": [
+    "Canada"
+  ],
   "quarterFinalists": [],
   "semifinalists": [],
   "thirdPlaceMatch": [],

@@ -77,6 +77,7 @@ export function OpponentPathsPanel({ report }: OpponentPathsPanelProps) {
     <CollapsibleLedgerPanel
       title="Catch-up snapshots"
       description="Pick one or two opponents and scan the scoreboard snapshots that matter most."
+      defaultOpen={false}
     >
       <div className="border-b bg-background/70 px-5 py-4">
         <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] md:items-end">

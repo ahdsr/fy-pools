@@ -57,7 +57,16 @@ export function StatGrid({
   );
 }
 
-export function ScoreCards({ score }: { score: PoolScore }) {
+export function ScoreCards({
+  score,
+  position,
+}: {
+  score: PoolScore;
+  position?: {
+    rank: number;
+    totalEntries: number;
+  };
+}) {
   const cards = [
     ["Group", score.subtotals.group],
     ["Knockout", score.subtotals.knockout],
@@ -67,12 +76,25 @@ export function ScoreCards({ score }: { score: PoolScore }) {
 
   return (
     <LedgerPanel title="Score summary">
-      <LedgerRows className="grid md:grid-cols-5 md:divide-x md:divide-y-0">
+      <LedgerRows className="grid lg:grid-cols-6 lg:divide-x lg:divide-y-0">
         <LedgerRow className="bg-cta-green-soft">
+          <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
+            Position
+          </p>
+          <p className="mt-2 text-4xl font-semibold leading-none text-brand-ink">
+            {position ? `#${position.rank}` : "-"}
+          </p>
+          {position ? (
+            <p className="mt-2 text-sm leading-5 text-muted-foreground">
+              of {position.totalEntries} entries
+            </p>
+          ) : null}
+        </LedgerRow>
+        <LedgerRow>
           <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
             Total
           </p>
-          <p className="mt-2 text-4xl font-semibold leading-none text-brand-ink">
+          <p className="mt-2 text-3xl font-semibold leading-none text-brand-ink">
             {score.total}
           </p>
         </LedgerRow>
