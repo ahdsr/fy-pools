@@ -8,6 +8,7 @@ type PublicPoolShellProps = {
   title: React.ReactNode;
   description?: string;
   descriptionClassName?: string;
+  scoreRefreshLabel?: string;
   meta?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -17,6 +18,7 @@ export function PublicPoolShell({
   title,
   description,
   descriptionClassName,
+  scoreRefreshLabel,
   meta,
   children,
 }: PublicPoolShellProps) {
@@ -24,21 +26,21 @@ export function PublicPoolShell({
     <main className="relative isolate min-h-screen overflow-hidden bg-background">
       <AbstractShapeBackground />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-6 md:gap-9 md:py-8">
-        <section className="grid gap-6 py-4 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end md:py-8">
+      <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-7 px-4 py-5 sm:px-5 md:gap-9 md:px-6 md:py-8">
+        <section className="grid gap-5 py-3 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end md:gap-6 md:py-8">
           <div className="max-w-3xl">
             {eyebrow ? (
-              <p className="mb-4 text-sm font-bold uppercase tracking-normal text-brand-mark">
+              <p className="mb-3 text-xs font-bold uppercase tracking-normal text-brand-mark sm:mb-4 sm:text-sm">
                 {eyebrow}
               </p>
             ) : null}
-            <h1 className="text-[clamp(2.75rem,6vw,4.5rem)] font-normal leading-[1.02] text-brand-ink">
+            <h1 className="text-[clamp(2.125rem,10vw,4.5rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04]">
               {title}
             </h1>
             {description ? (
               <p
                 className={cn(
-                  "mt-5 max-w-2xl text-base font-normal leading-6 text-muted-foreground",
+                  "mt-4 max-w-2xl text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:mt-5 sm:text-base",
                   descriptionClassName,
                 )}
               >
@@ -49,6 +51,11 @@ export function PublicPoolShell({
           {meta ? <aside className="grid gap-3">{meta}</aside> : null}
         </section>
         {children}
+        {scoreRefreshLabel ? (
+          <p className="pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70">
+            Scores refreshed {scoreRefreshLabel}
+          </p>
+        ) : null}
       </div>
       <SiteFooter />
     </main>
@@ -77,13 +84,13 @@ export function PublicPoolMetaCard({
       )}
       {...props}
     >
-      <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
+      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground sm:text-sm">
         {label}
       </p>
       {value ? (
         <p
           className={cn(
-            "mt-2 text-xl font-semibold leading-tight text-brand-ink",
+            "mt-2 text-lg font-semibold leading-tight text-brand-ink sm:text-xl",
             valueClassName,
           )}
         >

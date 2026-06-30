@@ -59,6 +59,7 @@ export default async function PoolPage({ params }: PoolPageProps) {
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
       title={pool.entriesConfig.poolName}
+      scoreRefreshLabel={scoreRefreshLabel}
     >
       <LedgerPanel>
         <StatGrid
@@ -72,11 +73,6 @@ export default async function PoolPage({ params }: PoolPageProps) {
               label: "First place",
               value: rows[0]?.name ?? "TBD",
               note: `${analytics.leaderTotal} points`,
-            },
-            {
-              label: "Score refresh",
-              value: scoreRefreshLabel,
-              note: "Results entered so far",
             },
             {
               label: "Prize pool",
@@ -112,14 +108,6 @@ export default async function PoolPage({ params }: PoolPageProps) {
             </span>
           }
           description="Every entry is ranked by live scoring, with group, knockout, finals, and bonus subtotals kept visible for quick auditing."
-          action={
-            <div className="text-left text-xs leading-5 text-muted-foreground sm:text-right">
-              <p className="font-medium uppercase tracking-normal">
-                Score refresh
-              </p>
-              <p>{scoreRefreshLabel}</p>
-            </div>
-          }
         >
           <LeaderboardTable rows={rows} poolSlug={publicSlug} />
         </LedgerPanel>

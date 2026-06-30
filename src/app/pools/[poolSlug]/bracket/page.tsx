@@ -22,6 +22,7 @@ export default async function BracketPage({ params }: BracketPageProps) {
   const referencePicks = getReferencePicks(pool.picksByPath);
   const bracket = buildBracketView(pool.results, referencePicks);
   if (!bracket) notFound();
+  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
     <PublicPoolShell
@@ -29,14 +30,9 @@ export default async function BracketPage({ params }: BracketPageProps) {
       eyebrow="Knockout bracket"
       title="Path to the final"
       description="Every knockout match is arranged through the final, with live winners and scores filled in as results land."
+      scoreRefreshLabel={scoreRefreshLabel}
       meta={
-        <>
-          <PublicPoolMetaCard
-            label="Updated"
-            value={formatDateTime(pool.results.meta?.lastUpdated)}
-          />
-          <PublicPoolMetaCard label="Source" value={bracket.sourceLabel} />
-        </>
+        <PublicPoolMetaCard label="Source" value={bracket.sourceLabel} />
       }
     >
       <LedgerPanel

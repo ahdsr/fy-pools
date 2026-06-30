@@ -185,17 +185,12 @@ export default async function ProjectionsPage({ params }: ProjectionsPageProps) 
       eyebrow="Projections"
       title="Who can still pass #1?"
       description="Leader paths and payout reach based on each entry's remaining picks."
+      scoreRefreshLabel={scoreRefreshLabel}
       meta={
-        <>
-          <PublicPoolMetaCard
-            label="Updated"
-            value={scoreRefreshLabel}
-          />
-          <PublicPoolMetaCard
-            label="Prize range"
-            value={`Top ${analytics.payoutPlaces}`}
-          />
-        </>
+        <PublicPoolMetaCard
+          label="Prize range"
+          value={`Top ${analytics.payoutPlaces}`}
+        />
       }
     >
       <LedgerPanel>

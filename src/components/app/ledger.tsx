@@ -134,10 +134,10 @@ export function LedgerFeatureRows({
           <LedgerRow key={item.title} className="space-y-5">
             <Icon className="size-5 text-brand-mark" />
             <div className="space-y-2">
-              <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
+              <h2 className="text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
                 {item.title}
               </h2>
-              <p className="text-sm font-normal leading-6 text-muted-foreground">
+              <p className="text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
                 {item.body}
               </p>
             </div>

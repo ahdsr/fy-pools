@@ -19,7 +19,7 @@ import {
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
-import { getPublicPool } from "@/lib/world-cup-pool/data";
+import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
@@ -95,6 +95,7 @@ export default async function EntryPage({ params }: EntryPageProps) {
     entryId: entry.id,
     referencePicks: picks,
   });
+  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
     <PublicPoolShell
@@ -113,6 +114,7 @@ export default async function EntryPage({ params }: EntryPageProps) {
       }
       description={entry.quote ?? entry.celebrationQuote ?? "Winning it all!"}
       descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
+      scoreRefreshLabel={scoreRefreshLabel}
     >
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="secondaryGreen">

@@ -110,15 +110,15 @@ export default function Home() {
         </nav>
       </header>
 
-      <section className="mx-auto flex w-full max-w-[1268px] flex-col gap-12 px-5 py-6 md:px-6 md:py-8">
-        <section className="py-10 md:py-12">
+      <section className="mx-auto flex w-full max-w-[1268px] flex-col gap-10 px-4 py-5 sm:px-5 md:gap-12 md:px-6 md:py-8">
+        <section className="py-8 md:py-12">
           <div className="grid gap-8 lg:grid-cols-[0.93fr_1.07fr] lg:items-start">
             <div className="space-y-6 pt-1 lg:pt-0">
               <div className="space-y-5">
-                <h1 className="max-w-[650px] text-[clamp(2.45rem,5.2vw,4.7rem)] font-normal leading-[1.03] text-brand-ink">
+                <h1 className="max-w-[650px] text-[clamp(2.125rem,10vw,4.7rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04]">
                   Private sports pool hosting for serious commissioners.
                 </h1>
-                <p className="max-w-[610px] text-[1.05rem] font-light leading-7 text-muted-foreground">
+                <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">
                   PoolWaffle helps you launch polished office pools and private
                   sports contests, collect clean player picks, lock entries on
                   schedule, score results, and publish standings everyone can
@@ -154,13 +154,13 @@ export default function Home() {
               key={step.title}
               className="border-t pt-5"
             >
-              <p className="text-sm font-semibold text-brand-mark">
+              <p className="text-xs font-semibold text-brand-mark sm:text-sm">
                 {step.label}
               </p>
-              <h2 className="mt-3 text-xl font-bold tracking-[0.005em] text-brand-ink">
+              <h2 className="mt-3 text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
                 {step.title}
               </h2>
-              <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">
+              <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
                 {step.body}
               </p>
             </div>
@@ -169,11 +169,11 @@ export default function Home() {
 
         <section className="grid gap-8 border-t py-10 lg:grid-cols-[0.82fr_1.18fr]">
           <div className="space-y-3">
-            <h2 className="max-w-[480px] text-3xl font-normal leading-tight text-brand-ink">
+            <h2 className="max-w-[480px] text-2xl font-normal leading-tight text-brand-ink sm:text-3xl">
               Sports pool software built around the way commissioners actually
               run contests.
             </h2>
-            <p className="max-w-[520px] text-base font-light leading-7 text-muted-foreground">
+            <p className="max-w-[520px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
               Start from a template when the format is common. Upload your own
               spreadsheet when the format is custom. Either way, players get a
               clean private pool page and commissioners keep control of the
@@ -183,10 +183,10 @@ export default function Home() {
           <div className="grid gap-4 sm:grid-cols-2">
             {features.map((feature) => (
               <article key={feature.title} className="border-t pt-5">
-                <h3 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
+                <h3 className="text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
                   {feature.title}
                 </h3>
-                <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">
+                <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
                   {feature.body}
                 </p>
               </article>
@@ -196,10 +196,10 @@ export default function Home() {
 
         <section className="grid gap-6 border-t py-10 md:grid-cols-[0.55fr_1fr] md:items-start">
           <div className="space-y-3">
-            <h2 className="text-3xl font-normal leading-tight text-brand-ink">
+            <h2 className="text-2xl font-normal leading-tight text-brand-ink sm:text-3xl">
               Pool formats covered
             </h2>
-            <p className="text-base font-light leading-7 text-muted-foreground">
+            <p className="text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
               Use PoolWaffle for tournament brackets, season-long contests,
               party sheets, office pools, family pools, and commissioner-run
               custom formats.
@@ -209,7 +209,7 @@ export default function Home() {
             {formats.map((format) => (
               <li
                 key={format}
-                className="border-t border-brand-rule/70 pt-3 text-sm font-semibold text-brand-ink"
+                className="border-t border-brand-rule/70 pt-3 text-[0.9375rem] font-semibold leading-6 text-brand-ink sm:text-sm sm:leading-normal"
               >
                 {format}
               </li>

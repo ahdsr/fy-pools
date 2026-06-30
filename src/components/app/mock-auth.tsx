@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, UserRound } from "lucide-react";
+import { LogOut, Menu, UserRound } from "lucide-react";
 import * as React from "react";
 
 import { BrandWordmark } from "@/components/app/brand";
@@ -29,7 +29,6 @@ type MockUser = {
 
 type HeaderAccountControlsProps = {
   className?: string;
-  showDashboardLink?: boolean;
 };
 
 type SiteHeaderNavProps = {
@@ -44,6 +43,7 @@ type HeaderBrandWordmarkProps = {
 export type PublicPoolNavKey =
   | "overview"
   | "projections"
+  | "heatmap"
   | "bracket"
   | "locker-room"
   | "entry";
@@ -62,6 +62,7 @@ const signedOutNavItems = [
 const publicPoolNavItems = [
   { key: "overview", label: "Pool", href: "" },
   { key: "projections", label: "Projections", href: "/projections" },
+  { key: "heatmap", label: "Heatmap", href: "/heatmap" },
   { key: "bracket", label: "Bracket", href: "/bracket" },
   { key: "locker-room", label: "On the Pitch", href: "/locker-room" },
 ] as const;
@@ -181,10 +182,15 @@ export function HeaderBrandWordmark({
 export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
-      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-8 md:px-[43px]">
-        <HeaderBrandWordmark />
+      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-5 md:px-[43px]">
+        <div className="flex min-w-0 items-center md:block">
+          <MobileSiteHeaderNav />
+          <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0" />
+        </div>
         <SiteHeaderNav />
-        <HeaderAccountControls showDashboardLink={false} />
+        <div className="flex items-center gap-2">
+          <HeaderAccountControls />
+        </div>
       </nav>
     </header>
   );
@@ -192,6 +198,7 @@ export function DashboardHeader() {
 
 function getPublicPoolActiveRoute(pathname: string): PublicPoolNavKey {
   if (pathname.includes("/projections")) return "projections";
+  if (pathname.includes("/heatmap")) return "heatmap";
   if (pathname.includes("/bracket")) return "bracket";
   if (pathname.includes("/locker-room")) return "locker-room";
   if (pathname.includes("/entry/")) return "entry";
@@ -229,54 +236,136 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
           : "border-border/70 bg-white text-foreground",
         )}
     >
-      <nav className="grid min-h-16 w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-5 py-3 md:px-[43px]">
-        <BrandWordmark
-          href={signedIn ? "/dashboard" : "/"}
-          variant={signedIn ? "light" : "dark"}
-        />
+      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-5 md:grid md:h-auto md:min-h-16 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-3 md:px-[43px] md:py-3">
+        <div className="flex min-w-0 items-center md:contents">
+          {showPoolNav ? (
+            <MobilePublicPoolNav
+              active={active}
+              poolBaseHref={poolBaseHref}
+              signedIn={Boolean(signedIn)}
+            />
+          ) : null}
+          <BrandWordmark
+            href={signedIn ? "/dashboard" : "/"}
+            variant={signedIn ? "light" : "dark"}
+            className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
+          />
+        </div>
         {showPoolNav ? (
-          <div className="flex min-w-0 justify-center overflow-x-auto px-1">
-            <div
-              className={cn(
-                "flex shrink-0 rounded-full border p-1 shadow-sm",
-                signedIn
-                  ? "border-white/12 bg-white/8"
-                  : "border-border/80 bg-surface-paper/95",
-              )}
+          <PublicPoolNavLinks
+            active={active}
+            poolBaseHref={poolBaseHref}
+            signedIn={Boolean(signedIn)}
+          />
+        ) : (
+          <div className="hidden md:block" />
+        )}
+        <div className="flex shrink-0 items-center justify-end gap-2 md:col-start-3">
+          {signedIn ? (
+            <HeaderAccountControls />
+          ) : (
+            <Button
+              asChild
+              variant="primaryGreen"
+              className="h-9 px-3 text-[0.8125rem] sm:text-sm"
             >
-              {publicPoolNavItems.map((item) => (
-                <Link
-                  key={item.key}
-                  href={`${poolBaseHref}${item.href}`}
-                  aria-current={active === item.key ? "page" : undefined}
-                  className={cn(
-                    "rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
-                    signedIn
-                      ? "text-white/72 hover:bg-white/10 hover:text-white"
-                      : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                    active === item.key &&
-                      (signedIn
-                        ? "bg-white text-accent shadow-sm hover:bg-white hover:text-accent"
-                        : "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"),
-                  )}
-                >
-                  {item.label}
-                </Link>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div />
-        )}
-        {signedIn ? (
-          <HeaderAccountControls />
-        ) : (
-          <Button asChild variant="primaryGreen">
-            <Link href="/sign-up">Create your own</Link>
-          </Button>
-        )}
+              <Link href="/sign-up">Create your own</Link>
+            </Button>
+          )}
+        </div>
       </nav>
     </header>
+  );
+}
+
+function PublicPoolNavLinks({
+  active,
+  poolBaseHref,
+  signedIn,
+}: {
+  active?: PublicPoolNavKey;
+  poolBaseHref: string;
+  signedIn: boolean;
+}) {
+  return (
+    <div className="hidden min-w-0 md:col-start-2 md:row-start-1 md:flex md:justify-center md:overflow-visible md:px-1">
+      <div
+        className={cn(
+          "inline-flex min-w-max rounded-full border p-1 shadow-sm",
+          signedIn
+            ? "border-white/12 bg-white/8"
+            : "border-border/80 bg-surface-paper/95",
+        )}
+      >
+        {publicPoolNavItems.map((item) => (
+          <Link
+            key={item.key}
+            href={`${poolBaseHref}${item.href}`}
+            aria-current={active === item.key ? "page" : undefined}
+            className={cn(
+              "rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
+              signedIn
+                ? "text-white/72 hover:bg-white/10 hover:text-white"
+                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              active === item.key &&
+                (signedIn
+                  ? "bg-white text-accent shadow-sm hover:bg-white hover:text-accent"
+                  : "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"),
+            )}
+          >
+            {item.label}
+          </Link>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobilePublicPoolNav({
+  active,
+  poolBaseHref,
+  signedIn,
+}: {
+  active?: PublicPoolNavKey;
+  poolBaseHref: string;
+  signedIn: boolean;
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Open pool navigation menu"
+          className={cn(
+            "md:hidden",
+            signedIn
+              ? "text-white hover:bg-white/10 hover:text-white"
+              : "text-foreground hover:bg-muted hover:text-foreground",
+          )}
+        >
+          <Menu />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-56">
+        <DropdownMenuLabel>Pool navigation</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {publicPoolNavItems.map((item) => (
+          <DropdownMenuItem key={item.key} asChild>
+            <Link
+              href={`${poolBaseHref}${item.href}`}
+              aria-current={active === item.key ? "page" : undefined}
+              className={cn(
+                active === item.key && "bg-accent text-accent-foreground",
+              )}
+            >
+              {item.label}
+            </Link>
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }
 
@@ -355,9 +444,49 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   );
 }
 
+function MobileSiteHeaderNav() {
+  const pathname = usePathname();
+  const { user, hydrated } = useMockUser();
+  const items = hydrated && user ? adminNavItems : signedOutNavItems;
+
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-lg"
+          aria-label="Open navigation menu"
+          className="text-white hover:bg-white/10 hover:text-white md:hidden"
+        >
+          <Menu />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-52">
+        <DropdownMenuLabel>Navigation</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {items.map((item) => {
+          const isActive = isActiveRoute(pathname, item.href);
+
+          return (
+            <DropdownMenuItem key={item.href} asChild>
+              <Link
+                href={item.href}
+                aria-current={isActive ? "page" : undefined}
+                className={cn(isActive && "bg-accent text-accent-foreground")}
+              >
+                {item.label}
+              </Link>
+            </DropdownMenuItem>
+          );
+        })}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 export function HeaderAccountControls({
   className,
-  showDashboardLink = true,
 }: HeaderAccountControlsProps) {
   const router = useRouter();
   const { user, hydrated } = useMockUser();
@@ -383,11 +512,6 @@ export function HeaderAccountControls({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      {showDashboardLink ? (
-        <Button asChild variant="primaryGreen">
-          <Link href="/dashboard">Workspace</Link>
-        </Button>
-      ) : null}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <button

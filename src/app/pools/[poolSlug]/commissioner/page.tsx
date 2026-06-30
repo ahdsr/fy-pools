@@ -5,7 +5,11 @@ import { notFound } from "next/navigation";
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { Button } from "@/components/ui/button";
-import { getPublicPool, MARCINS_POOL_SLUG } from "@/lib/world-cup-pool/data";
+import {
+  formatDateTime,
+  getPublicPool,
+  MARCINS_POOL_SLUG,
+} from "@/lib/world-cup-pool/data";
 
 type CommissionerPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -24,6 +28,7 @@ export default async function CommissionerPage({
       eyebrow="Commissioner area"
       title="Commissioner tools require sign-in"
       description="Admin controls, imports, lock rules, and result overrides live in the signed-in dashboard rather than on Marcin's public share page."
+      scoreRefreshLabel={formatDateTime(pool.results.meta?.lastUpdated)}
     >
       <LedgerPanel title="Private controls">
         <LedgerRows className="grid md:grid-cols-[1fr_auto] md:items-center md:divide-x md:divide-y-0">

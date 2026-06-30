@@ -230,7 +230,7 @@ html[data-theme="premium-pools"] {
   h4 {
     font-family: var(--font-heading);
     font-weight: 400;
-    letter-spacing: -0.02em;
+    letter-spacing: 0;
   }
 }
 
