@@ -1,12 +1,9 @@
 import "server-only";
 
 import { buildLeaderboardRows, buildPoolAnalytics } from "@/lib/world-cup-pool/leaderboard";
-import { startLocalResultsJob } from "@/lib/world-cup-pool/local-results-job";
 import { getPublicPool } from "@/lib/world-cup-pool/data";
 
 export async function getPublicPoolStandings(poolSlug: string) {
-  startLocalResultsJob();
-
   const pool = await getPublicPool(poolSlug);
   if (!pool) return null;
 

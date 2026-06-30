@@ -31,9 +31,8 @@ type ProjectionsPageProps = {
 
 function projectionRows(rows: PoolAnalyticsRow[]) {
   return rows.slice().sort((a, b) => {
-    if (a.ceilingRank !== b.ceilingRank) return a.ceilingRank - b.ceilingRank;
-    if (b.maxPossible !== a.maxPossible) return b.maxPossible - a.maxPossible;
     if (a.rank !== b.rank) return a.rank - b.rank;
+    if (b.currentTotal !== a.currentTotal) return b.currentTotal - a.currentTotal;
     return a.name.localeCompare(b.name);
   });
 }
@@ -154,25 +153,13 @@ function ProjectionRow({
   );
 }
 
-function leaderName({
-  leaderClinched,
-  leaderNames,
-}: {
-  leaderClinched: boolean;
-  leaderNames: string[];
-}) {
+function leaderName({ leaderNames }: { leaderNames: string[] }) {
   const label = formatList(leaderNames) || "The leader";
-  return leaderClinched ? `${label} clinched` : label;
+  return label;
 }
 
-function leaderNote({
-  leaderClinched,
-  leaderTotal,
-}: {
-  leaderClinched: boolean;
-  leaderTotal: number;
-}) {
-  return leaderClinched ? "Cannot be caught" : `${leaderTotal} pts live pace`;
+function leaderNote({ leaderTotal }: { leaderTotal: number }) {
+  return `${leaderTotal} pts now`;
 }
 
 export default async function ProjectionsPage({ params }: ProjectionsPageProps) {
@@ -197,7 +184,7 @@ export default async function ProjectionsPage({ params }: ProjectionsPageProps) 
       poolName={pool.entriesConfig.poolName}
       eyebrow="Projections"
       title="Who can still pass #1?"
-      description="Leader paths and max-score ceilings based on each entry's remaining picks."
+      description="Leader paths and payout reach based on each entry's remaining picks."
       meta={
         <>
           <PublicPoolMetaCard
@@ -215,14 +202,9 @@ export default async function ProjectionsPage({ params }: ProjectionsPageProps) 
         <StatGrid
           stats={[
             {
-              label: "Current advantage",
+              label: "Current leader",
               value: leaderName(analytics),
               note: leaderNote(analytics),
-            },
-            {
-              label: "Highest ceiling",
-              value: analytics.topCeiling?.name ?? "TBD",
-              note: `${analytics.topCeiling?.maxPossible ?? 0} max pts`,
             },
             {
               label: "Can pass leader",

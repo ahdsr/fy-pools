@@ -1,31 +1,18 @@
 {
   "meta": {
-    "lastUpdated": "2026-06-29T22:07:36.663Z",
-    "status": "Auto-updated from ESPN: 75 live/final matches counted: 1 in progress.",
+    "lastUpdated": "2026-06-30T01:25:41.227Z",
+    "status": "Auto-updated from ESPN: 76 live/final matches counted: 1 in progress.",
     "source": "espn",
     "sourceUrl": "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719",
     "sourceNote": "Group standings are computed from ESPN match scores. Third-place qualifier scoring is withheld until the group stage is final unless manually overridden."
   },
   "matches": [
     {
-      "id": "760489",
-      "date": "2026-06-29T20:30Z",
-      "state": "in",
-      "completed": false,
-      "detail": "74'",
-      "homeTeam": "Germany",
-      "awayTeam": "Paraguay",
-      "homeScore": 1,
-      "awayScore": 1,
-      "winner": "",
-      "loser": ""
-    },
-    {
       "id": "760488",
       "date": "2026-06-30T01:00Z",
-      "state": "pre",
+      "state": "in",
       "completed": false,
-      "detail": "Mon, June 29th at 9:00 PM EDT",
+      "detail": "25'",
       "homeTeam": "Netherlands",
       "awayTeam": "Morocco",
       "homeScore": 0,
@@ -208,7 +195,7 @@
       "state": "pre",
       "completed": false,
       "detail": "Sat, July 4th at 5:00 PM EDT",
-      "homeTeam": "Round of 32 2 Winner",
+      "homeTeam": "Paraguay",
       "awayTeam": "Round of 32 5 Winner",
       "homeScore": 0,
       "awayScore": 0,
@@ -396,6 +383,19 @@
       "awayScore": 0,
       "winner": "",
       "loser": ""
+    },
+    {
+      "id": "760489",
+      "date": "2026-06-29T20:30Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT-Pens",
+      "homeTeam": "Germany",
+      "awayTeam": "Paraguay",
+      "homeScore": 1,
+      "awayScore": 1,
+      "winner": "Paraguay",
+      "loser": "Germany"
     },
     {
       "id": "760487",
@@ -1890,6 +1890,7 @@
   ],
   "roundOf16": [
     "Canada",
+    "Paraguay",
     "Brazil"
   ],
   "quarterFinalists": [],

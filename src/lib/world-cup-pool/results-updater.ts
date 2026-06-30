@@ -1,4 +1,5 @@
 import type { EntryPicks, MatchResult, PoolResults } from "@/lib/world-cup-pool/types";
+import { sortRoundOf32ByOfficialSlot } from "@/lib/world-cup-pool/knockout-slots";
 
 export const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719";
@@ -368,7 +369,7 @@ export function buildKnockoutResults(matches: MatchResult[], picks: EntryPicks) 
   const knockoutMatches = matches
     .filter((match) => !matchIsGroupStage(match, teamToGroup))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const roundOf32 = knockoutMatches.slice(0, 16);
+  const roundOf32 = sortRoundOf32ByOfficialSlot(knockoutMatches.slice(0, 16));
   const roundOf16 = knockoutMatches.slice(16, 24);
   const quarterFinals = knockoutMatches.slice(24, 28);
   const semiFinals = knockoutMatches.slice(28, 30);

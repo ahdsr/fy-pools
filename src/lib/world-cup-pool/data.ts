@@ -4,6 +4,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
 
+import {
+  buildResultsFromEvents,
+  ESPN_SCOREBOARD_URL,
+} from "@/lib/world-cup-pool/results-updater";
 import type {
   EntriesConfig,
   EntryPicks,
@@ -29,6 +33,7 @@ const DATA_DIR = path.join(
   "data",
   "marcins-world-cup-2026",
 );
+const LIVE_RESULTS_REVALIDATE_SECONDS = 60;
 
 async function readFixtureJson<T>(fileName: string): Promise<T> {
   const json = await readFile(path.join(DATA_DIR, fileName), "utf8");
@@ -39,26 +44,103 @@ function fixtureFileFromPicksPath(picksPath: string) {
   return path.basename(picksPath);
 }
 
-export const getMarcinsWorldCupPool = cache(async (): Promise<PoolFixture> => {
+type StaticPoolFixture = Omit<PoolFixture, "results"> & {
+  fallbackResults: PoolResults;
+  manualOverrides: Partial<PoolResults>;
+  aliases: { aliases?: Record<string, string> };
+};
+
+const getMarcinsWorldCupStaticPool = cache(async (): Promise<StaticPoolFixture> => {
   const entriesConfig = await readFixtureJson<EntriesConfig>("entries.json");
-  const results = await readFixtureJson<PoolResults>("results.json");
-  const picksByPathEntries = await Promise.all(
-    entriesConfig.entries
-      .map((entry) => entry.picksPath)
-      .filter((picksPath): picksPath is string => Boolean(picksPath))
-      .map(async (picksPath) => [
-        picksPath,
-        await readFixtureJson<EntryPicks>(fixtureFileFromPicksPath(picksPath)),
-      ] as const),
-  );
+  const [fallbackResults, manualOverrides, aliases, picksByPathEntries] =
+    await Promise.all([
+      readFixtureJson<PoolResults>("results.json"),
+      readFixtureJson<Partial<PoolResults>>("manual-overrides.json"),
+      readFixtureJson<{ aliases?: Record<string, string> }>("team-aliases.json"),
+      Promise.all(
+        entriesConfig.entries
+          .map((entry) => entry.picksPath)
+          .filter((picksPath): picksPath is string => Boolean(picksPath))
+          .map(async (picksPath) => [
+            picksPath,
+            await readFixtureJson<EntryPicks>(fixtureFileFromPicksPath(picksPath)),
+          ] as const),
+      ),
+    ]);
 
   return {
     slug: MARCINS_POOL_SLUG,
     entriesConfig,
-    results,
+    fallbackResults,
+    manualOverrides,
+    aliases,
     picksByPath: new Map(picksByPathEntries),
   };
 });
+
+async function fetchLiveResults({
+  referencePicks,
+  aliases,
+  manualOverrides,
+  fallbackResults,
+}: {
+  referencePicks?: EntryPicks;
+  aliases: { aliases?: Record<string, string> };
+  manualOverrides: Partial<PoolResults>;
+  fallbackResults: PoolResults;
+}) {
+  if (!referencePicks) return fallbackResults;
+
+  try {
+    const response = await fetch(ESPN_SCOREBOARD_URL, {
+      next: { revalidate: LIVE_RESULTS_REVALIDATE_SECONDS },
+    });
+
+    if (!response.ok) {
+      throw new Error(`ESPN scoreboard request failed with ${response.status}`);
+    }
+
+    const scoreboard = (await response.json()) as { events?: unknown };
+    if (!Array.isArray(scoreboard.events)) {
+      throw new Error("ESPN scoreboard response did not include events");
+    }
+
+    return buildResultsFromEvents(
+      scoreboard.events as Parameters<typeof buildResultsFromEvents>[0],
+      {
+        picks: referencePicks,
+        aliases,
+        manualOverrides,
+      },
+    );
+  } catch (error) {
+    console.error("[fy-pools] Live results fetch failed; using fixture fallback", error);
+    return fallbackResults;
+  }
+}
+
+export async function getMarcinsWorldCupPool(): Promise<PoolFixture> {
+  const staticPool = await getMarcinsWorldCupStaticPool();
+  const referencePicksPath = staticPool.entriesConfig.entries.find(
+    (entry) => entry.picksPath,
+  )?.picksPath;
+  const referencePicks = referencePicksPath
+    ? staticPool.picksByPath.get(referencePicksPath)
+    : undefined;
+  const results = await fetchLiveResults({
+    referencePicks,
+    aliases: staticPool.aliases,
+    manualOverrides: staticPool.manualOverrides,
+    fallbackResults: staticPool.fallbackResults,
+  });
+
+  return {
+    slug: staticPool.slug,
+    entriesConfig: staticPool.entriesConfig,
+    picksByPath: staticPool.picksByPath,
+    results,
+  };
+}
 
 export async function getPublicPool(poolSlug: string) {
   if (!POOL_ALIASES.has(poolSlug)) return null;

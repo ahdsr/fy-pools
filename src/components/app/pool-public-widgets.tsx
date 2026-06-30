@@ -5,19 +5,10 @@ import type { ReactNode } from "react";
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { displayTeamName } from "@/lib/world-cup-pool/scoring";
 import type {
   EntriesConfig,
   EntryPicks,
-  LeaderboardRow,
   MatchResult,
   PoolResults,
   PoolScore,
@@ -179,61 +170,10 @@ export function PublicToolsPanel({ tools }: { tools: PublicToolLink[] }) {
   );
 }
 
-export function LeaderboardTable({
-  rows,
-  poolSlug,
-  limit,
-}: {
-  rows: LeaderboardRow[];
-  poolSlug: string;
-  limit?: number;
-}) {
-  const visibleRows = limit ? rows.slice(0, limit) : rows;
-
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
-          <TableHead>Rank</TableHead>
-          <TableHead>Entry</TableHead>
-          <TableHead>Total</TableHead>
-          <TableHead>Group</TableHead>
-          <TableHead>Knockout</TableHead>
-          <TableHead>Finals</TableHead>
-          <TableHead>Bonus</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody>
-        {visibleRows.map((row) => (
-          <TableRow key={row.id}>
-            <TableCell className="font-semibold text-brand-ink">
-              {row.rank}
-            </TableCell>
-            <TableCell>
-              <Link
-                href={`/pools/${poolSlug}/entry/${row.id}`}
-                className="font-medium text-brand-ink hover:text-brand-hot"
-              >
-                {row.name}
-              </Link>
-            </TableCell>
-            <TableCell className="font-semibold">{row.score.total}</TableCell>
-            <TableCell>{row.score.subtotals.group}</TableCell>
-            <TableCell>{row.score.subtotals.knockout}</TableCell>
-            <TableCell>{row.score.subtotals.finals}</TableCell>
-            <TableCell>{row.score.subtotals.bonus}</TableCell>
-          </TableRow>
-        ))}
-      </TableBody>
-    </Table>
-  );
-}
-
 export function LatestUpdatesPanel({
   results,
   referencePicks,
 }: {
-  rows: LeaderboardRow[];
   results: PoolResults;
   referencePicks?: EntryPicks;
 }) {
@@ -241,7 +181,7 @@ export function LatestUpdatesPanel({
 
   return (
     <LedgerPanel
-      title="Latest updates"
+      title="Match updates"
       description={results.meta?.status ?? "Latest standings update"}
     >
       <LedgerRows>

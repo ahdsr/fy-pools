@@ -22,7 +22,7 @@ type PoolPageProps = {
 };
 
 const currentStandingsInfo =
-  "These standings are not final. Current scores are based on results entered so far: group picks use the current group order and projected third-place qualifiers, knockout/finals/bonus points use completed or entered outcomes. That means the table can be skewed by today's partial results and our current scoring logic until every result is final.";
+  "These standings are not final. Current scores are based on results entered so far: group picks use the current group order, third-place qualifiers count only once entered or final, and knockout/finals/bonus points use completed or entered outcomes. That means the table can be skewed by today's partial results until every result is final.";
 
 export default async function PoolPage({ params }: PoolPageProps) {
   const { poolSlug } = await params;
@@ -126,7 +126,6 @@ export default async function PoolPage({ params }: PoolPageProps) {
 
         <aside className="grid gap-5">
           <LatestUpdatesPanel
-            rows={rows}
             results={pool.results}
             referencePicks={referencePicks}
           />
