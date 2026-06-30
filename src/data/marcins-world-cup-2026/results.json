@@ -1,25 +1,12 @@
 {
   "meta": {
-    "lastUpdated": "2026-06-30T01:25:41.227Z",
-    "status": "Auto-updated from ESPN: 76 live/final matches counted: 1 in progress.",
+    "lastUpdated": "2026-06-30T13:42:22.851Z",
+    "status": "Auto-updated from ESPN: 76 live/final matches counted.",
     "source": "espn",
     "sourceUrl": "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719",
     "sourceNote": "Group standings are computed from ESPN match scores. Third-place qualifier scoring is withheld until the group stage is final unless manually overridden."
   },
   "matches": [
-    {
-      "id": "760488",
-      "date": "2026-06-30T01:00Z",
-      "state": "in",
-      "completed": false,
-      "detail": "25'",
-      "homeTeam": "Netherlands",
-      "awayTeam": "Morocco",
-      "homeScore": 0,
-      "awayScore": 0,
-      "winner": "",
-      "loser": ""
-    },
     {
       "id": "760490",
       "date": "2026-06-30T17:00Z",
@@ -183,7 +170,7 @@
       "completed": false,
       "detail": "Sat, July 4th at 1:00 PM EDT",
       "homeTeam": "Canada",
-      "awayTeam": "Round of 32 3 Winner",
+      "awayTeam": "Morocco",
       "homeScore": 0,
       "awayScore": 0,
       "winner": "",
@@ -383,6 +370,19 @@
       "awayScore": 0,
       "winner": "",
       "loser": ""
+    },
+    {
+      "id": "760488",
+      "date": "2026-06-30T01:00Z",
+      "state": "post",
+      "completed": true,
+      "detail": "FT-Pens",
+      "homeTeam": "Netherlands",
+      "awayTeam": "Morocco",
+      "homeScore": 1,
+      "awayScore": 1,
+      "winner": "Morocco",
+      "loser": "Netherlands"
     },
     {
       "id": "760489",
@@ -1890,8 +1890,9 @@
   ],
   "roundOf16": [
     "Canada",
+    "Brazil",
     "Paraguay",
-    "Brazil"
+    "Morocco"
   ],
   "quarterFinalists": [],
   "semifinalists": [],

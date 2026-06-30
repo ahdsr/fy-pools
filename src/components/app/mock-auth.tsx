@@ -40,6 +40,10 @@ type HeaderBrandWordmarkProps = {
   variant?: "dark" | "light";
 };
 
+type MockAuthFormProps = {
+  nextPath?: string | null;
+};
+
 export type PublicPoolNavKey =
   | "overview"
   | "projections"
@@ -73,6 +77,8 @@ const adminNavItems = [
   { label: "Templates", href: "/dashboard/templates" },
   { label: "Import", href: "/upload-your-own" },
 ] as const;
+
+const DEFAULT_AUTH_REDIRECT = "/dashboard";
 
 type MockAuthContextValue = {
   user: MockUser | null;
@@ -162,6 +168,34 @@ function isActiveRoute(pathname: string, href: string) {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+function getSafeNextPath(nextPath?: string | null) {
+  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
+    return DEFAULT_AUTH_REDIRECT;
+  }
+
+  try {
+    const url = new URL(nextPath, "https://poolwaffle.local");
+
+    if (
+      url.origin !== "https://poolwaffle.local" ||
+      url.pathname === "/sign-in" ||
+      url.pathname === "/sign-up"
+    ) {
+      return DEFAULT_AUTH_REDIRECT;
+    }
+
+    return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return DEFAULT_AUTH_REDIRECT;
+  }
+}
+
+function getAuthLink(pathname: "/sign-in" | "/sign-up", nextPath: string) {
+  return nextPath === DEFAULT_AUTH_REDIRECT
+    ? pathname
+    : `${pathname}?next=${encodeURIComponent(nextPath)}`;
 }
 
 export function HeaderBrandWordmark({
@@ -369,8 +403,9 @@ function MobilePublicPoolNav({
   );
 }
 
-export function MockSignInForm() {
+export function MockSignInForm({ nextPath }: MockAuthFormProps) {
   const router = useRouter();
+  const redirectPath = getSafeNextPath(nextPath);
   const [email, setEmail] = React.useState("admin@poolwaffle.com");
 
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -380,7 +415,7 @@ export function MockSignInForm() {
       email,
       role: "Pool admin",
     });
-    router.push("/dashboard");
+    router.push(redirectPath);
   }
 
   return (
@@ -406,6 +441,84 @@ export function MockSignInForm() {
       </div>
       <Button className="w-full" type="submit">
         Sign in as pool admin
+      </Button>
+      <Button asChild variant="ghost" className="w-full">
+        <Link href={getAuthLink("/sign-up", redirectPath)}>
+          Create a mock account
+        </Link>
+      </Button>
+    </form>
+  );
+}
+
+export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
+  const router = useRouter();
+  const { user, hydrated } = useMockUser();
+  const redirectPath = getSafeNextPath(nextPath);
+  const [name, setName] = React.useState("Pool Commissioner");
+  const [email, setEmail] = React.useState("commissioner@poolwaffle.com");
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    storeUser({
+      name,
+      email,
+      role: "Pool commissioner",
+    });
+    router.push(redirectPath);
+  }
+
+  function handleContinue() {
+    router.push(redirectPath);
+  }
+
+  return (
+    <form className="space-y-5" onSubmit={handleSubmit}>
+      <div className="space-y-2">
+        <Label htmlFor="signup-name">Name</Label>
+        <Input
+          id="signup-name"
+          value={name}
+          onChange={(event) => setName(event.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signup-email">Email</Label>
+        <Input
+          id="signup-email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="signup-password">Password</Label>
+        <Input
+          id="signup-password"
+          type="password"
+          value="mock-password"
+          readOnly
+        />
+      </div>
+      <Button className="w-full" type="submit" variant="primaryGreen">
+        Create mock account
+      </Button>
+      {hydrated && user ? (
+        <Button
+          className="w-full"
+          type="button"
+          variant="outline"
+          onClick={handleContinue}
+        >
+          Continue to setup
+        </Button>
+      ) : null}
+      <Button asChild variant="ghost" className="w-full">
+        <Link href={getAuthLink("/sign-in", redirectPath)}>
+          Already have a mock account?
+        </Link>
       </Button>
     </form>
   );

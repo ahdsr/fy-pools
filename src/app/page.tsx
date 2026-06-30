@@ -139,7 +139,7 @@ export default function Home() {
 
             <figure
               aria-label="Generic sports field"
-              className="min-h-[360px] overflow-hidden rounded-lg border bg-cover bg-center shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_74%)] ring-1 ring-white/5 lg:min-h-[470px]"
+              className="min-h-[360px] overflow-hidden rounded-lg border bg-cover bg-center ring-1 ring-white/5 lg:min-h-[470px]"
               style={{
                 backgroundImage:
                   "linear-gradient(180deg, rgb(0 0 0 / 0.02), rgb(0 0 0 / 0.18)), url(https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1400&q=80)",

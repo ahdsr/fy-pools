@@ -234,6 +234,16 @@ html[data-theme="premium-pools"] {
   }
 }
 
+@layer components {
+  .display-heading-xl {
+    @apply text-[clamp(2.125rem,10vw,4.5rem)] font-normal leading-[1.08] tracking-normal text-brand-ink sm:leading-[1.04];
+    font-feature-settings:
+      "kern" 1,
+      "liga" 1;
+    font-kerning: normal;
+  }
+}
+
 @layer utilities {
   .ledger-surface {
     background:

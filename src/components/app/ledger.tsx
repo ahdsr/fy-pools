@@ -21,7 +21,7 @@ export function LedgerPanel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border bg-surface-paper text-card-foreground shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_74%)] ring-1 ring-white/5",
+        "overflow-hidden rounded-lg border bg-surface-paper text-card-foreground ring-1 ring-white/5",
         className,
       )}
       {...props}
@@ -63,7 +63,7 @@ export function CollapsibleLedgerPanel({
     <details
       open={defaultOpen}
       className={cn(
-        "group overflow-hidden rounded-lg border bg-surface-paper text-card-foreground shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_74%)] ring-1 ring-white/5",
+        "group overflow-hidden rounded-lg border bg-surface-paper text-card-foreground ring-1 ring-white/5",
         className,
       )}
       {...props}

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { ArrowRight, CirclePlus } from "lucide-react";
 
 import {
   AdvancementPicksPanel,
@@ -10,14 +11,21 @@ import {
   TodaysResultsPanel,
 } from "@/components/app/entry-detail-panels";
 import { FutureLeveragePanel } from "@/components/app/future-leverage-panel";
-import { CollapsibleLedgerPanel } from "@/components/app/ledger";
+import {
+  CollapsibleLedgerPanel,
+  LedgerPanel,
+  LedgerRow,
+  LedgerRows,
+} from "@/components/app/ledger";
 import { OpponentPathsPanel } from "@/components/app/opponent-paths-panel";
 import { ScoreCards } from "@/components/app/pool-public-widgets";
 import {
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
+import { Badge } from "@/components/ui/badge";
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
+import { getAvailableTournamentTemplates } from "@/lib/templates/catalog";
 import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
@@ -96,6 +104,8 @@ export default async function EntryPage({ params }: EntryPageProps) {
     referencePicks: picks,
   });
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
+  const availableTournamentTemplates =
+    getAvailableTournamentTemplates("world-cup");
 
   return (
     <PublicPoolShell
@@ -128,6 +138,8 @@ export default async function EntryPage({ params }: EntryPageProps) {
           </Link>
         </Button>
       </div>
+
+      <CreatePoolCta templates={availableTournamentTemplates} />
 
       <ScoreCards
         score={score}
@@ -171,5 +183,60 @@ export default async function EntryPage({ params }: EntryPageProps) {
 
       <OpponentPathsPanel report={opponentPaths} />
     </PublicPoolShell>
+  );
+}
+
+type AvailableTournamentTemplate = ReturnType<
+  typeof getAvailableTournamentTemplates
+>[number];
+
+function getSignupHref(templateSlug: string) {
+  const nextPath = `/dashboard/pools/new?template=${templateSlug}`;
+  return `/sign-up?next=${encodeURIComponent(nextPath)}`;
+}
+
+function CreatePoolCta({
+  templates,
+}: {
+  templates: AvailableTournamentTemplate[];
+}) {
+  const primaryTemplate = templates[0];
+  if (!primaryTemplate) return null;
+
+  return (
+    <LedgerPanel
+      title="You still have time to create your own pool"
+      description="Start a shorter 2026 World Cup pool from one of the rounds that can still lock cleanly."
+      action={
+        <Button asChild variant="primaryGreen">
+          <Link href={getSignupHref(primaryTemplate.slug)}>
+            <CirclePlus /> Create pool
+          </Link>
+        </Button>
+      }
+    >
+      <LedgerRows className="grid md:grid-cols-3 md:divide-x md:divide-y-0">
+        {templates.map((template) => (
+          <LedgerRow key={template.slug} className="space-y-4">
+            <div className="space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="font-semibold text-brand-ink">
+                  {template.name}
+                </h2>
+                <Badge variant="outline">{template.lock}</Badge>
+              </div>
+              <p className="text-sm font-normal leading-6 text-muted-foreground">
+                {template.bestFor}: {template.picks}.
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={getSignupHref(template.slug)}>
+                Use this format <ArrowRight />
+              </Link>
+            </Button>
+          </LedgerRow>
+        ))}
+      </LedgerRows>
+    </LedgerPanel>
   );
 }

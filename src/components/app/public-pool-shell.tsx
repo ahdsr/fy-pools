@@ -34,9 +34,7 @@ export function PublicPoolShell({
                 {eyebrow}
               </p>
             ) : null}
-            <h1 className="text-[clamp(2.125rem,10vw,4.5rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04]">
-              {title}
-            </h1>
+            <h1 className="display-heading-xl">{title}</h1>
             {description ? (
               <p
                 className={cn(
@@ -79,7 +77,7 @@ export function PublicPoolMetaCard({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-surface-paper p-4 text-card-foreground shadow-[0_20px_60px_color-mix(in_oklch,black,transparent_82%)]",
+        "rounded-lg border bg-surface-paper p-4 text-card-foreground",
         className,
       )}
       {...props}

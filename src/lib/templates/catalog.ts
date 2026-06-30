@@ -16,6 +16,7 @@ export type PoolTemplate = {
   picks: string;
   lock: string;
   popularity: "Popular" | "New" | "Classic";
+  availableNow?: boolean;
 };
 
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
@@ -52,6 +53,33 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
         picks: "Winner, draw, scoreline",
         lock: "Match by match",
         popularity: "New",
+      },
+      {
+        slug: "world-cup-mini-round-of-16",
+        name: "Mini Round of 16 Pool",
+        bestFor: "Late-start groups",
+        picks: "Round winners, finalists, champion",
+        lock: "Before round of 16",
+        popularity: "New",
+        availableNow: true,
+      },
+      {
+        slug: "world-cup-mini-round-of-8",
+        name: "Mini Round of 8 Pool",
+        bestFor: "Quick knockout pools",
+        picks: "Quarter-final winners, finalists, champion",
+        lock: "Before quarter-finals",
+        popularity: "New",
+        availableNow: true,
+      },
+      {
+        slug: "world-cup-quarter-final-pickem",
+        name: "Quarter-final Pick'em",
+        bestFor: "Weekend watch parties",
+        picks: "Quarter-final match picks and champion",
+        lock: "Before first quarter-final",
+        popularity: "Classic",
+        availableNow: true,
       },
     ],
   },
@@ -208,5 +236,15 @@ export function getCategoryBySlug(slug: string | undefined) {
 export function getAllTemplates() {
   return TEMPLATE_CATEGORIES.flatMap((category) =>
     category.templates.map((template) => ({ ...template, category })),
+  );
+}
+
+export function getAvailableTournamentTemplates(categorySlug: string) {
+  const category = getCategoryBySlug(categorySlug);
+
+  return (
+    category?.templates
+      .filter((template) => template.availableNow)
+      .map((template) => ({ ...template, category })) ?? []
   );
 }

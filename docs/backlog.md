@@ -1,5 +1,29 @@
 # Backlog
 
+## Pool Format Feedback
+
+Collect feedback from users on what format they want to run their pool before
+committing to the default setup flow. The goal is to understand which pool
+formats feel familiar, competitive, and easy enough for organizers to explain.
+
+### Questions to Answer
+
+- Do organizers prefer bracket-style picks, group-stage rankings, match-by-match
+  predictions, survivor-style eliminations, or a hybrid format?
+- Should the pool support one entry per person by default, or allow multiple
+  entries for households, side bets, or paid tiers?
+- What scoring rules feel fair and transparent for casual players?
+- How much setup control should organizers have before the flow becomes too
+  complicated?
+- Which format would make participants check the pool repeatedly during the
+  tournament?
+
+### Follow-Up
+
+- Interview a small set of organizers and participants.
+- Turn the strongest feedback into 2-3 proposed pool format templates.
+- Use the templates to guide the next version of the new pool setup flow.
+
 ## On the Pitch / Game Day Room
 
 Create a contained social room for each pool event so users do more than make
