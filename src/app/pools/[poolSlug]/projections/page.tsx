@@ -19,6 +19,7 @@ import {
 import { formatDateTime, formatList } from "@/lib/world-cup-pool/data";
 import type { PoolAnalyticsRow } from "@/lib/world-cup-pool/leaderboard";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
+import type { OpponentPathEvent } from "@/lib/world-cup-pool/opponent-paths";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
 import type { LeaderboardRow } from "@/lib/world-cup-pool/types";
 
@@ -42,6 +43,7 @@ type LeaderPassRoute = {
   neededSwing: number;
   routeCovered: number;
   routeLabel: string;
+  routeEvents: OpponentPathEvent[];
 };
 
 function buildLeaderPassRoutes({
@@ -63,6 +65,7 @@ function buildLeaderPassRoutes({
         neededSwing: 0,
         routeCovered: 0,
         routeLabel: "Current leader",
+        routeEvents: [],
       });
       continue;
     }
@@ -84,6 +87,7 @@ function buildLeaderPassRoutes({
       routeLabel: leaderPath?.routeComplete
         ? `${leaderPath.routeCovered} route pts`
         : `${leaderPath?.routeCovered ?? 0}/${leaderPath?.neededSwing ?? Math.max(0, leader.score.total - row.currentTotal + 1)} route pts`,
+      routeEvents: leaderPath?.routeEvents ?? [],
     });
   }
 
@@ -162,6 +166,87 @@ function leaderNote({ leaderTotal }: { leaderTotal: number }) {
   return `${leaderTotal} pts now`;
 }
 
+function WinPathCards({
+  rows,
+  publicSlug,
+  routes,
+}: {
+  rows: PoolAnalyticsRow[];
+  publicSlug: string;
+  routes: Map<string, LeaderPassRoute>;
+}) {
+  const contenders = rows
+    .filter((row) => routes.get(row.id)?.canPassLeader)
+    .sort((a, b) => {
+      const left = routes.get(a.id);
+      const right = routes.get(b.id);
+      if ((left?.neededSwing ?? 0) !== (right?.neededSwing ?? 0)) {
+        return (left?.neededSwing ?? 0) - (right?.neededSwing ?? 0);
+      }
+      return a.rank - b.rank;
+    })
+    .slice(0, 8);
+
+  if (!contenders.length) return null;
+
+  return (
+    <LedgerPanel
+      title="Win path tree"
+      description="The smallest route events currently found for entries that can still pass #1."
+    >
+      <div className="grid gap-4 p-4 lg:grid-cols-2">
+        {contenders.map((row) => {
+          const route = routes.get(row.id);
+          const events = route?.routeEvents ?? [];
+
+          return (
+            <div key={row.id} className="rounded-lg border bg-background/60 p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <Link
+                    href={`/pools/${publicSlug}/entry/${row.id}`}
+                    className="font-semibold text-brand-ink hover:text-brand-hot"
+                  >
+                    {row.name}
+                  </Link>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {row.currentTotal} pts now · {route?.routeLabel}
+                  </p>
+                </div>
+                {statusBadge("Can win", true)}
+              </div>
+              {events.length ? (
+                <div className="mt-4 grid gap-3 border-l pl-4">
+                  {events.slice(0, 4).map((event, index) => (
+                    <div key={event.id} className="relative">
+                      <span
+                        aria-hidden="true"
+                        className="absolute -left-[1.48rem] top-0 grid size-5 place-items-center rounded-full border bg-surface-paper text-[0.65rem] font-bold text-brand-ink"
+                      >
+                        {index + 1}
+                      </span>
+                      <p className="text-sm font-semibold leading-5 text-brand-ink">
+                        {event.title}
+                      </p>
+                      <p className="text-xs leading-4 text-muted-foreground">
+                        {event.category} · +{event.points} route pts
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="mt-4 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
+                  Current leader path.
+                </p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </LedgerPanel>
+  );
+}
+
 export default async function ProjectionsPage({ params }: ProjectionsPageProps) {
   const { poolSlug } = await params;
   const standings = await getPublicPoolStandings(poolSlug);
@@ -214,6 +299,12 @@ export default async function ProjectionsPage({ params }: ProjectionsPageProps) 
           ]}
         />
       </LedgerPanel>
+
+      <WinPathCards
+        rows={rows}
+        publicSlug={publicSlug}
+        routes={leaderPassRoutes}
+      />
 
       <LedgerPanel
         title="Pool projections"

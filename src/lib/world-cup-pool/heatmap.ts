@@ -70,16 +70,53 @@ export type BonusHeatmapSummary = {
   rows: PickSummaryRow[];
 };
 
+export type KnockoutFlowStage = {
+  key: HeatmapStageKey;
+  label: string;
+  rows: PickSummaryRow[];
+};
+
+export type ContrarianPick = {
+  team: string;
+  stageKey: HeatmapStageKey;
+  stageLabel: string;
+  cell: HeatmapCell;
+  weight: number;
+};
+
+export type GroupConsensusPosition = {
+  position: number;
+  team?: string;
+  cell?: HeatmapCell;
+};
+
+export type GroupConsensusSummary = {
+  groupId: string;
+  positions: GroupConsensusPosition[];
+  agreementLabel: string;
+};
+
+export type EntrantSimilarityRow = {
+  entrants: [HeatmapEntrant, HeatmapEntrant];
+  sharedPickCount: number;
+  totalPickCount: number;
+  percent: number;
+};
+
 export type PoolHeatmap = {
   eligibleEntryCount: number;
   entrants: HeatmapEntrant[];
   teamFlags: Record<string, string>;
+  knockoutFlowStages: KnockoutFlowStage[];
   playerTeamRows: PlayerTeamHeatmapRow[];
   knockoutRows: KnockoutHeatmapRow[];
+  contrarianPicks: ContrarianPick[];
   podiumSummaries: PodiumSummary[];
+  groupConsensusSummaries: GroupConsensusSummary[];
   groupSummaries: GroupHeatmapSummary[];
   thirdPlaceQualifierRows: PickSummaryRow[];
   bonusSummaries: BonusHeatmapSummary[];
+  entrantSimilarityRows: EntrantSimilarityRow[];
 };
 
 type EligiblePick = HeatmapEntrant & {
@@ -225,6 +262,26 @@ function buildKnockoutRows(picks: EligiblePick[], totalEntries: number) {
     );
 }
 
+function buildKnockoutFlowStages(rows: KnockoutHeatmapRow[]) {
+  return KNOCKOUT_HEATMAP_STAGES.map((stage) => ({
+    key: stage.key,
+    label: stage.label,
+    rows: rows
+      .map((row) => ({
+        team: row.team,
+        cell: row.stages[stage.key],
+      }))
+      .filter((row) => row.cell.count > 0)
+      .sort(
+        (a, b) =>
+          b.cell.count - a.cell.count ||
+          b.cell.percent - a.cell.percent ||
+          a.team.localeCompare(b.team),
+      )
+      .slice(0, 6),
+  }));
+}
+
 function stageWeight(stageKey: HeatmapStageKey) {
   switch (stageKey) {
     case "champion":
@@ -328,6 +385,27 @@ function buildPlayerTeamRows(picks: EligiblePick[], totalEntries: number) {
     );
 }
 
+function buildContrarianPicks(rows: KnockoutHeatmapRow[]) {
+  return rows
+    .flatMap((row) =>
+      KNOCKOUT_HEATMAP_STAGES.map((stage) => ({
+        team: row.team,
+        stageKey: stage.key,
+        stageLabel: stage.label,
+        cell: row.stages[stage.key],
+        weight: stageWeight(stage.key),
+      })),
+    )
+    .filter((pick) => pick.cell.count > 0 && pick.cell.count <= 2)
+    .sort(
+      (a, b) =>
+        b.weight - a.weight ||
+        a.cell.count - b.cell.count ||
+        a.team.localeCompare(b.team),
+    )
+    .slice(0, 12);
+}
+
 function buildPodiumSummaries(picks: EligiblePick[], totalEntries: number) {
   const champion = new Map<string, MutableCell>();
   const runnerUp = new Map<string, MutableCell>();
@@ -398,6 +476,44 @@ function buildGroupSummaries(picks: EligiblePick[], totalEntries: number) {
   });
 }
 
+function agreementLabel(percent: number) {
+  if (percent >= 70) return "High agreement";
+  if (percent >= 45) return "Split";
+  return "Wide open";
+}
+
+function buildGroupConsensusSummaries(groupSummaries: GroupHeatmapSummary[]) {
+  return groupSummaries.map((summary) => {
+    const positions = Array.from({ length: 4 }, (_, index) => {
+      const leader = summary.rows
+        .map((row) => ({ team: row.team, cell: row.positions[index] }))
+        .filter((row) => row.cell.count > 0)
+        .sort(
+          (a, b) =>
+            b.cell.count - a.cell.count ||
+            b.cell.percent - a.cell.percent ||
+            a.team.localeCompare(b.team),
+        )[0];
+
+      return {
+        position: index + 1,
+        team: leader?.team,
+        cell: leader?.cell,
+      };
+    });
+    const averageAgreement = Math.round(
+      positions.reduce((sum, position) => sum + (position.cell?.percent ?? 0), 0) /
+        positions.length,
+    );
+
+    return {
+      groupId: summary.groupId,
+      positions,
+      agreementLabel: agreementLabel(averageAgreement),
+    };
+  });
+}
+
 function buildThirdPlaceQualifierRows(
   picks: EligiblePick[],
   totalEntries: number,
@@ -455,25 +571,109 @@ function buildTeamFlags(picks: EligiblePick[]) {
   return teamFlags;
 }
 
+function pickTokens(entry: EligiblePick) {
+  const tokens = new Set<string>();
+  const addTeamTokens = (prefix: string, teams: string[] | undefined) => {
+    for (const team of teams ?? []) {
+      if (team) tokens.add(`${prefix}:${team}`);
+    }
+  };
+
+  addTeamTokens("ko:r16", entry.picks.advancement.roundOf16);
+  addTeamTokens("ko:qf", entry.picks.advancement.quarterFinalists);
+  addTeamTokens("ko:sf", entry.picks.advancement.semifinalists);
+  addTeamTokens("ko:final", entry.picks.advancement.finalists);
+  tokens.add(`podium:champion:${entry.picks.podium.champion}`);
+  tokens.add(`podium:runner-up:${entry.picks.podium.runnerUp}`);
+  tokens.add(`podium:third:${entry.picks.podium.thirdPlace}`);
+
+  for (const [groupId, group] of Object.entries(entry.picks.groups)) {
+    addTeamTokens(`group:${groupId}:advancer`, group.predictedAdvancers);
+    group.predictedOrder.slice(0, 4).forEach((team, index) => {
+      if (team) tokens.add(`group:${groupId}:position:${index + 1}:${team}`);
+    });
+  }
+
+  for (const [groupId, pick] of Object.entries(entry.picks.thirdPlace)) {
+    if (pick.selected && pick.team) {
+      tokens.add(`third-place-qualifier:${groupId}:${pick.team}`);
+    }
+  }
+
+  for (const bonusPick of entry.picks.bonus) {
+    if (bonusPick.pick) tokens.add(`bonus:${bonusPick.id}:${bonusPick.pick}`);
+  }
+
+  return tokens;
+}
+
+function buildEntrantSimilarityRows(picks: EligiblePick[]) {
+  const tokenRows = picks.map((entry) => ({
+    entrant: { id: entry.id, name: entry.name },
+    tokens: pickTokens(entry),
+  }));
+  const rows: EntrantSimilarityRow[] = [];
+
+  for (let leftIndex = 0; leftIndex < tokenRows.length; leftIndex += 1) {
+    for (
+      let rightIndex = leftIndex + 1;
+      rightIndex < tokenRows.length;
+      rightIndex += 1
+    ) {
+      const left = tokenRows[leftIndex];
+      const right = tokenRows[rightIndex];
+      const sharedPickCount = Array.from(left.tokens).filter((token) =>
+        right.tokens.has(token),
+      ).length;
+      const totalPickCount = new Set([...left.tokens, ...right.tokens]).size;
+
+      rows.push({
+        entrants: [left.entrant, right.entrant],
+        sharedPickCount,
+        totalPickCount,
+        percent:
+          totalPickCount > 0
+            ? Math.round((sharedPickCount / totalPickCount) * 100)
+            : 0,
+      });
+    }
+  }
+
+  return rows
+    .sort(
+      (a, b) =>
+        b.percent - a.percent ||
+        b.sharedPickCount - a.sharedPickCount ||
+        a.entrants[0].name.localeCompare(b.entrants[0].name),
+    )
+    .slice(0, 10);
+}
+
 export function buildPoolHeatmap(
   entriesConfig: EntriesConfig,
   picksByPath: Map<string, EntryPicks>,
 ): PoolHeatmap {
   const picks = eligiblePicks(entriesConfig, picksByPath);
   const eligibleEntryCount = picks.length;
+  const knockoutRows = buildKnockoutRows(picks, eligibleEntryCount);
+  const groupSummaries = buildGroupSummaries(picks, eligibleEntryCount);
 
   return {
     eligibleEntryCount,
     entrants: picks.map(({ id, name }) => ({ id, name })),
     teamFlags: buildTeamFlags(picks),
+    knockoutFlowStages: buildKnockoutFlowStages(knockoutRows),
     playerTeamRows: buildPlayerTeamRows(picks, eligibleEntryCount),
-    knockoutRows: buildKnockoutRows(picks, eligibleEntryCount),
+    knockoutRows,
+    contrarianPicks: buildContrarianPicks(knockoutRows),
     podiumSummaries: buildPodiumSummaries(picks, eligibleEntryCount),
-    groupSummaries: buildGroupSummaries(picks, eligibleEntryCount),
+    groupConsensusSummaries: buildGroupConsensusSummaries(groupSummaries),
+    groupSummaries,
     thirdPlaceQualifierRows: buildThirdPlaceQualifierRows(
       picks,
       eligibleEntryCount,
     ),
     bonusSummaries: buildBonusSummaries(picks, eligibleEntryCount),
+    entrantSimilarityRows: buildEntrantSimilarityRows(picks),
   };
 }
