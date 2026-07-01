@@ -3,6 +3,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { cache } from "react";
+import { unstable_rethrow } from "next/navigation";
 
 import {
   buildResultsFromEvents,
@@ -33,7 +34,6 @@ const DATA_DIR = path.join(
   "data",
   "marcins-world-cup-2026",
 );
-const LIVE_RESULTS_REVALIDATE_SECONDS = 60;
 
 async function readFixtureJson<T>(fileName: string): Promise<T> {
   const json = await readFile(path.join(DATA_DIR, fileName), "utf8");
@@ -93,7 +93,7 @@ async function fetchLiveResults({
 
   try {
     const response = await fetch(ESPN_SCOREBOARD_URL, {
-      next: { revalidate: LIVE_RESULTS_REVALIDATE_SECONDS },
+      cache: "no-store",
     });
 
     if (!response.ok) {
@@ -114,6 +114,7 @@ async function fetchLiveResults({
       },
     );
   } catch (error) {
+    unstable_rethrow(error);
     console.error("[fy-pools] Live results fetch failed; using fixture fallback", error);
     return fallbackResults;
   }
