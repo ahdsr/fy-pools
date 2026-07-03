@@ -42,3 +42,19 @@ export function signUpPathFor(nextPath: string) {
     ? "/sign-up"
     : `/sign-up?next=${encodeURIComponent(safePath)}`;
 }
+
+export function forgotPasswordPathFor(nextPath: string) {
+  const safePath = safeNextPath(nextPath);
+
+  return safePath === DEFAULT_AUTH_REDIRECT
+    ? "/forgot-password"
+    : `/forgot-password?next=${encodeURIComponent(safePath)}`;
+}
+
+export function resetPasswordPathFor(nextPath: string) {
+  const safePath = safeNextPath(nextPath);
+
+  return safePath === DEFAULT_AUTH_REDIRECT
+    ? "/reset-password"
+    : `/reset-password?next=${encodeURIComponent(safePath)}`;
+}

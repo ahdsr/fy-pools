@@ -20,14 +20,17 @@ import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_AUTH_REDIRECT,
+  forgotPasswordPathFor,
   safeNextPath,
   signInPathFor,
   signUpPathFor,
 } from "@/lib/auth/paths";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
+  requestPasswordResetAction,
   signInWithPasswordAction,
   signUpWithPasswordAction,
+  updatePasswordAction,
 } from "@/lib/auth/actions";
 
 type MockUser = {
@@ -435,7 +438,99 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
         {pending ? "Signing in..." : "Sign in"}
       </Button>
       <Button asChild variant="ghost" className="w-full">
+        <Link href={forgotPasswordPathFor(redirectPath)}>
+          Forgot your password?
+        </Link>
+      </Button>
+      <Button asChild variant="ghost" className="w-full">
         <Link href={signUpPathFor(redirectPath)}>Create an account</Link>
+      </Button>
+    </form>
+  );
+}
+
+export function MockForgotPasswordForm({ nextPath }: MockAuthFormProps) {
+  const redirectPath = safeNextPath(nextPath);
+  const [email, setEmail] = React.useState("");
+  const [state, formAction, pending] = React.useActionState(
+    requestPasswordResetAction,
+    {},
+  );
+
+  return (
+    <form className="space-y-5" action={formAction}>
+      <input type="hidden" name="next" value={redirectPath} />
+      <div className="space-y-2">
+        <Label htmlFor="recovery-email">Email</Label>
+        <Input
+          id="recovery-email"
+          name="email"
+          type="email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          required
+        />
+      </div>
+      {state.message ? (
+        <p className="text-sm font-medium leading-5 text-muted-foreground">
+          {state.message}
+        </p>
+      ) : null}
+      <Button className="w-full" type="submit" disabled={pending}>
+        {pending ? "Sending reset link..." : "Send reset link"}
+      </Button>
+      <Button asChild variant="ghost" className="w-full">
+        <Link href={signInPathFor(redirectPath)}>Back to sign in</Link>
+      </Button>
+    </form>
+  );
+}
+
+export function MockResetPasswordForm({ nextPath }: MockAuthFormProps) {
+  const redirectPath = safeNextPath(nextPath);
+  const [state, formAction, pending] = React.useActionState(
+    updatePasswordAction,
+    {},
+  );
+
+  return (
+    <form className="space-y-5" action={formAction}>
+      <input type="hidden" name="next" value={redirectPath} />
+      <div className="space-y-2">
+        <Label htmlFor="new-password">New password</Label>
+        <Input
+          id="new-password"
+          name="password"
+          type="password"
+          minLength={6}
+          required
+        />
+      </div>
+      <div className="space-y-2">
+        <Label htmlFor="confirm-password">Confirm password</Label>
+        <Input
+          id="confirm-password"
+          name="confirmPassword"
+          type="password"
+          minLength={6}
+          required
+        />
+      </div>
+      {state.message ? (
+        <p className="text-sm font-medium leading-5 text-destructive">
+          {state.message}
+        </p>
+      ) : null}
+      <Button
+        className="w-full"
+        type="submit"
+        variant="primaryGreen"
+        disabled={pending}
+      >
+        {pending ? "Updating password..." : "Update password"}
+      </Button>
+      <Button asChild variant="ghost" className="w-full">
+        <Link href={signInPathFor(redirectPath)}>Back to sign in</Link>
       </Button>
     </form>
   );

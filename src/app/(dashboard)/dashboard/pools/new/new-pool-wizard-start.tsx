@@ -27,21 +27,14 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
+import { TeamPill } from "@/components/app/pool-public-widgets";
 import { cn } from "@/lib/utils";
 import { getAllTemplates } from "@/lib/templates/catalog";
 import {
   ROUND_OF_16_DRAFT_STORAGE_KEY,
   ROUND_OF_16_BONUS_MAX_TOTAL_SHARE,
   ROUND_OF_16_TEMPLATE_SLUG,
-  WORLD_CUP_2026_AVAILABLE_TEAMS,
   createDefaultRoundOf16WizardState,
   createRoundOf16PoolDraft,
   getRoundOf16ScoringBalance,
@@ -75,7 +68,7 @@ const stepDefinitions = [
   {
     key: "matchups",
     title: "Round of 16",
-    description: "Eight matchups and teams.",
+    description: "Automatic bracket matchups.",
     icon: CalendarClock,
   },
   {
@@ -166,19 +159,6 @@ function findDraftInSnapshot(snapshot: string, draftId: string) {
   }
 }
 
-function updateMatchup(
-  state: RoundOf16WizardState,
-  id: string,
-  patch: Partial<RoundOf16WizardState["matchups"][number]>,
-) {
-  return {
-    ...state,
-    matchups: state.matchups.map((matchup) =>
-      matchup.id === id ? { ...matchup, ...patch } : matchup,
-    ),
-  };
-}
-
 function updateBonusProp(
   state: RoundOf16WizardState,
   id: string,
@@ -219,21 +199,6 @@ function updateParticipant(
       ),
     },
   };
-}
-
-function teamIsUnavailableForSlot(
-  matchups: RoundOf16WizardState["matchups"],
-  matchupId: string,
-  slot: "teamOne" | "teamTwo",
-  team: string,
-) {
-  return matchups.some((matchup) => {
-    if (matchup.id !== matchupId) {
-      return matchup.teamOne === team || matchup.teamTwo === team;
-    }
-
-    return slot === "teamOne" ? matchup.teamTwo === team : matchup.teamOne === team;
-  });
 }
 
 function FieldError({ children }: { children?: React.ReactNode }) {
@@ -371,100 +336,37 @@ function ScoringBalanceGuide({
   );
 }
 
-function TeamSelect({
-  id,
-  value,
-  matchups,
-  matchupId,
-  slot,
-  onValueChange,
-}: {
-  id: string;
-  value: string;
-  matchups: RoundOf16WizardState["matchups"];
-  matchupId: string;
-  slot: "teamOne" | "teamTwo";
-  onValueChange: (value: string) => void;
-}) {
-  return (
-    <Select value={value} onValueChange={onValueChange}>
-      <SelectTrigger id={id} className="w-full bg-background">
-        <SelectValue placeholder="Select team" />
-      </SelectTrigger>
-      <SelectContent>
-        {WORLD_CUP_2026_AVAILABLE_TEAMS.map((team) => (
-          <SelectItem
-            key={team}
-            value={team}
-            disabled={
-              team !== value &&
-              teamIsUnavailableForSlot(matchups, matchupId, slot, team)
-            }
-          >
-            {team}
-          </SelectItem>
-        ))}
-      </SelectContent>
-    </Select>
-  );
-}
-
 function setupBracketSide(index: number) {
   return index < 4 ? "left" : "right";
 }
 
-function SetupBracketTeamSelect({
+function LockedSetupBracketTeam({
   label,
-  id,
   value,
-  matchups,
-  matchupId,
-  slot,
-  onValueChange,
 }: {
   label: string;
-  id: string;
   value: string;
-  matchups: RoundOf16WizardState["matchups"];
-  matchupId: string;
-  slot: "teamOne" | "teamTwo";
-  onValueChange: (value: string) => void;
 }) {
   return (
     <div className="border-t first:border-t-0">
-      <Label
-        htmlFor={id}
-        className="block px-3 pt-2 text-[0.68rem] font-semibold uppercase tracking-normal text-muted-foreground"
-      >
+      <p className="block px-3 pt-2 text-[0.68rem] font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
-      </Label>
+      </p>
       <div className="px-3 pb-3 pt-1.5">
-        <TeamSelect
-          id={id}
-          value={value}
-          matchups={matchups}
-          matchupId={matchupId}
-          slot={slot}
-          onValueChange={onValueChange}
-        />
+        <div className="min-h-10 rounded-md border bg-muted/30 px-3 py-2">
+          <TeamPill team={value} className="max-w-full text-sm" />
+        </div>
       </div>
     </div>
   );
 }
 
-function SetupBracketMatchCard({
+function LockedSetupBracketMatchCard({
   matchup,
   index,
-  matchups,
-  onMatchupChange,
 }: {
   matchup: RoundOf16WizardState["matchups"][number];
   index: number;
-  matchups: RoundOf16WizardState["matchups"];
-  onMatchupChange: (
-    id: string,
-    patch: Partial<RoundOf16WizardState["matchups"][number]>,
-  ) => void;
 }) {
   const complete = matchup.teamOne.trim() && matchup.teamTwo.trim();
 
@@ -489,27 +391,17 @@ function SetupBracketMatchCard({
           </p>
           {complete ? (
             <span className="text-xs font-semibold text-brand-success">
-              Ready
+              Locked
             </span>
           ) : null}
         </div>
-        <SetupBracketTeamSelect
+        <LockedSetupBracketTeam
           label="Team 1"
-          id={`${matchup.id}-team-one`}
           value={matchup.teamOne}
-          matchups={matchups}
-          matchupId={matchup.id}
-          slot="teamOne"
-          onValueChange={(value) => onMatchupChange(matchup.id, { teamOne: value })}
         />
-        <SetupBracketTeamSelect
+        <LockedSetupBracketTeam
           label="Team 2"
-          id={`${matchup.id}-team-two`}
           value={matchup.teamTwo}
-          matchups={matchups}
-          matchupId={matchup.id}
-          slot="teamTwo"
-          onValueChange={(value) => onMatchupChange(matchup.id, { teamTwo: value })}
         />
       </article>
     </div>
@@ -544,15 +436,10 @@ function SetupBracketSummary({
   );
 }
 
-function SetupBracketPicker({
+function LockedSetupBracketPreview({
   matchups,
-  onMatchupChange,
 }: {
   matchups: RoundOf16WizardState["matchups"];
-  onMatchupChange: (
-    id: string,
-    patch: Partial<RoundOf16WizardState["matchups"][number]>,
-  ) => void;
 }) {
   const leftMatchups = matchups.slice(0, 4);
   const rightMatchups = matchups.slice(4);
@@ -562,24 +449,20 @@ function SetupBracketPicker({
       <div className="grid min-w-[58rem] gap-5 p-1 lg:grid-cols-[minmax(0,1fr)_17rem_minmax(0,1fr)] lg:items-center">
         <div className="grid gap-4">
           {leftMatchups.map((matchup, index) => (
-            <SetupBracketMatchCard
+            <LockedSetupBracketMatchCard
               key={matchup.id}
               matchup={matchup}
               index={index}
-              matchups={matchups}
-              onMatchupChange={onMatchupChange}
             />
           ))}
         </div>
         <SetupBracketSummary matchups={matchups} />
         <div className="grid gap-4">
           {rightMatchups.map((matchup, index) => (
-            <SetupBracketMatchCard
+            <LockedSetupBracketMatchCard
               key={matchup.id}
               matchup={matchup}
               index={index + 4}
-              matchups={matchups}
-              onMatchupChange={onMatchupChange}
             />
           ))}
         </div>
@@ -591,15 +474,18 @@ function SetupBracketPicker({
 function StepProgress({
   currentStep,
   validation,
+  completedSteps,
 }: {
   currentStep: number;
   validation: ReturnType<typeof validateRoundOf16WizardState>;
+  completedSteps: ReadonlySet<StepKey>;
 }) {
   return (
     <LedgerRows className="overflow-hidden rounded-lg border bg-surface-paper">
       {stepDefinitions.map((step, index) => {
         const Icon = step.icon;
-        const complete = stepIsValid(step.key, validation);
+        const complete =
+          completedSteps.has(step.key) && stepIsValid(step.key, validation);
         const active = currentStep === index;
 
         return (
@@ -761,6 +647,9 @@ function PublishedPoolPanel({
                 </Link>
               </Button>
               <Button asChild variant="outline">
+                <Link href={published.signupInviteLink.href}>Make my picks</Link>
+              </Button>
+              <Button asChild variant="outline">
                 <Link href="/dashboard/pools/new">Create another</Link>
               </Button>
             </div>
@@ -770,8 +659,8 @@ function PublishedPoolPanel({
               <Copy className="mt-0.5 size-4 shrink-0 text-brand-mark" />
               <p className="text-sm font-normal leading-6 text-muted-foreground">
                 Share the signup invite when you do not have every email yet.
-                Named participant links remain available below for direct
-                invites.
+                Commissioners can use the same link to submit their own picks in
+                the player flow.
               </p>
             </div>
           </div>
@@ -876,6 +765,9 @@ export function NewPoolWizardStart() {
     ? queryTemplate
     : "";
   const [currentStep, setCurrentStep] = React.useState(0);
+  const [completedSteps, setCompletedSteps] = React.useState<Set<StepKey>>(
+    () => new Set(),
+  );
   const [state, setState] = React.useState<RoundOf16WizardState>(() =>
     createDefaultRoundOf16WizardState(initialTemplate),
   );
@@ -929,6 +821,11 @@ export function NewPoolWizardStart() {
 
   function goToNextStep() {
     if (!currentStepValid) return;
+    setCompletedSteps((current) => {
+      const next = new Set(current);
+      next.add(currentStepDefinition.key);
+      return next;
+    });
     setCurrentStep((step) => Math.min(step + 1, stepDefinitions.length - 1));
   }
 
@@ -986,6 +883,7 @@ export function NewPoolWizardStart() {
       });
     }
     setCreatedDraftId("");
+    setCompletedSteps(new Set());
     setCurrentStep(0);
     router.replace(buildWizardHref(createdDraft?.templateSlug ?? state.templateSlug), {
       scroll: false,
@@ -1038,7 +936,11 @@ export function NewPoolWizardStart() {
     >
       <section className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
         <aside className="space-y-5">
-          <StepProgress currentStep={currentStep} validation={validation} />
+          <StepProgress
+            currentStep={currentStep}
+            validation={validation}
+            completedSteps={completedSteps}
+          />
           <LedgerPanel title="Draft output">
             <LedgerRows>
               <LedgerRow>
@@ -1286,12 +1188,17 @@ export function NewPoolWizardStart() {
 
             {currentStepDefinition.key === "matchups" ? (
               <div className="space-y-4">
-                <SetupBracketPicker
-                  matchups={state.matchups}
-                  onMatchupChange={(id, patch) =>
-                    setState((current) => updateMatchup(current, id, patch))
-                  }
-                />
+                <div className="rounded-lg border bg-surface-ledger/70 p-4">
+                  <p className="font-semibold text-brand-ink">
+                    Bracket teams are predetermined
+                  </p>
+                  <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                    This setup step only confirms the automatic Round of 16
+                    bracket. The commissioner makes winner picks later through
+                    the same participant form as invited players.
+                  </p>
+                </div>
+                <LockedSetupBracketPreview matchups={state.matchups} />
               </div>
             ) : null}
 
