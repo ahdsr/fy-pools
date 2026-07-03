@@ -17,6 +17,11 @@ export type PoolTemplate = {
   lock: string;
   popularity: "Popular" | "New" | "Classic";
   availableNow?: boolean;
+  setupDefaults?: {
+    wizardType: "round-of-16";
+    matchupCount: number;
+    bonusPropCount: number;
+  };
 };
 
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
@@ -58,10 +63,15 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
         slug: "world-cup-mini-round-of-16",
         name: "Mini Round of 16 Pool",
         bestFor: "Late-start groups",
-        picks: "Round winners, finalists, champion",
+        picks: "Round winners and bonus props",
         lock: "Before round of 16",
         popularity: "New",
         availableNow: true,
+        setupDefaults: {
+          wizardType: "round-of-16",
+          matchupCount: 8,
+          bonusPropCount: 5,
+        },
       },
       {
         slug: "world-cup-mini-round-of-8",

@@ -26,7 +26,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <BrandWordmark />
           <CardTitle>Sign in to PoolWaffle</CardTitle>
           <CardDescription>
-            Use the mock admin account to preview signed-in pool management.
+            Use your email and password to manage pools or submit invited picks.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">

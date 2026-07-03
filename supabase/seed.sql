@@ -1,0 +1,2 @@
+-- Local development seed file.
+-- App-specific records are created by server actions during the Round of 16 flow.

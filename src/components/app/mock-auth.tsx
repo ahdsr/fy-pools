@@ -18,8 +18,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-
-const MOCK_USER_KEY = "poolwaffle.mockUser";
+import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import {
+  signInWithPasswordAction,
+  signUpWithPasswordAction,
+} from "@/lib/auth/actions";
 
 type MockUser = {
   name: string;
@@ -87,33 +90,21 @@ type MockAuthContextValue = {
 
 const MockAuthContext = React.createContext<MockAuthContextValue | null>(null);
 
-function getStoredUser() {
-  if (typeof window === "undefined") {
-    return null;
-  }
+function userFromSupabase(user: {
+  email?: string;
+  user_metadata?: { display_name?: string; name?: string };
+} | null): MockUser | null {
+  if (!user?.email) return null;
 
-  const stored = window.localStorage.getItem(MOCK_USER_KEY);
-
-  if (!stored) {
-    return null;
-  }
-
-  try {
-    return JSON.parse(stored) as MockUser;
-  } catch {
-    window.localStorage.removeItem(MOCK_USER_KEY);
-    return null;
-  }
-}
-
-function storeUser(user: MockUser | null) {
-  if (user) {
-    window.localStorage.setItem(MOCK_USER_KEY, JSON.stringify(user));
-  } else {
-    window.localStorage.removeItem(MOCK_USER_KEY);
-  }
-
-  window.dispatchEvent(new Event("poolwaffle-auth-change"));
+  return {
+    name:
+      user.user_metadata?.display_name ??
+      user.user_metadata?.name ??
+      user.email.split("@")[0] ??
+      "Pool user",
+    email: user.email,
+    role: "Pool user",
+  };
 }
 
 function useMockUser() {
@@ -128,22 +119,30 @@ function useMockUser() {
 
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<MockUser | null>(null);
-  const [hydrated, setHydrated] = React.useState(false);
+  const [hydrated, setHydrated] = React.useState(true);
 
   React.useEffect(() => {
-    const syncUser = () => {
-      setUser(getStoredUser());
+    let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
+
+    try {
+      supabase = createSupabaseBrowserClient();
+    } catch {
+      return;
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      setUser(userFromSupabase(data.user));
       setHydrated(true);
-    };
+    });
 
-    syncUser();
-    window.addEventListener("storage", syncUser);
-    window.addEventListener("poolwaffle-auth-change", syncUser);
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(userFromSupabase(session?.user ?? null));
+      setHydrated(true);
+    });
 
-    return () => {
-      window.removeEventListener("storage", syncUser);
-      window.removeEventListener("poolwaffle-auth-change", syncUser);
-    };
+    return () => subscription.unsubscribe();
   }, []);
 
   return (
@@ -404,26 +403,21 @@ function MobilePublicPoolNav({
 }
 
 export function MockSignInForm({ nextPath }: MockAuthFormProps) {
-  const router = useRouter();
   const redirectPath = getSafeNextPath(nextPath);
   const [email, setEmail] = React.useState("admin@poolwaffle.com");
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    storeUser({
-      name: "Pool Admin",
-      email,
-      role: "Pool admin",
-    });
-    router.push(redirectPath);
-  }
+  const [state, formAction, pending] = React.useActionState(
+    signInWithPasswordAction,
+    {},
+  );
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-5" action={formAction}>
+      <input type="hidden" name="next" value={redirectPath} />
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
           id="email"
+          name="email"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -434,17 +428,23 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
         <Label htmlFor="password">Password</Label>
         <Input
           id="password"
+          name="password"
           type="password"
-          value="mock-password"
-          readOnly
+          minLength={6}
+          required
         />
       </div>
-      <Button className="w-full" type="submit">
-        Sign in as pool admin
+      {state.message ? (
+        <p className="text-sm font-medium leading-5 text-destructive">
+          {state.message}
+        </p>
+      ) : null}
+      <Button className="w-full" type="submit" disabled={pending}>
+        {pending ? "Signing in..." : "Sign in"}
       </Button>
       <Button asChild variant="ghost" className="w-full">
         <Link href={getAuthLink("/sign-up", redirectPath)}>
-          Create a mock account
+          Create an account
         </Link>
       </Button>
     </form>
@@ -457,27 +457,23 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
   const redirectPath = getSafeNextPath(nextPath);
   const [name, setName] = React.useState("Pool Commissioner");
   const [email, setEmail] = React.useState("commissioner@poolwaffle.com");
-
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    storeUser({
-      name,
-      email,
-      role: "Pool commissioner",
-    });
-    router.push(redirectPath);
-  }
+  const [state, formAction, pending] = React.useActionState(
+    signUpWithPasswordAction,
+    {},
+  );
 
   function handleContinue() {
     router.push(redirectPath);
   }
 
   return (
-    <form className="space-y-5" onSubmit={handleSubmit}>
+    <form className="space-y-5" action={formAction}>
+      <input type="hidden" name="next" value={redirectPath} />
       <div className="space-y-2">
         <Label htmlFor="signup-name">Name</Label>
         <Input
           id="signup-name"
+          name="name"
           value={name}
           onChange={(event) => setName(event.target.value)}
           required
@@ -487,6 +483,7 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
         <Label htmlFor="signup-email">Email</Label>
         <Input
           id="signup-email"
+          name="email"
           type="email"
           value={email}
           onChange={(event) => setEmail(event.target.value)}
@@ -497,13 +494,24 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
         <Label htmlFor="signup-password">Password</Label>
         <Input
           id="signup-password"
+          name="password"
           type="password"
-          value="mock-password"
-          readOnly
+          minLength={6}
+          required
         />
       </div>
-      <Button className="w-full" type="submit" variant="primaryGreen">
-        Create mock account
+      {state.message ? (
+        <p className="text-sm font-medium leading-5 text-muted-foreground">
+          {state.message}
+        </p>
+      ) : null}
+      <Button
+        className="w-full"
+        type="submit"
+        variant="primaryGreen"
+        disabled={pending}
+      >
+        {pending ? "Creating account..." : "Create account"}
       </Button>
       {hydrated && user ? (
         <Button
@@ -618,9 +626,15 @@ export function HeaderAccountControls({
     );
   }
 
-  function handleSignOut() {
-    storeUser(null);
+  async function handleSignOut() {
+    try {
+      const supabase = createSupabaseBrowserClient();
+      await supabase.auth.signOut();
+    } catch {
+      // Missing Supabase config should not trap the user in the UI shell.
+    }
     router.push("/");
+    router.refresh();
   }
 
   return (

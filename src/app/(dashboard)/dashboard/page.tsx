@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   ArrowRight,
+  Bell,
   ClipboardList,
   Copy,
   ExternalLink,
@@ -29,6 +30,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getCommissionerNotifications } from "@/lib/round-of-16/persistence";
 
 const marcinPool = {
   name: "Marcin's 2026 World Cup Pool",
@@ -39,9 +41,12 @@ const marcinPool = {
   lock: "Locks Jun 11, 2026",
 };
 
-export default function DashboardPage() {
+export const dynamic = "force-dynamic";
+
+export default async function DashboardPage() {
   const publicPoolHref = `/pools/${marcinPool.slug}`;
   const commissionerHref = `/pools/${marcinPool.slug}/commissioner`;
+  const notifications = await getCommissionerNotifications();
 
   return (
     <PageShell
@@ -124,6 +129,46 @@ export default function DashboardPage() {
             </div>
           </LedgerRow>
         </LedgerRows>
+      </LedgerPanel>
+
+      <LedgerPanel
+        title="Commissioner inbox"
+        description="Participant submissions appear here as soon as picks are stored."
+        action={<Badge variant="outline">{notifications.length} recent</Badge>}
+      >
+        {notifications.length ? (
+          <LedgerRows>
+            {notifications.map((notification) => (
+              <LedgerRow
+                key={notification.id}
+                className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center"
+              >
+                <span className="grid size-9 place-items-center rounded-full border bg-background text-brand-mark">
+                  <Bell className="size-4" />
+                </span>
+                <div>
+                  <p className="font-semibold text-brand-ink">
+                    {notification.title}
+                  </p>
+                  <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                    {notification.body}
+                  </p>
+                </div>
+                <Badge variant="outline">
+                  {new Date(notification.createdAt).toLocaleString()}
+                </Badge>
+              </LedgerRow>
+            ))}
+          </LedgerRows>
+        ) : (
+          <LedgerRow className="flex items-start gap-3">
+            <Bell className="mt-1 size-5 shrink-0 text-brand-mark" />
+            <p className="text-sm font-normal leading-6 text-muted-foreground">
+              No submitted picks yet. Once participants submit from their join
+              links, the latest activity will show here.
+            </p>
+          </LedgerRow>
+        )}
       </LedgerPanel>
 
       <LedgerPanel
