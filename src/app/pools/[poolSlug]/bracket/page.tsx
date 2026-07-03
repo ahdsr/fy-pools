@@ -26,7 +26,7 @@ export default async function BracketPage({ params }: BracketPageProps) {
         poolName={roundOf16Pool.poolName}
         eyebrow="Round of 16 bracket"
         title="Matchup board"
-        description="Each configured Round of 16 matchup with winners shown after commissioner scoring."
+        description="Each configured Round of 16 matchup with winners shown after automatic scoring."
       >
         <RoundOf16BracketPanel
           settings={roundOf16Pool.settings}

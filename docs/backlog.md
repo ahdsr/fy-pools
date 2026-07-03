@@ -36,6 +36,9 @@ deadline, score entries, and share a leaderboard.
   mobile and desktop.
 - [ ] Add better participant reminder/status messaging for missing picks,
   accepted invites, updated picks, and passed deadlines.
+- [ ] Add account lifecycle emails: send a successful account creation
+  confirmation email, then add a verification-link email flow when user email
+  verification becomes required.
 - [ ] Add basic audit or operating notes for commissioner actions such as pool
   publish, invite changes, lock changes, and scoring refreshes.
 - [ ] Improve deployment documentation and keep `.env.example` aligned with the

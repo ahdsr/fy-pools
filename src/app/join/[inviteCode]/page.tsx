@@ -6,6 +6,7 @@ import { PageShell } from "@/components/app/page-shell";
 import { MockSignInForm, MockSignUpForm } from "@/components/app/mock-auth";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { signInPathFor, signUpPathFor } from "@/lib/auth/paths";
 import { getJoinPoolData } from "@/lib/round-of-16/persistence";
 import { getSupabaseUser } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
@@ -13,6 +14,7 @@ import { RoundOf16PickForm } from "./round-of-16-pick-form";
 
 type JoinPageProps = {
   params: Promise<{ inviteCode: string }>;
+  searchParams: Promise<{ preview?: string }>;
 };
 
 function UnavailableInvite({
@@ -45,8 +47,9 @@ function UnavailableInvite({
   );
 }
 
-export default async function JoinPage({ params }: JoinPageProps) {
+export default async function JoinPage({ params, searchParams }: JoinPageProps) {
   const { inviteCode } = await params;
+  const { preview } = await searchParams;
 
   if (!isSupabaseConfigured()) {
     return (
@@ -103,11 +106,20 @@ export default async function JoinPage({ params }: JoinPageProps) {
     );
   }
 
+  const previewNewEntrant =
+    joinData.invite.isShareLink &&
+    (preview === "new" || preview === "new-entrant");
+  const effectiveUser = previewNewEntrant ? null : user;
+  const effectiveExistingSubmission = previewNewEntrant
+    ? undefined
+    : joinData.existingSubmission;
+
   if (
-    user &&
+    !joinData.invite.isShareLink &&
+    effectiveUser &&
     joinData.invite.status === "accepted" &&
     joinData.invite.acceptedBy &&
-    joinData.invite.acceptedBy !== user.id
+    joinData.invite.acceptedBy !== effectiveUser.id
   ) {
     return (
       <UnavailableInvite
@@ -118,10 +130,14 @@ export default async function JoinPage({ params }: JoinPageProps) {
     );
   }
 
-  if (!user) {
+  if (!effectiveUser) {
     const nextPath = `/join/${encodeURIComponent(inviteCode)}`;
 
-    if (joinData.invite.status === "accepted" && joinData.invite.acceptedBy) {
+    if (
+      !joinData.invite.isShareLink &&
+      joinData.invite.status === "accepted" &&
+      joinData.invite.acceptedBy
+    ) {
       return (
         <PageShell
           eyebrow="Pool invite"
@@ -134,6 +150,64 @@ export default async function JoinPage({ params }: JoinPageProps) {
               <MockSignInForm nextPath={nextPath} />
             </LedgerRow>
           </LedgerPanel>
+        </PageShell>
+      );
+    }
+
+    if (joinData.invite.isShareLink) {
+      return (
+        <PageShell
+          eyebrow="Pool invite"
+          title={`Join ${joinData.pool.name}`}
+          description={
+            joinData.pool.settings.basics.description ||
+            "Make your Round of 16 picks before the pool deadline."
+          }
+          showHeader={false}
+          heroAction={
+            <div className="flex flex-wrap gap-2">
+              {previewNewEntrant && user ? (
+                <Button asChild variant="outline">
+                  <Link href={`/join/${encodeURIComponent(inviteCode)}`}>
+                    Return to your picks
+                  </Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild variant="outline">
+                    <Link href={signUpPathFor(nextPath)}>Create account</Link>
+                  </Button>
+                  <Button asChild variant="ghost">
+                    <Link href={signInPathFor(nextPath)}>Sign in</Link>
+                  </Button>
+                </>
+              )}
+            </div>
+          }
+        >
+          <div className="space-y-5">
+            {previewNewEntrant ? (
+              <LedgerPanel
+                title="Previewing as a new entrant"
+                description="Your signed-in session stays active. This form shows what a new participant sees from the share link."
+                action={<Badge variant="outline">Preview</Badge>}
+              >
+                <LedgerRow>
+                  <p className="text-sm font-normal leading-6 text-muted-foreground">
+                    Submit with a different email only when you want to create a
+                    separate test entry.
+                  </p>
+                </LedgerRow>
+              </LedgerPanel>
+            ) : null}
+            <RoundOf16PickForm
+              inviteCode={inviteCode}
+              poolName={joinData.pool.name}
+              poolSlug={joinData.pool.slug}
+              settings={joinData.pool.settings}
+              testGuestMode
+            />
+          </div>
         </PageShell>
       );
     }
@@ -174,16 +248,16 @@ export default async function JoinPage({ params }: JoinPageProps) {
         showHeader={false}
       >
         <LedgerPanel
-          title={joinData.existingSubmission ? "Entry locked" : "Picks closed"}
+          title={effectiveExistingSubmission ? "Entry locked" : "Picks closed"}
           action={<ShieldCheck className="size-5 text-brand-success" />}
         >
           <LedgerRow>
-            {joinData.existingSubmission ? (
+            {effectiveExistingSubmission ? (
               <>
                 <p className="font-semibold text-brand-ink">
                   Submitted{" "}
                   {new Date(
-                    joinData.existingSubmission.submittedAt,
+                    effectiveExistingSubmission.submittedAt,
                   ).toLocaleString()}
                 </p>
                 <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
@@ -208,7 +282,7 @@ export default async function JoinPage({ params }: JoinPageProps) {
     );
   }
 
-  if (joinData.existingSubmission) {
+  if (effectiveExistingSubmission) {
     return (
       <PageShell
         eyebrow="Pool invite"
@@ -217,7 +291,8 @@ export default async function JoinPage({ params }: JoinPageProps) {
         showHeader={false}
         heroAction={
           <Badge variant="outline" className="h-auto py-1.5">
-            <LockKeyhole /> {joinData.invite.email}
+            <LockKeyhole />{" "}
+            {joinData.invite.isShareLink ? "Signup link" : joinData.invite.email}
           </Badge>
         }
       >
@@ -228,19 +303,29 @@ export default async function JoinPage({ params }: JoinPageProps) {
           <LedgerRow>
             <p className="font-semibold text-brand-ink">
               Last submitted{" "}
-              {new Date(joinData.existingSubmission.submittedAt).toLocaleString()}
+              {new Date(effectiveExistingSubmission.submittedAt).toLocaleString()}
             </p>
             <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
               Make changes below and submit again before the deadline.
             </p>
+            {joinData.invite.isShareLink ? (
+              <Button asChild variant="outline" className="mt-4">
+                <Link
+                  href={`/join/${encodeURIComponent(inviteCode)}?preview=new`}
+                >
+                  Preview as new entrant
+                </Link>
+              </Button>
+            ) : null}
           </LedgerRow>
         </LedgerPanel>
         <RoundOf16PickForm
           inviteCode={inviteCode}
           poolName={joinData.pool.name}
+          poolSlug={joinData.pool.slug}
           settings={joinData.pool.settings}
-          initialPayload={joinData.existingSubmission.payload}
-          existingSubmittedAt={joinData.existingSubmission.submittedAt}
+          initialPayload={effectiveExistingSubmission.payload}
+          existingSubmittedAt={effectiveExistingSubmission.submittedAt}
         />
       </PageShell>
     );
@@ -254,13 +339,15 @@ export default async function JoinPage({ params }: JoinPageProps) {
       showHeader={false}
       heroAction={
         <Badge variant="outline" className="h-auto py-1.5">
-          <LockKeyhole /> {joinData.invite.email}
+          <LockKeyhole />{" "}
+          {joinData.invite.isShareLink ? "Signup link" : joinData.invite.email}
         </Badge>
       }
     >
       <RoundOf16PickForm
         inviteCode={inviteCode}
         poolName={joinData.pool.name}
+        poolSlug={joinData.pool.slug}
         settings={joinData.pool.settings}
       />
     </PageShell>

@@ -1,12 +1,31 @@
 "use client";
 
+import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import * as React from "react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import { TeamPill } from "@/components/app/pool-public-widgets";
 import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { signInPathFor, signUpPathFor } from "@/lib/auth/paths";
 import { cn } from "@/lib/utils";
 import {
   getEnabledRoundOf16BonusProps,
@@ -14,15 +33,26 @@ import {
   type RoundOf16PoolSettings,
   type RoundOf16MatchupDraft,
 } from "@/lib/templates/round-of-16-draft";
-import { submitRoundOf16PicksAction } from "./actions";
+import {
+  submitRoundOf16PicksAction,
+  submitRoundOf16TestPicksAction,
+} from "./actions";
 
 type RoundOf16PickFormProps = {
   inviteCode: string;
   poolName: string;
+  poolSlug: string;
   settings: RoundOf16PoolSettings;
   initialPayload?: RoundOf16PickPayload;
   existingSubmittedAt?: string;
+  testGuestMode?: boolean;
 };
+
+const TEAM_BONUS_PROP_IDS = new Set([
+  "most-goals-team",
+  "biggest-upset",
+  "most-clean-sheets",
+]);
 
 function formatPickDeadline(settings: RoundOf16PoolSettings) {
   const deadline = settings.basics.picksLockAt;
@@ -38,6 +68,16 @@ function formatPickDeadline(settings: RoundOf16PoolSettings) {
     hour: "numeric",
     minute: "2-digit",
   });
+}
+
+function roundOf16Teams(settings: RoundOf16PoolSettings) {
+  return Array.from(
+    new Set(
+      settings.matchups.flatMap((matchup) =>
+        [matchup.teamOne, matchup.teamTwo].filter(Boolean),
+      ),
+    ),
+  );
 }
 
 function matchupSide(index: number) {
@@ -63,7 +103,13 @@ function BracketTeamButton({
         selected && "bg-cta-green-soft text-brand-ink",
       )}
     >
-      <span className="min-w-0 truncate">{team}</span>
+      <TeamPill
+        team={team}
+        className={cn(
+          "max-w-full",
+          selected ? "font-bold" : "text-brand-ink",
+        )}
+      />
       {selected ? (
         <CheckCircle2 className="size-4 shrink-0 text-brand-success" />
       ) : null}
@@ -147,14 +193,13 @@ function WinnerColumn({
               <p className="text-[0.68rem] font-medium uppercase tracking-normal text-muted-foreground">
                 Match {index + 1}
               </p>
-              <p
-                className={cn(
-                  "mt-0.5 truncate text-sm font-semibold",
-                  winner ? "text-brand-ink" : "text-muted-foreground",
-                )}
-              >
-                {winner || "No pick yet"}
-              </p>
+              {winner ? (
+                <TeamPill team={winner} className="mt-0.5 max-w-full text-sm" />
+              ) : (
+                <p className="mt-0.5 truncate text-sm font-semibold text-muted-foreground">
+                  No pick yet
+                </p>
+              )}
             </div>
           );
         })}
@@ -213,14 +258,19 @@ function RoundOf16BracketPicker({
 export function RoundOf16PickForm({
   inviteCode,
   poolName,
+  poolSlug,
   settings,
   initialPayload,
   existingSubmittedAt,
+  testGuestMode = false,
 }: RoundOf16PickFormProps) {
   const [state, formAction, pending] = React.useActionState(
-    submitRoundOf16PicksAction,
+    testGuestMode ? submitRoundOf16TestPicksAction : submitRoundOf16PicksAction,
     {},
   );
+  const [displayName, setDisplayName] = React.useState("");
+  const [email, setEmail] = React.useState("");
+  const [dismissedSubmissionAt, setDismissedSubmissionAt] = React.useState("");
   const [winners, setWinners] = React.useState<Record<string, string>>(
     () => initialPayload?.winners ?? {},
   );
@@ -228,7 +278,14 @@ export function RoundOf16PickForm({
     () => initialPayload?.bonusAnswers ?? {},
   );
   const enabledBonusProps = getEnabledRoundOf16BonusProps(settings);
+  const teamOptions = React.useMemo(() => roundOf16Teams(settings), [settings]);
   const hasExistingSubmission = Boolean(existingSubmittedAt || state.submitted);
+  const joinPath = `/join/${encodeURIComponent(inviteCode)}`;
+  const publicPoolPath = `/pools/${poolSlug}`;
+  const submittedAt = state.submitted?.submittedAt ?? "";
+  const successOpen = Boolean(
+    submittedAt && dismissedSubmissionAt !== submittedAt,
+  );
   const payload: RoundOf16PickPayload = {
     winners,
     bonusAnswers,
@@ -237,10 +294,61 @@ export function RoundOf16PickForm({
     settings.matchups.every((matchup) => winners[matchup.id]) &&
     enabledBonusProps.every((prop) =>
       String(bonusAnswers[prop.id] ?? "").trim(),
-    );
+    ) &&
+    (!testGuestMode ||
+      (displayName.trim().length > 0 && email.trim().length > 0));
 
   return (
     <div className="space-y-5">
+      <Dialog
+        open={successOpen}
+        onOpenChange={(open) => {
+          if (!open && submittedAt) setDismissedSubmissionAt(submittedAt);
+        }}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Picks submitted</DialogTitle>
+            <DialogDescription>
+              {testGuestMode
+                ? "Your picks are tied to the email you entered. Create or sign in with that same email to claim and update them later."
+                : `Your picks for ${poolName} were saved. You can update them until ${formatPickDeadline(settings)}.`}
+            </DialogDescription>
+          </DialogHeader>
+          {state.submitted ? (
+            <p className="rounded-lg border bg-surface-ledger/70 px-3 py-2 text-sm font-medium text-brand-ink">
+              Submitted {new Date(state.submitted.submittedAt).toLocaleString()}
+            </p>
+          ) : null}
+          <DialogFooter>
+            {testGuestMode ? (
+              <>
+                <Button asChild variant="ghost">
+                  <Link href={publicPoolPath}>View pool</Link>
+                </Button>
+                <Button asChild variant="outline">
+                  <Link href={signInPathFor(joinPath)}>Sign in</Link>
+                </Button>
+                <Button asChild variant="primaryGreen">
+                  <Link href={signUpPathFor(joinPath)}>Create account to claim</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <DialogClose asChild>
+                  <Button type="button" variant="outline">
+                    Keep editing
+                  </Button>
+                </DialogClose>
+                <Button asChild variant="primaryGreen">
+                  <Link href={publicPoolPath}>View pool</Link>
+                </Button>
+              </>
+            )}
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {state.submitted ? (
         <LedgerPanel
           title="Picks submitted"
@@ -273,6 +381,39 @@ export function RoundOf16PickForm({
         <input type="hidden" name="inviteCode" value={inviteCode} />
         <input type="hidden" name="payload" value={JSON.stringify(payload)} />
 
+        {testGuestMode ? (
+          <LedgerPanel
+            title="Entry details"
+            description="Use an email you can sign in with later to claim these picks."
+          >
+            <LedgerRow className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="test-display-name">Display name</Label>
+                <Input
+                  id="test-display-name"
+                  name="displayName"
+                  value={displayName}
+                  onChange={(event) => setDisplayName(event.target.value)}
+                  placeholder="Lucas"
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="test-email">Email</Label>
+                <Input
+                  id="test-email"
+                  name="email"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  placeholder="you@example.com"
+                  required
+                />
+              </div>
+            </LedgerRow>
+          </LedgerPanel>
+        ) : null}
+
         <LedgerPanel
           title="Bracket picks"
           description={`Choose one winner from each matchup. Picks lock ${formatPickDeadline(settings)}.`}
@@ -304,19 +445,42 @@ export function RoundOf16PickForm({
                     {prop.points} points
                   </p>
                 </div>
-                <Input
-                  id={`bonus-${prop.id}`}
-                  type={prop.id === "penalty-decisions" ? "number" : "text"}
-                  min={0}
-                  value={bonusAnswers[prop.id] ?? ""}
-                  onChange={(event) =>
-                    setBonusAnswers((current) => ({
-                      ...current,
-                      [prop.id]: event.target.value,
-                    }))
-                  }
-                  required
-                />
+                {TEAM_BONUS_PROP_IDS.has(prop.id) ? (
+                  <Select
+                    value={bonusAnswers[prop.id] ?? ""}
+                    onValueChange={(value) =>
+                      setBonusAnswers((current) => ({
+                        ...current,
+                        [prop.id]: value,
+                      }))
+                    }
+                  >
+                    <SelectTrigger id={`bonus-${prop.id}`} className="w-full">
+                      <SelectValue placeholder="Select team" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teamOptions.map((team) => (
+                        <SelectItem key={team} value={team}>
+                          <TeamPill team={team} />
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <Input
+                    id={`bonus-${prop.id}`}
+                    type={prop.id === "penalty-decisions" ? "number" : "text"}
+                    min={0}
+                    value={bonusAnswers[prop.id] ?? ""}
+                    onChange={(event) =>
+                      setBonusAnswers((current) => ({
+                        ...current,
+                        [prop.id]: event.target.value,
+                      }))
+                    }
+                    required
+                  />
+                )}
               </LedgerRow>
             ))}
           </LedgerRows>
@@ -336,7 +500,9 @@ export function RoundOf16PickForm({
           >
             {pending
               ? "Submitting..."
-              : hasExistingSubmission
+              : testGuestMode
+                ? "Submit test picks"
+                : hasExistingSubmission
                 ? "Update picks"
                 : "Submit picks"}{" "}
             <CheckCircle2 />

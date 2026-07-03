@@ -27,6 +27,14 @@ export type PublishedRoundOf16Pool = {
   poolId: string;
   poolSlug: string;
   poolName: string;
+  poolHref: string;
+  inviteNote: string;
+  signupInviteLink: {
+    code: string;
+    href: string;
+    status: string;
+    expiresAt: string;
+  };
   inviteLinks: {
     email: string;
     displayName: string;
@@ -47,6 +55,7 @@ export type JoinPoolData = {
     expiresAt: string;
     acceptedBy: string;
     acceptedAt: string;
+    isShareLink: boolean;
   };
   pool: {
     id: string;
@@ -93,16 +102,26 @@ export type RoundOf16ScoringPoolData = {
   latestStandings: RoundOf16StoredLeaderboardRow[];
 };
 
+export type CommissionerRoundOf16AdminPool = {
+  poolId: string;
+  poolName: string;
+  poolSlug: string;
+  status: string;
+  settings: RoundOf16PoolSettings;
+};
+
 export type CommissionerPoolSummary = {
   poolId: string;
   poolName: string;
   poolSlug: string;
+  shareInviteHref: string;
   status: string;
   templateName: string;
   createdAt: string;
   updatedAt: string;
   pickDeadline: string;
   deadlineStatus: "No deadline" | "Upcoming" | "Locked";
+  expectedEntries: number;
   inviteCounts: {
     total: number;
     pending: number;
@@ -123,6 +142,20 @@ function assertSupabaseConfigured() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
+}
+
+function normalizeEmailAddress(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function isValidEmailAddress(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function entryMetadata(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 export async function requireSupabaseUser() {
@@ -233,8 +266,29 @@ async function ensureRoundOf16PickFields({
   );
 }
 
-function buildPoolSlug(poolName: string) {
-  return `${slugifyPoolName(poolName)}-${Math.random().toString(36).slice(2, 8)}`;
+async function buildPoolSlug(admin: SupabaseAdmin, poolName: string) {
+  const baseSlug = slugifyPoolName(poolName);
+  const { data, error } = await admin
+    .from("pools")
+    .select("slug")
+    .ilike("slug", `${baseSlug}%`);
+
+  if (error) throw new Error(error.message);
+
+  const existingSlugs = new Set(
+    (data ?? [])
+      .map((pool) => String(pool.slug ?? ""))
+      .filter((slug) => slug === baseSlug || slug.startsWith(`${baseSlug}-`)),
+  );
+
+  if (!existingSlugs.has(baseSlug)) return baseSlug;
+
+  for (let suffix = 2; suffix < 1000; suffix += 1) {
+    const candidate = `${baseSlug}-${suffix}`;
+    if (!existingSlugs.has(candidate)) return candidate;
+  }
+
+  return `${baseSlug}-${crypto.randomUUID().slice(0, 8)}`;
 }
 
 function buildInviteCode() {
@@ -383,6 +437,71 @@ export function pickPayloadAndItemIdsFromItems({
   return { payload, itemIds };
 }
 
+async function claimRoundOf16GuestEntryForUser({
+  admin,
+  poolId,
+  user,
+}: {
+  admin: SupabaseAdmin;
+  poolId: string;
+  user: NonNullable<Awaited<ReturnType<typeof getSupabaseUser>>>;
+}) {
+  const email = normalizeEmailAddress(user.email ?? "");
+  if (!email) return null;
+
+  const { data: guestEntry, error } = await admin
+    .from("entries")
+    .select(
+      "id,display_name,metadata,entry_picks(id,status,submitted_at,entry_pick_items(value))",
+    )
+    .eq("pool_id", poolId)
+    .is("user_id", null)
+    .eq("metadata->>guestEmail", email)
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!guestEntry) return null;
+
+  const guestDisplayName = String(guestEntry.display_name ?? "").trim();
+  const displayName =
+    user.user_metadata?.display_name ??
+    (guestDisplayName || user.email?.split("@")[0] || "Participant");
+  const metadata = entryMetadata(guestEntry.metadata);
+  const claimedAt = new Date().toISOString();
+
+  await ensureProfile({ userId: user.id, displayName });
+
+  const { error: memberError } = await admin.from("pool_members").upsert(
+    {
+      pool_id: poolId,
+      user_id: user.id,
+      role: "player",
+    },
+    { onConflict: "pool_id,user_id" },
+  );
+
+  if (memberError) throw new Error(memberError.message);
+
+  const { error: updateError } = await admin
+    .from("entries")
+    .update({
+      user_id: user.id,
+      metadata: {
+        ...metadata,
+        claimedAt,
+        claimedBy: user.id,
+      },
+    })
+    .eq("id", guestEntry.id)
+    .is("user_id", null);
+
+  if (updateError) throw new Error(updateError.message);
+
+  return guestEntry;
+}
+
 export async function publishRoundOf16Pool({
   settings,
   participants,
@@ -406,7 +525,7 @@ export async function publishRoundOf16Pool({
   const templateVersionId = await ensureRoundOf16TemplateVersion(admin);
   await ensureRoundOf16PickFields({ admin, templateVersionId, settings });
 
-  const poolSlug = buildPoolSlug(settings.basics.poolName);
+  const poolSlug = await buildPoolSlug(admin, settings.basics.poolName);
   const { data: pool, error: poolError } = await admin
     .from("pools")
     .insert({
@@ -443,25 +562,50 @@ export async function publishRoundOf16Pool({
     status: "pending",
     expires_at: getInviteExpiresAt(settings),
   }));
+  const signupInviteRow = {
+    pool_id: pool.id,
+    email: null,
+    display_name: "Signup link",
+    code: buildInviteCode(),
+    status: "pending",
+    expires_at: getInviteExpiresAt(settings),
+  };
   const { data: invites, error: invitesError } = await admin
     .from("pool_invites")
-    .insert(inviteRows)
+    .insert([signupInviteRow, ...inviteRows])
     .select("email,display_name,code,status,expires_at");
 
   if (invitesError) throw new Error(invitesError.message);
+
+  const signupInvite =
+    (invites ?? []).find((invite) => !String(invite.email ?? "")) ?? invites?.[0];
+
+  if (!signupInvite) {
+    throw new Error("Signup invite could not be created.");
+  }
 
   return {
     poolId: pool.id,
     poolSlug: pool.slug,
     poolName: pool.name,
-    inviteLinks: (invites ?? []).map((invite) => ({
-      email: String(invite.email ?? ""),
-      displayName: String(invite.display_name ?? ""),
-      code: String(invite.code),
-      href: `/join/${invite.code}`,
-      status: String(invite.status ?? "pending"),
-      expiresAt: String(invite.expires_at ?? ""),
-    })),
+    poolHref: `/pools/${pool.slug}`,
+    inviteNote: settings.inviteNote,
+    signupInviteLink: {
+      code: String(signupInvite.code),
+      href: `/join/${signupInvite.code}`,
+      status: String(signupInvite.status ?? "pending"),
+      expiresAt: String(signupInvite.expires_at ?? ""),
+    },
+    inviteLinks: (invites ?? [])
+      .filter((invite) => String(invite.email ?? ""))
+      .map((invite) => ({
+        email: String(invite.email ?? ""),
+        displayName: String(invite.display_name ?? ""),
+        code: String(invite.code),
+        href: `/join/${invite.code}`,
+        status: String(invite.status ?? "pending"),
+        expiresAt: String(invite.expires_at ?? ""),
+      })),
   };
 }
 
@@ -490,7 +634,7 @@ export async function getJoinPoolData(inviteCode: string) {
   const deadlineHasPassed = pickDeadlineHasPassed(settings);
 
   if (user) {
-    const { data: entry } = await admin
+    let { data: entry } = await admin
       .from("entries")
       .select(
         "id,entry_picks(id,status,submitted_at,entry_pick_items(value))",
@@ -498,6 +642,15 @@ export async function getJoinPoolData(inviteCode: string) {
       .eq("pool_id", poolRecord.id)
       .eq("user_id", user.id)
       .maybeSingle();
+
+    if (!entry && !String(invite.email ?? "")) {
+      entry = await claimRoundOf16GuestEntryForUser({
+        admin,
+        poolId: String(poolRecord.id),
+        user,
+      });
+    }
+
     const entryPick = Array.isArray(entry?.entry_picks)
       ? entry.entry_picks[0]
       : entry?.entry_picks;
@@ -530,6 +683,7 @@ export async function getJoinPoolData(inviteCode: string) {
       expiresAt: String(invite.expires_at ?? ""),
       acceptedBy: String(invite.accepted_by ?? ""),
       acceptedAt: String(invite.accepted_at ?? ""),
+      isShareLink: !String(invite.email ?? ""),
     },
     pool: {
       id: String(poolRecord.id),
@@ -560,6 +714,7 @@ export async function submitRoundOf16Picks({
     throw new Error("This invite is no longer available.");
   }
   if (
+    !joinData.invite.isShareLink &&
     joinData.invite.status === "accepted" &&
     joinData.invite.acceptedBy &&
     joinData.invite.acceptedBy !== user.id
@@ -585,7 +740,7 @@ export async function submitRoundOf16Picks({
 
   const displayName =
     user.user_metadata?.display_name ??
-    joinData.invite.displayName ??
+    (joinData.invite.isShareLink ? undefined : joinData.invite.displayName) ??
     user.email?.split("@")[0] ??
     "Participant";
   await ensureProfile({ userId: user.id, displayName });
@@ -599,14 +754,16 @@ export async function submitRoundOf16Picks({
     { onConflict: "pool_id,user_id" },
   );
 
-  await admin
-    .from("pool_invites")
-    .update({
-      status: "accepted",
-      accepted_by: user.id,
-      accepted_at: new Date().toISOString(),
-    })
-    .eq("id", joinData.invite.id);
+  if (!joinData.invite.isShareLink) {
+    await admin
+      .from("pool_invites")
+      .update({
+        status: "accepted",
+        accepted_by: user.id,
+        accepted_at: new Date().toISOString(),
+      })
+      .eq("id", joinData.invite.id);
+  }
 
   const { data: entry, error: entryError } = await admin
     .from("entries")
@@ -714,6 +871,161 @@ export async function submitRoundOf16Picks({
   };
 }
 
+export async function submitRoundOf16TestPicks({
+  inviteCode,
+  displayName,
+  email,
+  payload,
+}: {
+  inviteCode: string;
+  displayName: string;
+  email: string;
+  payload: RoundOf16PickPayload;
+}) {
+  assertSupabaseConfigured();
+
+  const name = displayName.trim();
+  const guestEmail = normalizeEmailAddress(email);
+  if (!name) throw new Error("Display name is required.");
+  if (!guestEmail || !isValidEmailAddress(guestEmail)) {
+    throw new Error("A valid email address is required.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const joinData = await getJoinPoolData(inviteCode);
+
+  if (!joinData) throw new Error("Invite not found.");
+  if (!joinData.invite.isShareLink) {
+    throw new Error("Test entries can only use the general share link.");
+  }
+  if (joinData.invite.status === "revoked" || joinData.invite.status === "expired") {
+    throw new Error("This invite is no longer available.");
+  }
+
+  const settings = joinData.pool.settings;
+  if (pickDeadlineHasPassed(settings)) {
+    throw new Error("The pick deadline has passed.");
+  }
+
+  const missingWinner = settings.matchups.find(
+    (matchup) => !payload.winners[matchup.id],
+  );
+  const missingBonus = getEnabledRoundOf16BonusProps(settings).find(
+    (prop) => !String(payload.bonusAnswers[prop.id] ?? "").trim(),
+  );
+
+  if (missingWinner || missingBonus) {
+    throw new Error("Complete every required winner and bonus pick.");
+  }
+
+  const { data: existingGuestEntry, error: existingGuestError } = await admin
+    .from("entries")
+    .select("id,user_id")
+    .eq("pool_id", joinData.pool.id)
+    .eq("metadata->>guestEmail", guestEmail)
+    .limit(1)
+    .maybeSingle();
+
+  if (existingGuestError) throw new Error(existingGuestError.message);
+  if (existingGuestEntry) {
+    throw new Error(
+      String(existingGuestEntry.user_id ?? "")
+        ? "Picks already exist for this email. Sign in with that account to update them."
+        : "Picks were already submitted for this email. Create an account or sign in with this email to claim and update them.",
+    );
+  }
+
+  const { data: entry, error: entryError } = await admin
+    .from("entries")
+    .insert({
+      pool_id: joinData.pool.id,
+      user_id: null,
+      display_name: name,
+      entry_number: 1,
+      metadata: {
+        inviteCode,
+        inviteType: "share-link",
+        testGuest: true,
+        guestEmail,
+      },
+    })
+    .select("id")
+    .single();
+
+  if (entryError) throw new Error(entryError.message);
+
+  const submittedAt = new Date().toISOString();
+  const { data: entryPick, error: entryPickError } = await admin
+    .from("entry_picks")
+    .insert({
+      entry_id: entry.id,
+      template_version_id: joinData.pool.templateVersionId,
+      status: "submitted",
+      submitted_at: submittedAt,
+      updated_at: submittedAt,
+    })
+    .select("id")
+    .single();
+
+  if (entryPickError) throw new Error(entryPickError.message);
+
+  const fieldMap = await ensureRoundOf16PickFields({
+    admin,
+    templateVersionId: joinData.pool.templateVersionId,
+    settings,
+  });
+  const winnerItems = settings.matchups.map((matchup, index) => ({
+    entry_pick_id: entryPick.id,
+    template_pick_field_id: fieldMap.get(`r16_${index + 1}_winner`)?.id,
+    pick_type: "bracket_winner",
+    value: {
+      matchupId: matchup.id,
+      winner: payload.winners[matchup.id],
+    },
+    submitted_at: submittedAt,
+  }));
+  const bonusItems = getEnabledRoundOf16BonusProps(settings).map((prop) => ({
+    entry_pick_id: entryPick.id,
+    template_pick_field_id: fieldMap.get(`bonus_${prop.id}`)?.id,
+    pick_type: prop.id === "penalty-decisions" ? "numeric_bonus" : "text_bonus",
+    value: {
+      propId: prop.id,
+      answer: payload.bonusAnswers[prop.id],
+    },
+    submitted_at: submittedAt,
+  }));
+  const pickItems = [...winnerItems, ...bonusItems].filter(
+    (item) => item.template_pick_field_id,
+  );
+  const { error: itemsError } = await admin
+    .from("entry_pick_items")
+    .insert(pickItems);
+
+  if (itemsError) throw new Error(itemsError.message);
+
+  await admin.from("commissioner_notifications").insert({
+    pool_id: joinData.pool.id,
+    recipient_id: joinData.pool.ownerId,
+    actor_id: null,
+    event_type: "entry_submitted",
+    title: "Test entry submitted",
+    body: `${name} submitted test picks for ${joinData.pool.name}.`,
+    metadata: {
+      entryId: entry.id,
+      entryPickId: entryPick.id,
+      inviteCode,
+      guestEmail,
+      testGuest: true,
+    },
+  });
+
+  return {
+    entryId: String(entry.id),
+    entryPickId: String(entryPick.id),
+    submittedAt,
+  };
+}
+
 export async function getCommissionerNotifications() {
   if (!isSupabaseConfigured()) return [];
 
@@ -779,7 +1091,7 @@ export async function getCommissionerPoolSummaries() {
   const { data: pools, error } = await admin
     .from("pools")
     .select(
-      "id,name,slug,status,settings,created_at,updated_at,template_versions(name),pool_invites(id,status,expires_at),entries(id,entry_picks(status,submitted_at))",
+      "id,name,slug,status,settings,created_at,updated_at,template_versions(name),pool_invites(id,email,code,status,expires_at),entries(id,entry_picks(status,submitted_at))",
     )
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
@@ -809,13 +1121,32 @@ export async function getCommissionerPoolSummaries() {
     }
   }
 
-  return (pools ?? []).map((pool) => {
+  return Promise.all((pools ?? []).map(async (pool) => {
     const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
       .roundOf16;
     const deadline = getRoundOf16DeadlineStatus(settings);
     const invites = Array.isArray(pool.pool_invites) ? pool.pool_invites : [];
+    let shareInvite = invites.find((invite) => !String(invite.email ?? ""));
+    if (!shareInvite && settings) {
+      const { data: createdShareInvite, error: shareInviteError } = await admin
+        .from("pool_invites")
+        .insert({
+          pool_id: pool.id,
+          email: null,
+          display_name: "Signup link",
+          code: buildInviteCode(),
+          status: "pending",
+          expires_at: getInviteExpiresAt(settings),
+        })
+        .select("id,email,code,status,expires_at")
+        .single();
+
+      if (shareInviteError) throw new Error(shareInviteError.message);
+      shareInvite = createdShareInvite;
+    }
+    const namedInvites = invites.filter((invite) => String(invite.email ?? ""));
     const entries = Array.isArray(pool.entries) ? pool.entries : [];
-    const inviteCounts = invites.reduce(
+    const inviteCounts = namedInvites.reduce(
       (counts, invite) => {
         const status = effectiveInviteStatus({
           status: String(invite.status ?? "pending"),
@@ -862,12 +1193,14 @@ export async function getCommissionerPoolSummaries() {
       poolId: String(pool.id),
       poolName: String(pool.name),
       poolSlug: String(pool.slug),
+      shareInviteHref: shareInvite?.code ? `/join/${String(shareInvite.code)}` : "",
       status: String(pool.status ?? "draft"),
       templateName: String(templateVersion?.name ?? "Round of 16 Pool"),
       createdAt: String(pool.created_at ?? ""),
       updatedAt: String(pool.updated_at ?? ""),
       pickDeadline: deadline.pickDeadline,
       deadlineStatus: deadline.deadlineStatus,
+      expectedEntries: Number(settings?.expectedEntries ?? 0),
       inviteCounts,
       entryCounts: {
         ...entryCounts,
@@ -875,7 +1208,7 @@ export async function getCommissionerPoolSummaries() {
       },
       latestStandingsAt: latestSnapshotByPool.get(String(pool.id)) ?? "",
     } satisfies CommissionerPoolSummary;
-  });
+  }));
 }
 
 function rankRoundOf16Rows(rows: Omit<RoundOf16StoredLeaderboardRow, "rank">[]) {
@@ -911,7 +1244,7 @@ export async function refreshRoundOf16Scoring({
   const admin = createSupabaseAdminClient();
   const { data: pool, error: poolError } = await admin
     .from("pools")
-    .select("id,name,owner_id,settings")
+    .select("id,owner_id")
     .eq("id", poolId)
     .single();
 
@@ -919,6 +1252,27 @@ export async function refreshRoundOf16Scoring({
   if (String(pool.owner_id) !== user.id) {
     throw new Error("Only the pool commissioner can refresh scoring.");
   }
+
+  return refreshRoundOf16ScoringForPool({ poolId, results });
+}
+
+export async function refreshRoundOf16ScoringForPool({
+  poolId,
+  results,
+}: {
+  poolId: string;
+  results: RoundOf16ResultPayload;
+}) {
+  assertSupabaseConfigured();
+
+  const admin = createSupabaseAdminClient();
+  const { data: pool, error: poolError } = await admin
+    .from("pools")
+    .select("id,name,settings")
+    .eq("id", poolId)
+    .single();
+
+  if (poolError) throw new Error(poolError.message);
 
   const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
     .roundOf16;
@@ -1029,6 +1383,134 @@ export async function getLatestRoundOf16Standings(poolId: string) {
   if (error || !Array.isArray(data?.rows)) return [];
 
   return data.rows as RoundOf16StoredLeaderboardRow[];
+}
+
+export async function getCommissionerRoundOf16AdminPool(poolId: string) {
+  const user = await requireSupabaseUser();
+  const admin = createSupabaseAdminClient();
+  const { data: pool, error } = await admin
+    .from("pools")
+    .select("id,name,slug,status,owner_id,settings")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (error) throw new Error(error.message);
+  if (!pool) return null;
+  if (String(pool.owner_id) !== user.id) {
+    throw new Error("Only the pool commissioner can edit this pool.");
+  }
+
+  const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
+    .roundOf16;
+  if (!settings) return null;
+
+  return {
+    poolId: String(pool.id),
+    poolName: String(pool.name),
+    poolSlug: String(pool.slug),
+    status: String(pool.status ?? "open"),
+    settings,
+  } satisfies CommissionerRoundOf16AdminPool;
+}
+
+export async function updateCommissionerRoundOf16AdminPool({
+  poolId,
+  status,
+  basics,
+  inviteNote,
+}: {
+  poolId: string;
+  status: string;
+  basics: RoundOf16PoolSettings["basics"];
+  inviteNote: string;
+}) {
+  const user = await requireSupabaseUser();
+  const admin = createSupabaseAdminClient();
+  const { data: pool, error: poolError } = await admin
+    .from("pools")
+    .select("id,name,slug,owner_id,settings")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (poolError) throw new Error(poolError.message);
+  if (!pool) throw new Error("Pool not found.");
+  if (String(pool.owner_id) !== user.id) {
+    throw new Error("Only the pool commissioner can edit this pool.");
+  }
+
+  const currentSettings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
+    .roundOf16;
+  if (!currentSettings) throw new Error("Round of 16 settings were not found.");
+
+  const nextStatus = ["draft", "open", "locked", "completed", "archived"].includes(
+    status,
+  )
+    ? status
+    : "open";
+  const nextSettings: RoundOf16PoolSettings = {
+    ...currentSettings,
+    basics: {
+      ...currentSettings.basics,
+      poolName: basics.poolName.trim(),
+      commissionerName: basics.commissionerName.trim(),
+      eventLabel: basics.eventLabel.trim(),
+      picksLockAt: basics.picksLockAt.trim(),
+      timezone: basics.timezone.trim(),
+      description: basics.description.trim(),
+    },
+    inviteNote: inviteNote.trim(),
+  };
+  const validationError = validateRoundOf16PoolSettings(nextSettings);
+  if (validationError) throw new Error(validationError);
+
+  const { error: updateError } = await admin
+    .from("pools")
+    .update({
+      name: nextSettings.basics.poolName,
+      status: nextStatus,
+      settings: {
+        ...(pool.settings && typeof pool.settings === "object" ? pool.settings : {}),
+        roundOf16: nextSettings,
+      },
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", poolId);
+
+  if (updateError) throw new Error(updateError.message);
+
+  return {
+    poolId,
+    poolSlug: String(pool.slug),
+    poolName: nextSettings.basics.poolName,
+  };
+}
+
+export async function deleteCommissionerPool(poolId: string) {
+  const user = await requireSupabaseUser();
+  const admin = createSupabaseAdminClient();
+  const { data: pool, error: poolError } = await admin
+    .from("pools")
+    .select("id,slug,owner_id")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (poolError) throw new Error(poolError.message);
+  if (!pool) throw new Error("Pool not found.");
+  if (String(pool.owner_id) !== user.id) {
+    throw new Error("Only the pool commissioner can delete this pool.");
+  }
+
+  const { error: deleteError } = await admin
+    .from("pools")
+    .delete()
+    .eq("id", poolId);
+
+  if (deleteError) throw new Error(deleteError.message);
+
+  return {
+    poolId,
+    poolSlug: String(pool.slug),
+  };
 }
 
 export async function getCommissionerRoundOf16ScoringPool(poolId: string) {

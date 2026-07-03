@@ -122,6 +122,7 @@ function useMockUser() {
 }
 
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   const [supabase] = React.useState<ReturnType<
     typeof createSupabaseBrowserClient
   > | null>(() => {
@@ -134,18 +135,25 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = React.useState<MockUser | null>(null);
   const [hydrated, setHydrated] = React.useState(() => !supabase);
 
+  const refreshUser = React.useCallback(async () => {
+    if (!supabase) return;
+
+    try {
+      const { data } = await supabase.auth.getUser();
+      setUser(userFromSupabase(data.user));
+    } finally {
+      setHydrated(true);
+    }
+  }, [supabase]);
+
+  React.useEffect(() => {
+    void refreshUser();
+  }, [pathname, refreshUser]);
+
   React.useEffect(() => {
     if (!supabase) {
       return;
     }
-
-    supabase.auth
-      .getUser()
-      .then(({ data }) => {
-        setUser(userFromSupabase(data.user));
-        setHydrated(true);
-      })
-      .catch(() => setHydrated(true));
 
     const {
       data: { subscription },

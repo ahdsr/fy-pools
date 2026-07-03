@@ -21,7 +21,7 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
       poolName={roundOf16Pool.poolName}
       eyebrow="Leaderboard"
       title={`${roundOf16Pool.poolName} standings`}
-      description="Latest stored standings snapshot from commissioner scoring."
+      description="Latest stored standings snapshot from automatic scoring."
     >
       <RoundOf16Leaderboard
         rows={roundOf16Pool.latestStandings}

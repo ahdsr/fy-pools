@@ -9,10 +9,12 @@ import {
   CheckCircle2,
   Circle,
   Copy,
+  ExternalLink,
   FileText,
   Gift,
   ListChecks,
   Plus,
+  Save,
   Trophy,
   Users,
 } from "lucide-react";
@@ -37,10 +39,14 @@ import { cn } from "@/lib/utils";
 import { getAllTemplates } from "@/lib/templates/catalog";
 import {
   ROUND_OF_16_DRAFT_STORAGE_KEY,
+  ROUND_OF_16_BONUS_MAX_TOTAL_SHARE,
   ROUND_OF_16_TEMPLATE_SLUG,
   WORLD_CUP_2026_AVAILABLE_TEAMS,
   createDefaultRoundOf16WizardState,
+  createRoundOf16PoolDraft,
+  getRoundOf16ScoringBalance,
   isRoundOf16WizardStateComplete,
+  saveRoundOf16Draft,
   slugifyPoolName,
   toRoundOf16PoolSettings,
   validateRoundOf16WizardState,
@@ -108,6 +114,12 @@ function stepIsValid(
 function numberFromInput(value: string, fallback = 0) {
   const numberValue = Number(value);
   return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function percentLabel(value: number) {
+  if (!Number.isFinite(value)) return "0%";
+
+  return `${Math.round(value * 100)}%`;
 }
 
 function buildWizardHref(templateSlug: string, draftId?: string) {
@@ -248,6 +260,113 @@ function FieldShell({
       <Label htmlFor={htmlFor}>{label}</Label>
       {children}
       <FieldError>{error}</FieldError>
+    </div>
+  );
+}
+
+function ScoringBalanceGuide({
+  balance,
+  enabledBonusCount,
+  compact = false,
+}: {
+  balance: ReturnType<typeof getRoundOf16ScoringBalance>;
+  enabledBonusCount: number;
+  compact?: boolean;
+}) {
+  const maxShareLabel = percentLabel(ROUND_OF_16_BONUS_MAX_TOTAL_SHARE);
+  const recommendedPerBonus =
+    enabledBonusCount > 0
+      ? Math.max(0, Math.floor(balance.maxBonusTotal / enabledBonusCount))
+      : 0;
+  const displayBalanced = enabledBonusCount > 0 && balance.balanced;
+  const singleBonusOver =
+    balance.highestBonusPoints > balance.maxSingleBonusPoints;
+  const balanceMessage =
+    enabledBonusCount === 0
+      ? "Enable at least one bonus prop."
+      : singleBonusOver
+        ? `No bonus can be worth more than ${balance.maxSingleBonusPoints} points.`
+        : balance.bonusTotal > balance.maxBonusTotal
+          ? `Reduce bonus points to ${balance.maxBonusTotal} total or fewer.`
+          : "Bonus scoring is inside the balanced range.";
+
+  return (
+    <div
+      className={cn(
+        "rounded-lg border bg-background p-4",
+        !displayBalanced && "border-destructive/30 bg-destructive/5",
+      )}
+    >
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="font-semibold text-brand-ink">Scoring balance</p>
+          <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+            Keep bonuses below {maxShareLabel} of available points so winner
+            picks drive the standings.
+          </p>
+        </div>
+        <Badge variant={displayBalanced ? "secondary" : "destructive"}>
+          {displayBalanced ? "Balanced" : "Needs adjustment"}
+        </Badge>
+      </div>
+      <div
+        className={cn(
+          "mt-4 grid gap-3",
+          compact ? "sm:grid-cols-2" : "sm:grid-cols-4",
+        )}
+      >
+        <div>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Winner points
+          </p>
+          <p className="mt-1 text-xl font-semibold text-brand-ink">
+            {balance.winnerTotal}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Bonus points
+          </p>
+          <p className="mt-1 text-xl font-semibold text-brand-ink">
+            {balance.bonusTotal}/{balance.maxBonusTotal}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Bonus share
+          </p>
+          <p className="mt-1 text-xl font-semibold text-brand-ink">
+            {percentLabel(balance.bonusShare)}
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Suggested each
+          </p>
+          <p className="mt-1 text-xl font-semibold text-brand-ink">
+            {recommendedPerBonus}
+          </p>
+        </div>
+      </div>
+      <div className="mt-4 h-2 overflow-hidden rounded-full bg-muted">
+        <div
+          className={cn(
+            "h-full rounded-full bg-brand-success",
+            !displayBalanced && "bg-destructive",
+          )}
+          style={{
+            width: `${Math.min(100, Math.round(balance.bonusShare * 100))}%`,
+          }}
+        />
+      </div>
+      <p
+        className={cn(
+          "mt-3 text-sm font-medium leading-6",
+          displayBalanced ? "text-muted-foreground" : "text-destructive",
+        )}
+      >
+        {balanceMessage}
+      </p>
     </div>
   );
 }
@@ -607,6 +726,11 @@ function PublishedPoolPanel({
 }: {
   published: NonNullable<PublishRoundOf16State["published"]>;
 }) {
+  const inviteMessage = [
+    published.inviteNote.trim() || `Join ${published.poolName} and make your picks.`,
+    "Use this signup link:",
+  ].join("\n");
+
   return (
     <LedgerPanel
       title="Pool published"
@@ -623,12 +747,17 @@ function PublishedPoolPanel({
               {published.poolName}
             </h2>
             <p className="mt-3 font-mono text-sm text-brand-ink">
-              /pools/{published.poolSlug}
+              {published.poolHref}
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Button asChild variant="primaryGreen">
-                <Link href={`/dashboard/pools/${published.poolId}/scoring`}>
-                  Open scoring <ArrowRight />
+                <Link href={`${published.poolHref}/leaderboard`}>
+                  View leaderboard <Trophy />
+                </Link>
+              </Button>
+              <Button asChild variant="outline">
+                <Link href={published.poolHref}>
+                  Preview pool <ExternalLink />
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -640,14 +769,39 @@ function PublishedPoolPanel({
             <div className="flex items-start gap-3">
               <Copy className="mt-0.5 size-4 shrink-0 text-brand-mark" />
               <p className="text-sm font-normal leading-6 text-muted-foreground">
-                Send each participant their own join link. The link handles
-                account creation, invite acceptance, and pick submission.
+                Share the signup invite when you do not have every email yet.
+                Named participant links remain available below for direct
+                invites.
               </p>
             </div>
           </div>
         </div>
 
         <LedgerRows className="overflow-hidden rounded-lg border bg-background">
+          <LedgerRow className="space-y-3">
+            <div>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="font-semibold text-brand-ink">
+                  General signup invite
+                </p>
+                <Badge variant="outline">{published.signupInviteLink.status}</Badge>
+              </div>
+              <p className="mt-1 text-xs font-normal text-muted-foreground">
+                Reusable link for players whose emails are not entered yet.
+              </p>
+              {published.signupInviteLink.expiresAt ? (
+                <p className="mt-1 text-xs font-normal text-muted-foreground">
+                  Expires{" "}
+                  {new Date(published.signupInviteLink.expiresAt).toLocaleString()}
+                </p>
+              ) : null}
+            </div>
+            <CopyInviteLinkButton
+              href={published.signupInviteLink.href}
+              label="Copy signup invite"
+              copyPrefix={inviteMessage}
+            />
+          </LedgerRow>
           {published.inviteLinks.map((invite) => (
             <LedgerRow key={invite.code} className="space-y-3">
               <div>
@@ -666,7 +820,7 @@ function PublishedPoolPanel({
                   </p>
                 ) : null}
               </div>
-              <CopyInviteLinkButton href={invite.href} />
+              <CopyInviteLinkButton href={invite.href} label="Copy link" />
             </LedgerRow>
           ))}
         </LedgerRows>
@@ -675,15 +829,24 @@ function PublishedPoolPanel({
   );
 }
 
-function CopyInviteLinkButton({ href }: { href: string }) {
+function CopyInviteLinkButton({
+  href,
+  label = "Copy link",
+  copyPrefix,
+}: {
+  href: string;
+  label?: string;
+  copyPrefix?: string;
+}) {
   const [copied, setCopied] = React.useState(false);
 
   async function handleCopy() {
     const url =
       typeof window === "undefined" ? href : new URL(href, window.location.origin).href;
+    const copyText = copyPrefix ? `${copyPrefix}\n${url}` : url;
 
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(copyText);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1600);
     } catch {
@@ -695,7 +858,7 @@ function CopyInviteLinkButton({ href }: { href: string }) {
     <div className="grid gap-2">
       <p className="break-all font-mono text-sm text-brand-ink">{href}</p>
       <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
-        <Copy /> {copied ? "Copied" : "Copy link"}
+        <Copy /> {copied ? "Copied" : label}
       </Button>
     </div>
   );
@@ -717,6 +880,7 @@ export function NewPoolWizardStart() {
     createDefaultRoundOf16WizardState(initialTemplate),
   );
   const [createdDraftId, setCreatedDraftId] = React.useState(queryDraftId);
+  const [editingDraftId, setEditingDraftId] = React.useState("");
   const [publishState, publishAction, publishPending] = React.useActionState(
     publishRoundOf16PoolAction,
     {},
@@ -742,6 +906,9 @@ export function NewPoolWizardStart() {
   const currentStepValid = stepIsValid(currentStepDefinition.key, validation);
   const wizardComplete = isRoundOf16WizardStateComplete(state);
   const enabledBonusCount = state.bonusProps.filter((prop) => prop.enabled).length;
+  const scoringBalance = getRoundOf16ScoringBalance(
+    toRoundOf16PoolSettings(state),
+  );
   const inviteError = validateRoundOf16InviteInputs(
     state.inviteSettings.participants,
   );
@@ -803,6 +970,7 @@ export function NewPoolWizardStart() {
   function handleEditDraft() {
     if (createdDraft) {
       const defaults = createDefaultRoundOf16WizardState(createdDraft.templateSlug);
+      setEditingDraftId(createdDraft.id);
 
       setState({
         templateSlug: createdDraft.templateSlug,
@@ -820,6 +988,17 @@ export function NewPoolWizardStart() {
     setCreatedDraftId("");
     setCurrentStep(0);
     router.replace(buildWizardHref(createdDraft?.templateSlug ?? state.templateSlug), {
+      scroll: false,
+    });
+  }
+
+  function handleSaveDraft() {
+    const draft = createRoundOf16PoolDraft(state, editingDraftId || effectiveDraftId);
+
+    saveRoundOf16Draft(draft);
+    setEditingDraftId(draft.id);
+    setCreatedDraftId(draft.id);
+    router.replace(buildWizardHref(draft.templateSlug, draft.id), {
       scroll: false,
     });
   }
@@ -1124,9 +1303,16 @@ export function NewPoolWizardStart() {
                   </p>
                   <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
                     Players answer enabled props alongside their Round of 16
-                    winner picks.
+                    winner picks. Each bonus can be worth up to one winner pick,
+                    and the full bonus pool should stay below{" "}
+                    {percentLabel(ROUND_OF_16_BONUS_MAX_TOTAL_SHARE)} of all
+                    points.
                   </p>
                 </div>
+                <ScoringBalanceGuide
+                  balance={scoringBalance}
+                  enabledBonusCount={enabledBonusCount}
+                />
                 <LedgerRows className="overflow-hidden rounded-lg border">
                   {state.bonusProps.map((prop) => (
                     <LedgerRow
@@ -1150,18 +1336,34 @@ export function NewPoolWizardStart() {
                       >
                         {prop.label}
                       </Label>
-                      <FieldShell label="Points" htmlFor={`${prop.id}-points`}>
+                      <FieldShell
+                        label="Points"
+                        htmlFor={`${prop.id}-points`}
+                        error={
+                          prop.enabled &&
+                          prop.points > scoringBalance.maxSingleBonusPoints
+                            ? `Max ${scoringBalance.maxSingleBonusPoints}`
+                            : undefined
+                        }
+                      >
                         <Input
                           id={`${prop.id}-points`}
                           type="number"
                           min={0}
+                          max={scoringBalance.maxSingleBonusPoints}
                           value={prop.points}
                           onChange={(event) =>
                             setState((current) =>
                               updateBonusProp(current, prop.id, {
-                                points: Math.max(
-                                  0,
-                                  numberFromInput(event.target.value),
+                                points: Math.min(
+                                  Math.max(
+                                    0,
+                                    Math.floor(current.scoring.winnerPoints),
+                                  ),
+                                  Math.max(
+                                    0,
+                                    numberFromInput(event.target.value),
+                                  ),
                                 ),
                               }),
                             )
@@ -1173,8 +1375,8 @@ export function NewPoolWizardStart() {
                 </LedgerRows>
                 {!validation.bonus ? (
                   <FieldError>
-                    Keep at least one bonus prop enabled with a valid point
-                    value.
+                    Keep at least one bonus prop enabled and keep bonus points
+                    inside the balanced range.
                   </FieldError>
                 ) : null}
               </div>
@@ -1200,6 +1402,13 @@ export function NewPoolWizardStart() {
                       onChange={(event) =>
                         setState((current) => ({
                           ...current,
+                          bonusProps: current.bonusProps.map((prop) => ({
+                            ...prop,
+                            points: Math.min(
+                              Math.max(0, numberFromInput(event.target.value)),
+                              prop.points,
+                            ),
+                          })),
                           scoring: {
                             ...current.scoring,
                             winnerPoints: Math.max(
@@ -1228,6 +1437,11 @@ export function NewPoolWizardStart() {
                     />
                   </FieldShell>
                 </div>
+                <ScoringBalanceGuide
+                  balance={scoringBalance}
+                  enabledBonusCount={enabledBonusCount}
+                  compact
+                />
                 <div className="space-y-3">
                   <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
@@ -1315,13 +1529,16 @@ export function NewPoolWizardStart() {
                     </FieldShell>
                     <div className="rounded-lg border bg-background p-4">
                       <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                        Draft link preview
+                        Pool page preview
                       </p>
                       <p className="mt-2 font-mono text-sm text-brand-ink">
                         /pools/
                         {state.basics.poolName
                           ? slugifyPoolName(state.basics.poolName)
                           : "..."}
+                      </p>
+                      <p className="mt-2 text-xs font-normal leading-5 text-muted-foreground">
+                        The exact preview link is generated after publishing.
                       </p>
                     </div>
                   </div>
@@ -1413,6 +1630,10 @@ export function NewPoolWizardStart() {
                       {state.scoring.winnerPoints} points per winner, and{" "}
                       {state.inviteSettings.expectedEntries} expected entries.
                     </p>
+                    <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">
+                      {scoringBalance.winnerTotal} matchup points and{" "}
+                      {scoringBalance.bonusTotal} bonus points available.
+                    </p>
                   </div>
                 </div>
                 <LedgerRows className="overflow-hidden rounded-lg border bg-background">
@@ -1469,14 +1690,19 @@ export function NewPoolWizardStart() {
               </div>
 
               {currentStepDefinition.key === "review" ? (
-                <Button
-                  type="submit"
-                  variant="primaryGreen"
-                  disabled={!wizardComplete || publishPending}
-                >
-                  {publishPending ? "Publishing..." : "Publish pool"}{" "}
-                  <CheckCircle2 />
-                </Button>
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                  <Button type="button" variant="outline" onClick={handleSaveDraft}>
+                    <Save /> Save draft
+                  </Button>
+                  <Button
+                    type="submit"
+                    variant="primaryGreen"
+                    disabled={!wizardComplete || publishPending}
+                  >
+                    {publishPending ? "Publishing..." : "Publish pool"}{" "}
+                    <CheckCircle2 />
+                  </Button>
+                </div>
               ) : (
                 <Button
                   type="button"

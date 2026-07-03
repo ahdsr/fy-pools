@@ -4,10 +4,10 @@ import {
   Bell,
   CalendarClock,
   ClipboardList,
+  Edit,
   ExternalLink,
   FileSpreadsheet,
   ListChecks,
-  Settings,
   Trophy,
   Users,
 } from "lucide-react";
@@ -27,6 +27,9 @@ import {
   getCommissionerPoolSummaries,
   type CommissionerPoolSummary,
 } from "@/lib/round-of-16/persistence";
+import { DraftPoolRows } from "./draft-pool-rows";
+import { DeletePoolButton } from "./pools/delete-pool-button";
+import { ShareLinkButton } from "./share-link-button";
 
 export const dynamic = "force-dynamic";
 
@@ -39,22 +42,25 @@ function formatDateTime(value: string) {
   return parsed.toLocaleString();
 }
 
-function PoolSummaryRow({ pool }: { pool: CommissionerPoolSummary }) {
+function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
   const submittedEntries = pool.entryCounts.submitted + pool.entryCounts.locked;
+  const expectedEntriesLabel = pool.expectedEntries
+    ? `${submittedEntries}/${pool.expectedEntries} expected`
+    : `${submittedEntries} submitted`;
 
   return (
-    <LedgerRow className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
-      <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
+    <article className="flex min-h-[16rem] flex-col justify-between gap-5 rounded-lg border bg-surface-paper p-4">
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{pool.status}</Badge>
           <Badge variant="outline">{pool.deadlineStatus}</Badge>
+          <Badge variant="outline">{expectedEntriesLabel}</Badge>
           <Badge variant="outline">
-            {submittedEntries}/{pool.inviteCounts.total} submitted
+            {pool.inviteCounts.pending} unclaimed invites
           </Badge>
-          <Badge variant="outline">{pool.inviteCounts.pending} pending</Badge>
         </div>
         <div className="space-y-2">
-          <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
+          <h2 className="text-xl font-bold tracking-normal text-brand-ink">
             {pool.poolName}
           </h2>
           <p className="text-sm font-normal leading-6 text-muted-foreground">
@@ -62,7 +68,7 @@ function PoolSummaryRow({ pool }: { pool: CommissionerPoolSummary }) {
             Latest standings{" "}
             {pool.latestStandingsAt
               ? `refreshed ${formatDateTime(pool.latestStandingsAt)}`
-              : "have not been scored yet"}
+              : "will update automatically after results are available"}
             .
           </p>
         </div>
@@ -73,7 +79,7 @@ function PoolSummaryRow({ pool }: { pool: CommissionerPoolSummary }) {
               Invites
             </div>
             <p className="mt-1 text-sm font-semibold text-brand-ink">
-              {pool.inviteCounts.accepted} accepted, {pool.inviteCounts.pending} pending
+              {pool.inviteCounts.accepted} claimed, {pool.inviteCounts.pending} unclaimed
             </p>
           </div>
           <div className="rounded-lg border bg-background px-3 py-2">
@@ -82,7 +88,9 @@ function PoolSummaryRow({ pool }: { pool: CommissionerPoolSummary }) {
               Entries
             </div>
             <p className="mt-1 text-sm font-semibold text-brand-ink">
-              {submittedEntries} submitted, {pool.entryCounts.missing} missing
+              {pool.expectedEntries
+                ? `${submittedEntries} submitted of ${pool.expectedEntries} expected`
+                : `${submittedEntries} submitted`}
             </p>
           </div>
           <div className="rounded-lg border bg-background px-3 py-2">
@@ -97,24 +105,26 @@ function PoolSummaryRow({ pool }: { pool: CommissionerPoolSummary }) {
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2 xl:justify-end">
-        <Button asChild variant="secondaryGreen">
-          <Link href={`/pools/${pool.poolSlug}`}>
-            Public page <ExternalLink />
-          </Link>
-        </Button>
-        <Button asChild>
-          <Link href={`/dashboard/pools/${pool.poolId}/scoring`}>
-            Scoring <Trophy />
+      <div className="flex flex-wrap gap-2">
+        <Button asChild variant="primaryGreen">
+          <Link href={`/pools/${pool.poolSlug}/leaderboard`}>
+            Leaderboard <Trophy />
           </Link>
         </Button>
         <Button asChild variant="outline">
-          <Link href="/dashboard/pools">
-            Details <Settings />
+          <Link href={`/dashboard/pools/${pool.poolId}/edit`}>
+            Edit <Edit />
           </Link>
         </Button>
+        <Button asChild variant="outline">
+          <Link href={`/pools/${pool.poolSlug}`}>
+            Public <ExternalLink />
+          </Link>
+        </Button>
+        <ShareLinkButton href={pool.shareInviteHref} />
+        <DeletePoolButton poolId={pool.poolId} poolName={pool.poolName} />
       </div>
-    </LedgerRow>
+    </article>
   );
 }
 
@@ -144,29 +154,34 @@ export default async function DashboardPage() {
         description="Pools owned by this commissioner, including invite status, submissions, deadlines, and scoring state."
         action={<Badge variant="outline">{pools.length} active</Badge>}
       >
-        {pools.length ? (
-          <LedgerRows>
-            {pools.map((pool) => (
-              <PoolSummaryRow key={pool.poolId} pool={pool} />
-            ))}
-          </LedgerRows>
-        ) : (
-          <LedgerRow className="flex items-start gap-3">
-            <ClipboardList className="mt-1 size-5 shrink-0 text-brand-mark" />
-            <div>
-              <p className="font-semibold text-brand-ink">No pools yet</p>
-              <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                Create a Round of 16 pool to start inviting participants and
-                tracking submissions.
-              </p>
-              <Button asChild className="mt-4" variant="primaryGreen">
-                <Link href="/dashboard/pools/new">
-                  New pool <ArrowRight />
-                </Link>
-              </Button>
+        <div className="space-y-5 p-5">
+          {pools.length ? (
+            <div className="grid gap-4 md:grid-cols-2">
+              {pools.map((pool) => (
+                <PoolSummaryCard key={pool.poolId} pool={pool} />
+              ))}
             </div>
-          </LedgerRow>
-        )}
+          ) : (
+            <LedgerRow className="flex items-start gap-3">
+              <ClipboardList className="mt-1 size-5 shrink-0 text-brand-mark" />
+              <div>
+                <p className="font-semibold text-brand-ink">
+                  No published pools yet
+                </p>
+                <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                  Create a Round of 16 pool to start inviting participants and
+                  tracking submissions.
+                </p>
+                <Button asChild className="mt-4" variant="primaryGreen">
+                  <Link href="/dashboard/pools/new">
+                    New pool <ArrowRight />
+                  </Link>
+                </Button>
+              </div>
+            </LedgerRow>
+          )}
+          <DraftPoolRows />
+        </div>
       </LedgerPanel>
 
       <LedgerPanel
@@ -218,11 +233,11 @@ export default async function DashboardPage() {
             {
               icon: ClipboardList,
               title: "Pool operations",
-              body: "Create pools, invite players, track entries, and review lock status from one workspace.",
+              body: "Create pools, invite players, track entries, and review lock status from this workspace.",
               action: (
                 <Button asChild>
                   <Link href="/dashboard/pools">
-                    Open pools <ArrowRight />
+                    Start a pool <ArrowRight />
                   </Link>
                 </Button>
               ),

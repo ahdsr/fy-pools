@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CheckCircle2, Circle, Trophy } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import { MatchupLine, TeamPill } from "@/components/app/pool-public-widgets";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -110,7 +111,7 @@ export function RoundOf16Leaderboard({
       <LedgerPanel
         id="leaderboard"
         title="Leaderboard"
-        description="Standings appear after the commissioner refreshes scoring."
+        description="Standings appear after automatic scoring updates run."
       >
         <LedgerRows>
           {entries.map((entry) => (
@@ -143,7 +144,7 @@ export function RoundOf16Leaderboard({
     <LedgerPanel
       id="leaderboard"
       title="Leaderboard"
-      description="Latest stored standings snapshot from commissioner scoring."
+      description="Latest stored standings snapshot from automatic scoring."
     >
       <Table>
         <TableHeader>
@@ -219,7 +220,7 @@ export function RoundOf16BracketPanel({
                       key={team}
                       className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2"
                     >
-                      <span className="font-medium text-brand-ink">{team}</span>
+                      <TeamPill team={team} className="max-w-full" />
                       {winner ? (
                         <CheckCircle2 className="size-4 text-brand-success" />
                       ) : (
@@ -264,12 +265,18 @@ export function RoundOf16EntryDetail({
                 <p className="font-semibold text-brand-ink">
                   {matchup.label || `Round of 16 Match ${index + 1}`}
                 </p>
-                <p className="mt-1 text-sm font-normal text-muted-foreground">
-                  {matchup.teamOne} vs {matchup.teamTwo}
-                </p>
+                <MatchupLine
+                  homeTeam={matchup.teamOne}
+                  awayTeam={matchup.teamTwo}
+                  className="mt-1 text-sm"
+                />
               </div>
               <Badge variant="outline">
-                {entry.picks.winners[matchup.id] ?? "No pick"}
+                <TeamPill
+                  team={entry.picks.winners[matchup.id]}
+                  className="max-w-36"
+                  emptyLabel="No pick"
+                />
               </Badge>
             </LedgerRow>
           ))}

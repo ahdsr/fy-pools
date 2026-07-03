@@ -69,6 +69,7 @@ export type RoundOf16PoolSettings = {
   bonusProps: RoundOf16BonusPropDraft[];
   scoring: RoundOf16ScoringDraft;
   payouts: RoundOf16PayoutDraft[];
+  expectedEntries?: number;
   inviteNote: string;
 };
 
@@ -84,6 +85,9 @@ export type RoundOf16SubmittedEntry = {
 };
 
 export const ROUND_OF_16_TEMPLATE_SLUG = "world-cup-mini-round-of-16";
+export const ROUND_OF_16_BONUS_MAX_TOTAL_SHARE = 0.4;
+export const ROUND_OF_16_DEFAULT_WINNER_POINTS = 3;
+export const ROUND_OF_16_DEFAULT_BONUS_POINTS = 3;
 
 export const WORLD_CUP_2026_AVAILABLE_TEAMS = [
   "Mexico",
@@ -151,31 +155,31 @@ export const DEFAULT_ROUND_OF_16_BONUS_PROPS: RoundOf16BonusPropDraft[] = [
     id: "total-goals",
     label: "Total goals across Round of 16",
     enabled: true,
-    points: 5,
+    points: ROUND_OF_16_DEFAULT_BONUS_POINTS,
   },
   {
     id: "most-goals-team",
     label: "Team with most Round of 16 goals",
     enabled: true,
-    points: 5,
+    points: ROUND_OF_16_DEFAULT_BONUS_POINTS,
   },
   {
     id: "biggest-upset",
     label: "Biggest upset winner",
     enabled: true,
-    points: 5,
+    points: ROUND_OF_16_DEFAULT_BONUS_POINTS,
   },
   {
     id: "penalty-decisions",
     label: "Number of matches decided by penalties",
     enabled: true,
-    points: 5,
+    points: ROUND_OF_16_DEFAULT_BONUS_POINTS,
   },
   {
     id: "most-clean-sheets",
     label: "Team with most clean sheets",
     enabled: true,
-    points: 5,
+    points: ROUND_OF_16_DEFAULT_BONUS_POINTS,
   },
 ];
 
@@ -195,7 +199,7 @@ export function createDefaultRoundOf16WizardState(
     matchups: DEFAULT_ROUND_OF_16_MATCHUPS.map((matchup) => ({ ...matchup })),
     bonusProps: DEFAULT_ROUND_OF_16_BONUS_PROPS.map((prop) => ({ ...prop })),
     scoring: {
-      winnerPoints: 3,
+      winnerPoints: ROUND_OF_16_DEFAULT_WINNER_POINTS,
       prizePoolLabel: "",
     },
     payouts: [
@@ -238,6 +242,52 @@ function normalizedValue(value: string) {
 
 function textValue(value: unknown) {
   return typeof value === "string" ? value : "";
+}
+
+export function getRoundOf16ScoringBalance(
+  settings: Pick<RoundOf16PoolSettings, "matchups" | "bonusProps" | "scoring">,
+) {
+  const winnerPoints = Number(settings.scoring?.winnerPoints);
+  const safeWinnerPoints =
+    Number.isFinite(winnerPoints) && winnerPoints > 0 ? winnerPoints : 0;
+  const winnerTotal =
+    (Array.isArray(settings.matchups) ? settings.matchups.length : 0) *
+    safeWinnerPoints;
+  const enabledBonusProps = Array.isArray(settings.bonusProps)
+    ? settings.bonusProps.filter((prop) => prop?.enabled)
+    : [];
+  const bonusTotal = enabledBonusProps.reduce((sum, prop) => {
+    const points = Number(prop.points);
+    return sum + (Number.isFinite(points) ? Math.max(0, points) : 0);
+  }, 0);
+  const maxBonusTotal =
+    winnerTotal > 0
+      ? Math.floor(
+          (winnerTotal * ROUND_OF_16_BONUS_MAX_TOTAL_SHARE) /
+            (1 - ROUND_OF_16_BONUS_MAX_TOTAL_SHARE),
+        )
+      : 0;
+  const maxSingleBonusPoints = Math.floor(safeWinnerPoints);
+  const totalPoints = winnerTotal + bonusTotal;
+  const bonusShare = totalPoints > 0 ? bonusTotal / totalPoints : 0;
+  const highestBonusPoints = enabledBonusProps.reduce((max, prop) => {
+    const points = Number(prop.points);
+    return Math.max(max, Number.isFinite(points) ? points : 0);
+  }, 0);
+
+  return {
+    winnerTotal,
+    bonusTotal,
+    totalPoints,
+    bonusShare,
+    maxBonusTotal,
+    maxSingleBonusPoints,
+    highestBonusPoints,
+    balanced:
+      winnerTotal > 0 &&
+      bonusTotal <= maxBonusTotal &&
+      highestBonusPoints <= maxSingleBonusPoints,
+  };
 }
 
 export function validateRoundOf16PoolSettings(
@@ -313,6 +363,20 @@ export function validateRoundOf16PoolSettings(
     return "Winner points must be greater than 0.";
   }
 
+  const scoringBalance = getRoundOf16ScoringBalance({
+    matchups: settings.matchups,
+    bonusProps: settings.bonusProps ?? [],
+    scoring: settings.scoring as RoundOf16ScoringDraft,
+  });
+  if (scoringBalance.highestBonusPoints > scoringBalance.maxSingleBonusPoints) {
+    return "Each bonus prop must be worth no more than one correct Round of 16 winner.";
+  }
+  if (scoringBalance.bonusTotal > scoringBalance.maxBonusTotal) {
+    return `Bonus props can make up at most ${Math.round(
+      ROUND_OF_16_BONUS_MAX_TOTAL_SHARE * 100,
+    )}% of available points.`;
+  }
+
   const payouts = Array.isArray(settings?.payouts) ? settings.payouts : [];
   if (
     payouts.some(
@@ -331,22 +395,30 @@ export function validateRoundOf16InviteInputs(
   participants: RoundOf16InviteInput[] | null | undefined,
 ) {
   if (!Array.isArray(participants)) {
-    return "Add at least one participant email before publishing.";
+    return "Participant invites must be a list.";
   }
 
-  const participantEmails = participants
-    .map((participant) => textValue(participant?.email).trim().toLowerCase())
-    .filter(Boolean);
+  const participantEmails = participants.map((participant) =>
+    textValue(participant?.email).trim().toLowerCase(),
+  );
+  const participantNames = participants.map((participant) =>
+    textValue(participant?.displayName).trim(),
+  );
+  const filledEmails = participantEmails.filter(Boolean);
 
-  if (participantEmails.length === 0) {
-    return "Add at least one participant email before publishing.";
+  if (
+    participants.some(
+      (_participant, index) => participantNames[index] && !participantEmails[index],
+    )
+  ) {
+    return "Participant names need an email, or leave the row blank.";
   }
 
-  if (participantEmails.some((email) => !isValidEmail(email))) {
+  if (filledEmails.some((email) => !isValidEmail(email))) {
     return "Every participant email must be valid.";
   }
 
-  if (new Set(participantEmails).size !== participantEmails.length) {
+  if (new Set(filledEmails).size !== filledEmails.length) {
     return "Participant emails must be unique.";
   }
 
@@ -355,11 +427,13 @@ export function validateRoundOf16InviteInputs(
 
 export function createRoundOf16PoolDraft(
   state: RoundOf16WizardState,
+  existingDraftId?: string,
 ): RoundOf16PoolDraft {
   const id =
-    typeof crypto !== "undefined" && "randomUUID" in crypto
+    existingDraftId ||
+    (typeof crypto !== "undefined" && "randomUUID" in crypto
       ? crypto.randomUUID()
-      : `draft-${Date.now()}`;
+      : `draft-${Date.now()}`);
 
   return {
     ...state,
@@ -372,6 +446,9 @@ export function createRoundOf16PoolDraft(
 
 export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
   const enabledProps = state.bonusProps.filter((prop) => prop.enabled);
+  const scoringBalance = getRoundOf16ScoringBalance(
+    toRoundOf16PoolSettings(state),
+  );
   const settingsError = validateRoundOf16PoolSettings(
     toRoundOf16PoolSettings(state),
   );
@@ -396,10 +473,12 @@ export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
       ),
     bonus:
       enabledProps.length > 0 &&
-      enabledProps.every((prop) => Number.isFinite(prop.points) && prop.points >= 0),
+      enabledProps.every((prop) => Number.isFinite(prop.points) && prop.points >= 0) &&
+      scoringBalance.balanced,
     scoring:
       Number.isFinite(state.scoring.winnerPoints) &&
       state.scoring.winnerPoints > 0 &&
+      scoringBalance.balanced &&
       state.payouts.every(
         (payout) =>
           payout.place.trim().length > 0 || payout.amount.trim().length === 0,
@@ -421,6 +500,7 @@ export function toRoundOf16PoolSettings(
     bonusProps: state.bonusProps,
     scoring: state.scoring,
     payouts: state.payouts,
+    expectedEntries: state.inviteSettings.expectedEntries,
     inviteNote: state.inviteSettings.inviteNote,
   };
 }

@@ -6,6 +6,7 @@ import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { displayTeamName } from "@/lib/world-cup-pool/scoring";
+import { getWorldCupFlagCode } from "@/lib/world-cup-pool/team-flags";
 import type {
   EntriesConfig,
   EntryPicks,
@@ -299,20 +300,23 @@ export function TeamPill({
   score,
   className,
   flagPosition = "start",
+  emptyLabel = "Not entered",
 }: {
   team?: string;
   picks?: EntryPicks;
   score?: string | number | null;
   className?: string;
   flagPosition?: "start" | "end";
+  emptyLabel?: string;
 }) {
   if (!team) {
-    return <span className="text-muted-foreground">Not entered</span>;
+    return <span className="text-muted-foreground">{emptyLabel}</span>;
   }
 
   const option = Object.values(picks?.groups ?? {})
     .flatMap((group) => group.teams)
     .find((item) => item.name === team);
+  const flagCode = option?.flagCode ?? getWorldCupFlagCode(team);
 
   return (
     <span
@@ -321,12 +325,12 @@ export function TeamPill({
         className,
       )}
     >
-      {flagPosition === "start" ? <TeamFlag flagCode={option?.flagCode} /> : null}
+      {flagPosition === "start" ? <TeamFlag flagCode={flagCode} /> : null}
       <span className="truncate">{displayTeamName(team)}</span>
       {score !== undefined ? (
         <span className="shrink-0 text-muted-foreground">({score ?? "-"})</span>
       ) : null}
-      {flagPosition === "end" ? <TeamFlag flagCode={option?.flagCode} /> : null}
+      {flagPosition === "end" ? <TeamFlag flagCode={flagCode} /> : null}
     </span>
   );
 }
