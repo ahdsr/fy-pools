@@ -20,6 +20,8 @@ type RoundOf16PickFormProps = {
   inviteCode: string;
   poolName: string;
   settings: RoundOf16PoolSettings;
+  initialPayload?: RoundOf16PickPayload;
+  existingSubmittedAt?: string;
 };
 
 function formatPickDeadline(settings: RoundOf16PoolSettings) {
@@ -212,16 +214,21 @@ export function RoundOf16PickForm({
   inviteCode,
   poolName,
   settings,
+  initialPayload,
+  existingSubmittedAt,
 }: RoundOf16PickFormProps) {
   const [state, formAction, pending] = React.useActionState(
     submitRoundOf16PicksAction,
     {},
   );
-  const [winners, setWinners] = React.useState<Record<string, string>>({});
+  const [winners, setWinners] = React.useState<Record<string, string>>(
+    () => initialPayload?.winners ?? {},
+  );
   const [bonusAnswers, setBonusAnswers] = React.useState<Record<string, string>>(
-    {},
+    () => initialPayload?.bonusAnswers ?? {},
   );
   const enabledBonusProps = getEnabledRoundOf16BonusProps(settings);
+  const hasExistingSubmission = Boolean(existingSubmittedAt || state.submitted);
   const payload: RoundOf16PickPayload = {
     winners,
     bonusAnswers,
@@ -244,6 +251,19 @@ export function RoundOf16PickForm({
             <p className="font-semibold text-brand-ink">{poolName}</p>
             <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
               Submitted at {new Date(state.submitted.submittedAt).toLocaleString()}.
+            </p>
+          </LedgerRow>
+        </LedgerPanel>
+      ) : existingSubmittedAt ? (
+        <LedgerPanel
+          title="Editing submitted picks"
+          description={`Your saved picks are loaded. Changes are open until ${formatPickDeadline(settings)}.`}
+          action={<CheckCircle2 className="size-5 text-brand-success" />}
+        >
+          <LedgerRow>
+            <p className="font-semibold text-brand-ink">{poolName}</p>
+            <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+              Last submitted at {new Date(existingSubmittedAt).toLocaleString()}.
             </p>
           </LedgerRow>
         </LedgerPanel>
@@ -316,7 +336,7 @@ export function RoundOf16PickForm({
           >
             {pending
               ? "Submitting..."
-              : state.submitted
+              : hasExistingSubmission
                 ? "Update picks"
                 : "Submit picks"}{" "}
             <CheckCircle2 />

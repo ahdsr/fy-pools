@@ -11,6 +11,12 @@ import {
 } from "@/components/app/pool-public-widgets";
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import {
+  RoundOf16BracketPanel,
+  RoundOf16Leaderboard,
+  RoundOf16PublicStats,
+} from "@/components/app/round-of-16-public-panels";
+import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
+import {
   describeCurrentPoolMatch,
   getReferencePicks,
 } from "@/lib/world-cup-pool/current-match";
@@ -26,6 +32,35 @@ const currentStandingsInfo =
 
 export default async function PoolPage({ params }: PoolPageProps) {
   const { poolSlug } = await params;
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+
+  if (roundOf16Pool) {
+    return (
+      <PublicPoolShell
+        poolName={roundOf16Pool.poolName}
+        title={roundOf16Pool.poolName}
+        description={
+          roundOf16Pool.settings.basics.description ||
+          "Round of 16 picks, scoring, and public standings."
+        }
+      >
+        <RoundOf16PublicStats pool={roundOf16Pool} />
+
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_30rem] xl:items-start">
+          <RoundOf16Leaderboard
+            rows={roundOf16Pool.latestStandings}
+            entries={roundOf16Pool.entries}
+            poolSlug={roundOf16Pool.poolSlug}
+          />
+          <RoundOf16BracketPanel
+            settings={roundOf16Pool.settings}
+            standings={roundOf16Pool.latestStandings}
+          />
+        </section>
+      </PublicPoolShell>
+    );
+  }
+
   const standings = await getPublicPoolStandings(poolSlug);
   if (!standings) notFound();
 

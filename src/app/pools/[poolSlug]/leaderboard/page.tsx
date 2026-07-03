@@ -1,15 +1,33 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { useParams, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { PublicPoolShell } from "@/components/app/public-pool-shell";
+import { RoundOf16Leaderboard } from "@/components/app/round-of-16-public-panels";
+import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 
-export default function LeaderboardPage() {
-  const params = useParams<{ poolSlug: string }>();
-  const router = useRouter();
+type LeaderboardPageProps = {
+  params: Promise<{ poolSlug: string }>;
+};
 
-  useEffect(() => {
-    router.replace(`/pools/${params.poolSlug}`);
-  }, [params.poolSlug, router]);
+export const dynamic = "force-dynamic";
 
-  return null;
+export default async function LeaderboardPage({ params }: LeaderboardPageProps) {
+  const { poolSlug } = await params;
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+
+  if (!roundOf16Pool) redirect(`/pools/${poolSlug}`);
+
+  return (
+    <PublicPoolShell
+      poolName={roundOf16Pool.poolName}
+      eyebrow="Leaderboard"
+      title={`${roundOf16Pool.poolName} standings`}
+      description="Latest stored standings snapshot from commissioner scoring."
+    >
+      <RoundOf16Leaderboard
+        rows={roundOf16Pool.latestStandings}
+        entries={roundOf16Pool.entries}
+        poolSlug={roundOf16Pool.poolSlug}
+      />
+    </PublicPoolShell>
+  );
 }

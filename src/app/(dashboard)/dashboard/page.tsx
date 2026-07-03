@@ -2,14 +2,14 @@ import Link from "next/link";
 import {
   ArrowRight,
   Bell,
+  CalendarClock,
   ClipboardList,
-  Copy,
   ExternalLink,
   FileSpreadsheet,
-  MoreHorizontal,
-  Pencil,
+  ListChecks,
   Settings,
-  Trash2,
+  Trophy,
+  Users,
 } from "lucide-react";
 
 import {
@@ -23,30 +23,106 @@ import { PlaceholderGrid } from "@/components/app/placeholder-grid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import { getCommissionerNotifications } from "@/lib/round-of-16/persistence";
-
-const marcinPool = {
-  name: "Marcin's 2026 World Cup Pool",
-  slug: "marcins-2026-world-cup-pool",
-  template: "World Cup Full Predictor",
-  entries: "30 entries",
-  status: "Public page live",
-  lock: "Locks Jun 11, 2026",
-};
+  getCommissionerNotifications,
+  getCommissionerPoolSummaries,
+  type CommissionerPoolSummary,
+} from "@/lib/round-of-16/persistence";
 
 export const dynamic = "force-dynamic";
 
+function formatDateTime(value: string) {
+  if (!value) return "Not set";
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return value;
+
+  return parsed.toLocaleString();
+}
+
+function PoolSummaryRow({ pool }: { pool: CommissionerPoolSummary }) {
+  const submittedEntries = pool.entryCounts.submitted + pool.entryCounts.locked;
+
+  return (
+    <LedgerRow className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+      <div className="min-w-0 space-y-4">
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge variant="secondary">{pool.status}</Badge>
+          <Badge variant="outline">{pool.deadlineStatus}</Badge>
+          <Badge variant="outline">
+            {submittedEntries}/{pool.inviteCounts.total} submitted
+          </Badge>
+          <Badge variant="outline">{pool.inviteCounts.pending} pending</Badge>
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
+            {pool.poolName}
+          </h2>
+          <p className="text-sm font-normal leading-6 text-muted-foreground">
+            {pool.templateName}. Picks lock {formatDateTime(pool.pickDeadline)}.
+            Latest standings{" "}
+            {pool.latestStandingsAt
+              ? `refreshed ${formatDateTime(pool.latestStandingsAt)}`
+              : "have not been scored yet"}
+            .
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg border bg-background px-3 py-2">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              <Users className="size-3.5" />
+              Invites
+            </div>
+            <p className="mt-1 text-sm font-semibold text-brand-ink">
+              {pool.inviteCounts.accepted} accepted, {pool.inviteCounts.pending} pending
+            </p>
+          </div>
+          <div className="rounded-lg border bg-background px-3 py-2">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              <ListChecks className="size-3.5" />
+              Entries
+            </div>
+            <p className="mt-1 text-sm font-semibold text-brand-ink">
+              {submittedEntries} submitted, {pool.entryCounts.missing} missing
+            </p>
+          </div>
+          <div className="rounded-lg border bg-background px-3 py-2">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              <CalendarClock className="size-3.5" />
+              Deadline
+            </div>
+            <p className="mt-1 text-sm font-semibold text-brand-ink">
+              {formatDateTime(pool.pickDeadline)}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+        <Button asChild variant="secondaryGreen">
+          <Link href={`/pools/${pool.poolSlug}`}>
+            Public page <ExternalLink />
+          </Link>
+        </Button>
+        <Button asChild>
+          <Link href={`/dashboard/pools/${pool.poolId}/scoring`}>
+            Scoring <Trophy />
+          </Link>
+        </Button>
+        <Button asChild variant="outline">
+          <Link href="/dashboard/pools">
+            Details <Settings />
+          </Link>
+        </Button>
+      </div>
+    </LedgerRow>
+  );
+}
+
 export default async function DashboardPage() {
-  const publicPoolHref = `/pools/${marcinPool.slug}`;
-  const commissionerHref = `/pools/${marcinPool.slug}/commissioner`;
-  const notifications = await getCommissionerNotifications();
+  const [pools, notifications] = await Promise.all([
+    getCommissionerPoolSummaries(),
+    getCommissionerNotifications(),
+  ]);
 
   return (
     <PageShell
@@ -65,70 +141,32 @@ export default async function DashboardPage() {
     >
       <LedgerPanel
         title="Current pools"
-        description="Mock admin controls for the pools this account manages."
+        description="Pools owned by this commissioner, including invite status, submissions, deadlines, and scoring state."
+        action={<Badge variant="outline">{pools.length} active</Badge>}
       >
-        <LedgerRows>
-          <LedgerRow className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
-            <div className="min-w-0 space-y-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">{marcinPool.status}</Badge>
-                <Badge variant="outline">{marcinPool.entries}</Badge>
-                <Badge variant="outline">{marcinPool.lock}</Badge>
-              </div>
-              <div className="space-y-2">
-                <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
-                  {marcinPool.name}
-                </h2>
-                <p className="text-sm font-normal leading-6 text-muted-foreground">
-                  {marcinPool.template} with public pool hub, leaderboard,
-                  pick entry, and commissioner controls ready for wiring.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
-              <Button asChild variant="secondaryGreen">
-                <Link href={publicPoolHref}>
-                  Live site <ExternalLink />
+        {pools.length ? (
+          <LedgerRows>
+            {pools.map((pool) => (
+              <PoolSummaryRow key={pool.poolId} pool={pool} />
+            ))}
+          </LedgerRows>
+        ) : (
+          <LedgerRow className="flex items-start gap-3">
+            <ClipboardList className="mt-1 size-5 shrink-0 text-brand-mark" />
+            <div>
+              <p className="font-semibold text-brand-ink">No pools yet</p>
+              <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                Create a Round of 16 pool to start inviting participants and
+                tracking submissions.
+              </p>
+              <Button asChild className="mt-4" variant="primaryGreen">
+                <Link href="/dashboard/pools/new">
+                  New pool <ArrowRight />
                 </Link>
               </Button>
-              <Button asChild>
-                <Link href={commissionerHref}>
-                  Edit pool <Settings />
-                </Link>
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" size="icon" aria-label="Pool actions">
-                    <MoreHorizontal />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuLabel>Mock actions</DropdownMenuLabel>
-                  <DropdownMenuItem>
-                    <Pencil />
-                    Rename pool
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href={commissionerHref}>
-                      <Settings />
-                      Edit settings
-                    </Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem>
-                    <Copy />
-                    Duplicate pool
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem variant="destructive">
-                    <Trash2 />
-                    Delete pool
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </div>
           </LedgerRow>
-        </LedgerRows>
+        )}
       </LedgerPanel>
 
       <LedgerPanel

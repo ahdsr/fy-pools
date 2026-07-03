@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 
 import { BrandWordmark } from "@/components/app/brand";
 import { MockSignInForm } from "@/components/app/mock-auth";
@@ -10,6 +11,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { safeNextPath } from "@/lib/auth/paths";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getSupabaseUser } from "@/lib/supabase/server";
 
 type SignInPageProps = {
   searchParams: Promise<{ next?: string }>;
@@ -17,6 +21,13 @@ type SignInPageProps = {
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const { next } = await searchParams;
+  const nextPath = safeNextPath(next);
+
+  if (isSupabaseConfigured()) {
+    const user = await getSupabaseUser();
+
+    if (user) redirect(nextPath);
+  }
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
@@ -30,7 +41,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
-          <MockSignInForm nextPath={next} />
+          <MockSignInForm nextPath={nextPath} />
           <Button asChild variant="ghost" className="w-full">
             <Link href="/">Back to product home</Link>
           </Button>

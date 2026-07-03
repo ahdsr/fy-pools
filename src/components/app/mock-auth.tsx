@@ -18,6 +18,12 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import {
+  DEFAULT_AUTH_REDIRECT,
+  safeNextPath,
+  signInPathFor,
+  signUpPathFor,
+} from "@/lib/auth/paths";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   signInWithPasswordAction,
@@ -81,8 +87,6 @@ const adminNavItems = [
   { label: "Import", href: "/upload-your-own" },
 ] as const;
 
-const DEFAULT_AUTH_REDIRECT = "/dashboard";
-
 type MockAuthContextValue = {
   user: MockUser | null;
   hydrated: boolean;
@@ -118,22 +122,30 @@ function useMockUser() {
 }
 
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
+  const [supabase] = React.useState<ReturnType<
+    typeof createSupabaseBrowserClient
+  > | null>(() => {
+    try {
+      return createSupabaseBrowserClient();
+    } catch {
+      return null;
+    }
+  });
   const [user, setUser] = React.useState<MockUser | null>(null);
-  const [hydrated, setHydrated] = React.useState(true);
+  const [hydrated, setHydrated] = React.useState(() => !supabase);
 
   React.useEffect(() => {
-    let supabase: ReturnType<typeof createSupabaseBrowserClient> | null = null;
-
-    try {
-      supabase = createSupabaseBrowserClient();
-    } catch {
+    if (!supabase) {
       return;
     }
 
-    supabase.auth.getUser().then(({ data }) => {
-      setUser(userFromSupabase(data.user));
-      setHydrated(true);
-    });
+    supabase.auth
+      .getUser()
+      .then(({ data }) => {
+        setUser(userFromSupabase(data.user));
+        setHydrated(true);
+      })
+      .catch(() => setHydrated(true));
 
     const {
       data: { subscription },
@@ -143,7 +155,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [supabase]);
 
   return (
     <MockAuthContext.Provider value={{ user, hydrated }}>
@@ -167,34 +179,6 @@ function isActiveRoute(pathname: string, href: string) {
   }
 
   return pathname === href || pathname.startsWith(`${href}/`);
-}
-
-function getSafeNextPath(nextPath?: string | null) {
-  if (!nextPath || !nextPath.startsWith("/") || nextPath.startsWith("//")) {
-    return DEFAULT_AUTH_REDIRECT;
-  }
-
-  try {
-    const url = new URL(nextPath, "https://poolwaffle.local");
-
-    if (
-      url.origin !== "https://poolwaffle.local" ||
-      url.pathname === "/sign-in" ||
-      url.pathname === "/sign-up"
-    ) {
-      return DEFAULT_AUTH_REDIRECT;
-    }
-
-    return `${url.pathname}${url.search}${url.hash}`;
-  } catch {
-    return DEFAULT_AUTH_REDIRECT;
-  }
-}
-
-function getAuthLink(pathname: "/sign-in" | "/sign-up", nextPath: string) {
-  return nextPath === DEFAULT_AUTH_REDIRECT
-    ? pathname
-    : `${pathname}?next=${encodeURIComponent(nextPath)}`;
 }
 
 export function HeaderBrandWordmark({
@@ -403,8 +387,8 @@ function MobilePublicPoolNav({
 }
 
 export function MockSignInForm({ nextPath }: MockAuthFormProps) {
-  const redirectPath = getSafeNextPath(nextPath);
-  const [email, setEmail] = React.useState("admin@poolwaffle.com");
+  const redirectPath = safeNextPath(nextPath);
+  const [email, setEmail] = React.useState("");
   const [state, formAction, pending] = React.useActionState(
     signInWithPasswordAction,
     {},
@@ -443,9 +427,7 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
         {pending ? "Signing in..." : "Sign in"}
       </Button>
       <Button asChild variant="ghost" className="w-full">
-        <Link href={getAuthLink("/sign-up", redirectPath)}>
-          Create an account
-        </Link>
+        <Link href={signUpPathFor(redirectPath)}>Create an account</Link>
       </Button>
     </form>
   );
@@ -454,9 +436,9 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
 export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
   const router = useRouter();
   const { user, hydrated } = useMockUser();
-  const redirectPath = getSafeNextPath(nextPath);
-  const [name, setName] = React.useState("Pool Commissioner");
-  const [email, setEmail] = React.useState("commissioner@poolwaffle.com");
+  const redirectPath = safeNextPath(nextPath);
+  const [name, setName] = React.useState("");
+  const [email, setEmail] = React.useState("");
   const [state, formAction, pending] = React.useActionState(
     signUpWithPasswordAction,
     {},
@@ -524,9 +506,7 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
         </Button>
       ) : null}
       <Button asChild variant="ghost" className="w-full">
-        <Link href={getAuthLink("/sign-in", redirectPath)}>
-          Already have a mock account?
-        </Link>
+        <Link href={signInPathFor(redirectPath)}>Already have an account?</Link>
       </Button>
     </form>
   );
@@ -620,7 +600,7 @@ export function HeaderAccountControls({
           variant="ghost"
           className="text-white hover:bg-white/10 hover:text-white"
         >
-          <Link href="/sign-in">Sign in</Link>
+          <Link href={signInPathFor(DEFAULT_AUTH_REDIRECT)}>Sign in</Link>
         </Button>
       </div>
     );

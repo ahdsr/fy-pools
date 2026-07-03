@@ -53,6 +53,10 @@ lock rules, audit events, payouts, and subscriptions.
 Flexible pick values live in `entry_pick_items.value` as `jsonb`; core product
 entities remain relational.
 
+Production Supabase setup, migration verification, RLS posture, and first
+commissioner bootstrap steps are documented in
+[`docs/production-supabase.md`](docs/production-supabase.md).
+
 ## Next Feature
 
 Build Template Library v1 before auth polish:

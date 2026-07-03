@@ -228,6 +228,131 @@ export function slugifyPoolName(value: string) {
   return slug || "round-of-16-pool";
 }
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
+
+function normalizedValue(value: string) {
+  return value.trim().toLowerCase();
+}
+
+function textValue(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+export function validateRoundOf16PoolSettings(
+  settings: Partial<RoundOf16PoolSettings> | null | undefined,
+) {
+  const basics = settings?.basics;
+  const poolName = textValue(basics?.poolName);
+  const commissionerName = textValue(basics?.commissionerName);
+  const eventLabel = textValue(basics?.eventLabel);
+  const timezone = textValue(basics?.timezone);
+  const picksLockAt = textValue(basics?.picksLockAt);
+  if (!poolName.trim()) return "Pool name is required.";
+  if (!commissionerName.trim()) return "Commissioner name is required.";
+  if (!eventLabel.trim()) return "Event label is required.";
+  if (!timezone.trim()) return "Timezone is required.";
+  if (!picksLockAt.trim()) return "Pick deadline is required.";
+
+  const deadline = new Date(picksLockAt);
+  if (Number.isNaN(deadline.getTime())) {
+    return "Pick deadline must be a valid date and time.";
+  }
+  if (deadline.getTime() <= Date.now()) {
+    return "Pick deadline must be in the future.";
+  }
+
+  if (!Array.isArray(settings?.matchups) || settings.matchups.length !== 8) {
+    return "Configure exactly eight Round of 16 matchups.";
+  }
+
+  const selectedTeams = new Set<string>();
+  for (const matchup of settings.matchups) {
+    if (!matchup || typeof matchup !== "object") {
+      return "Every Round of 16 matchup needs two teams.";
+    }
+
+    const teamOne = textValue(matchup.teamOne).trim();
+    const teamTwo = textValue(matchup.teamTwo).trim();
+    if (!teamOne || !teamTwo) {
+      return "Every Round of 16 matchup needs two teams.";
+    }
+    if (normalizedValue(teamOne) === normalizedValue(teamTwo)) {
+      return "A matchup cannot use the same team twice.";
+    }
+
+    for (const team of [teamOne, teamTwo]) {
+      const normalizedTeam = normalizedValue(team);
+      if (selectedTeams.has(normalizedTeam)) {
+        return "Each Round of 16 team can appear only once.";
+      }
+      selectedTeams.add(normalizedTeam);
+    }
+  }
+
+  const enabledProps = Array.isArray(settings?.bonusProps)
+    ? settings.bonusProps.filter((prop) => prop?.enabled)
+    : [];
+  if (enabledProps.length === 0) {
+    return "Enable at least one bonus prop.";
+  }
+  if (
+    enabledProps.some(
+      (prop) =>
+        !textValue(prop.label).trim() ||
+        !Number.isFinite(prop.points) ||
+        prop.points < 0,
+    )
+  ) {
+    return "Enabled bonus props need labels and non-negative points.";
+  }
+
+  const winnerPoints = settings?.scoring?.winnerPoints;
+  if (!Number.isFinite(winnerPoints) || Number(winnerPoints) <= 0) {
+    return "Winner points must be greater than 0.";
+  }
+
+  const payouts = Array.isArray(settings?.payouts) ? settings.payouts : [];
+  if (
+    payouts.some(
+      (payout) =>
+        textValue(payout?.amount).trim().length > 0 &&
+        textValue(payout?.place).trim().length === 0,
+    )
+  ) {
+    return "Payout amounts need a place label.";
+  }
+
+  return null;
+}
+
+export function validateRoundOf16InviteInputs(
+  participants: RoundOf16InviteInput[] | null | undefined,
+) {
+  if (!Array.isArray(participants)) {
+    return "Add at least one participant email before publishing.";
+  }
+
+  const participantEmails = participants
+    .map((participant) => textValue(participant?.email).trim().toLowerCase())
+    .filter(Boolean);
+
+  if (participantEmails.length === 0) {
+    return "Add at least one participant email before publishing.";
+  }
+
+  if (participantEmails.some((email) => !isValidEmail(email))) {
+    return "Every participant email must be valid.";
+  }
+
+  if (new Set(participantEmails).size !== participantEmails.length) {
+    return "Participant emails must be unique.";
+  }
+
+  return null;
+}
+
 export function createRoundOf16PoolDraft(
   state: RoundOf16WizardState,
 ): RoundOf16PoolDraft {
@@ -247,6 +372,12 @@ export function createRoundOf16PoolDraft(
 
 export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
   const enabledProps = state.bonusProps.filter((prop) => prop.enabled);
+  const settingsError = validateRoundOf16PoolSettings(
+    toRoundOf16PoolSettings(state),
+  );
+  const inviteError = validateRoundOf16InviteInputs(
+    state.inviteSettings.participants,
+  );
 
   return {
     template: state.templateSlug === ROUND_OF_16_TEMPLATE_SLUG,
@@ -273,7 +404,11 @@ export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
         (payout) =>
           payout.place.trim().length > 0 || payout.amount.trim().length === 0,
       ),
-    invites: Number.isFinite(state.inviteSettings.expectedEntries),
+    invites:
+      Number.isFinite(state.inviteSettings.expectedEntries) &&
+      state.inviteSettings.expectedEntries > 0 &&
+      !settingsError &&
+      !inviteError,
   };
 }
 

@@ -44,6 +44,7 @@ import {
   slugifyPoolName,
   toRoundOf16PoolSettings,
   validateRoundOf16WizardState,
+  validateRoundOf16InviteInputs,
   type RoundOf16PoolDraft,
   type RoundOf16WizardState,
 } from "@/lib/templates/round-of-16-draft";
@@ -626,8 +627,8 @@ function PublishedPoolPanel({
             </p>
             <div className="mt-5 flex flex-col gap-3 sm:flex-row">
               <Button asChild variant="primaryGreen">
-                <Link href="/dashboard">
-                  Back to workspace <ArrowRight />
+                <Link href={`/dashboard/pools/${published.poolId}/scoring`}>
+                  Open scoring <ArrowRight />
                 </Link>
               </Button>
               <Button asChild variant="outline">
@@ -648,23 +649,55 @@ function PublishedPoolPanel({
 
         <LedgerRows className="overflow-hidden rounded-lg border bg-background">
           {published.inviteLinks.map((invite) => (
-            <LedgerRow key={invite.code} className="space-y-2">
+            <LedgerRow key={invite.code} className="space-y-3">
               <div>
-                <p className="font-semibold text-brand-ink">
-                  {invite.displayName || invite.email}
-                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="font-semibold text-brand-ink">
+                    {invite.displayName || invite.email}
+                  </p>
+                  <Badge variant="outline">{invite.status}</Badge>
+                </div>
                 <p className="text-xs font-normal text-muted-foreground">
                   {invite.email}
                 </p>
+                {invite.expiresAt ? (
+                  <p className="mt-1 text-xs font-normal text-muted-foreground">
+                    Expires {new Date(invite.expiresAt).toLocaleString()}
+                  </p>
+                ) : null}
               </div>
-              <p className="break-all font-mono text-sm text-brand-ink">
-                {invite.href}
-              </p>
+              <CopyInviteLinkButton href={invite.href} />
             </LedgerRow>
           ))}
         </LedgerRows>
       </div>
     </LedgerPanel>
+  );
+}
+
+function CopyInviteLinkButton({ href }: { href: string }) {
+  const [copied, setCopied] = React.useState(false);
+
+  async function handleCopy() {
+    const url =
+      typeof window === "undefined" ? href : new URL(href, window.location.origin).href;
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
+  }
+
+  return (
+    <div className="grid gap-2">
+      <p className="break-all font-mono text-sm text-brand-ink">{href}</p>
+      <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
+        <Copy /> {copied ? "Copied" : "Copy link"}
+      </Button>
+    </div>
   );
 }
 
@@ -709,6 +742,9 @@ export function NewPoolWizardStart() {
   const currentStepValid = stepIsValid(currentStepDefinition.key, validation);
   const wizardComplete = isRoundOf16WizardStateComplete(state);
   const enabledBonusCount = state.bonusProps.filter((prop) => prop.enabled).length;
+  const inviteError = validateRoundOf16InviteInputs(
+    state.inviteSettings.participants,
+  );
   const filledPayouts = state.payouts.filter(
     (payout) => payout.place.trim() || payout.amount.trim(),
   );
@@ -1365,6 +1401,7 @@ export function NewPoolWizardStart() {
                         </LedgerRow>
                       ))}
                     </LedgerRows>
+                    <FieldError>{inviteError}</FieldError>
                   </div>
                   <div className="rounded-lg border bg-background p-5">
                     <h3 className="text-xl font-bold tracking-[0.005em] text-brand-ink">

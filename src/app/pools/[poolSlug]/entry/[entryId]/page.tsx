@@ -22,10 +22,12 @@ import { ScoreCards } from "@/components/app/pool-public-widgets";
 import {
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
+import { RoundOf16EntryDetail } from "@/components/app/round-of-16-public-panels";
 import { Badge } from "@/components/ui/badge";
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import { getAvailableTournamentTemplates } from "@/lib/templates/catalog";
+import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
@@ -38,7 +40,7 @@ type EntryPageProps = {
   params: Promise<{ poolSlug: string; entryId: string }>;
 };
 
-export const dynamicParams = false;
+export const dynamicParams = true;
 
 function getEntryInitials(name: string) {
   return name
@@ -65,6 +67,45 @@ export async function generateStaticParams({
 
 export default async function EntryPage({ params }: EntryPageProps) {
   const { poolSlug, entryId } = await params;
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+
+  if (roundOf16Pool) {
+    const entry = roundOf16Pool.entries.find((item) => item.entryId === entryId);
+    if (!entry) notFound();
+
+    const standing = roundOf16Pool.latestStandings.find(
+      (row) => row.entryId === entry.entryId,
+    );
+
+    return (
+      <PublicPoolShell
+        poolName={roundOf16Pool.poolName}
+        eyebrow="Entry detail"
+        title={entry.entryName}
+        description={`Submitted ${formatDateTime(entry.submittedAt)}.`}
+      >
+        <div className="flex flex-wrap gap-3">
+          <Button asChild variant="secondaryGreen">
+            <Link href={`/pools/${roundOf16Pool.poolSlug}#leaderboard`}>
+              Back to standings
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={`/pools/${roundOf16Pool.poolSlug}/bracket`}>
+              View bracket
+            </Link>
+          </Button>
+        </div>
+
+        <RoundOf16EntryDetail
+          entry={entry}
+          settings={roundOf16Pool.settings}
+          standing={standing}
+        />
+      </PublicPoolShell>
+    );
+  }
+
   const pool = await getPublicPool(poolSlug);
   if (!pool) notFound();
 

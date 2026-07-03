@@ -1,51 +1,66 @@
-# Backlog
+# MVP Launch Backlog
 
-## Pool Format Feedback
+Goal: launch a working commissioner-to-participant Round of 16 pool flow where
+an organizer can create a pool, invite players, collect valid picks before a
+deadline, score entries, and share a leaderboard.
 
-Collect feedback from users on what format they want to run their pool before
-committing to the default setup flow. The goal is to understand which pool
-formats feel familiar, competitive, and easy enough for organizers to explain.
+## P0 Launch Blockers
 
-### Questions to Answer
+- [x] Production Supabase setup: environment variables are configured,
+  migrations apply cleanly, RLS policies are reviewed, and seed/admin setup is
+  documented for a fresh production project.
+- [x] Auth readiness: sign-up, sign-in, sign-out, protected redirects, profile
+  creation, and common auth error states work for commissioners and invited
+  participants.
+- [x] Commissioner flow: a signed-in commissioner can create a Round of 16 pool,
+  configure the bracket teams, set one global pick deadline, add participants,
+  and publish the pool.
+- [x] Invite flow: publishing generates participant links, shows copyable links
+  to the commissioner, and handles pending, accepted, revoked, expired, and
+  missing invite states.
+- [x] Participant flow: invited players can accept a link, submit picks, update
+  picks until the deadline, and are blocked from submitting after the deadline.
+- [x] Scoring MVP: Round of 16 winners and enabled bonus props are scored,
+  line-item score breakdowns are stored, and leaderboard totals are visible.
+- [x] Commissioner dashboard: commissioners can see their pools, invite status,
+  entry submission status, submitted entries, and basic notifications.
+- [x] Public pool pages: each published pool has a usable overview, leaderboard,
+  entry detail page, and bracket display for players to inspect after launch.
+- [x] Launch QA: mobile and desktop layouts, empty states, error states,
+  production build, and a full create-invite-submit-score-leaderboard smoke test
+  are verified.
 
-- Do organizers prefer bracket-style picks, group-stage rankings, match-by-match
-  predictions, survivor-style eliminations, or a hybrid format?
-- Should the pool support one entry per person by default, or allow multiple
-  entries for households, side bets, or paid tiers?
-- What scoring rules feel fair and transparent for casual players?
-- How much setup control should organizers have before the flow becomes too
-  complicated?
-- Which format would make participants check the pool repeatedly during the
-  tournament?
+## P1 Launch Polish
 
-### Follow-Up
+- [ ] Improve bracket setup and pick UI responsiveness, spacing, and copy across
+  mobile and desktop.
+- [ ] Add better participant reminder/status messaging for missing picks,
+  accepted invites, updated picks, and passed deadlines.
+- [ ] Add basic audit or operating notes for commissioner actions such as pool
+  publish, invite changes, lock changes, and scoring refreshes.
+- [ ] Improve deployment documentation and keep `.env.example` aligned with the
+  production environment contract.
+- [ ] Add minimal privacy, terms, and contact links if the product is launched
+  publicly beyond a private test group.
 
-- Interview a small set of organizers and participants.
-- Turn the strongest feedback into 2-3 proposed pool format templates.
-- Use the templates to guide the next version of the new pool setup flow.
+## P2 Post-MVP
 
-## On the Pitch / Game Day Room
+- [ ] Pool format feedback: interview organizers and participants, compare
+  bracket-style picks, group-stage rankings, match-by-match predictions,
+  survivor-style formats, multiple-entry needs, and scoring preferences.
+- [ ] Full World Cup predictor template with group ranks, advancers, knockout
+  paths, podium picks, and bonus questions.
+- [ ] NBA playoff series template with series winners and series score picks.
+- [ ] Spreadsheet import for commissioners who already run pools in Excel.
+- [ ] Live results automation through a scheduled sports data sync.
+- [ ] Game Day Room / On the Pitch: social match rooms with sides, avatars,
+  cheers, room energy, and post-match awards.
+- [ ] Multiple entries per participant for households, side bets, or paid tiers.
+- [ ] Payments and subscriptions.
 
-Create a contained social room for each pool event so users do more than make
-picks and wait. A room opens around a specific match, lets entrants choose or
-inherit a side, places them on a virtual soccer field, and turns chat, cheers,
-and quick reactions into a lightweight game-day layer.
+## Cut From MVP
 
-### POC Slice
-
-- Add an On the Pitch link to Marcin's 2026 World Cup Pool.
-- Use Czechia vs South Africa as the first match-specific room.
-- Place pool entrants on a mini soccer field based on their existing Group A
-  picks, inferring their side from whichever team they ranked higher.
-- Show soccer-style avatars, positions, live-style speech bubbles, room energy,
-  and cheer controls.
-- Keep all interactions points/status/social only, avoiding sportsbook language
-  or cash-out mechanics.
-
-### Future Ideas
-
-- Save user-selected side, position, avatar style, and match-room messages.
-- Add real-time presence, moderated chat, and quick taunt/reaction controls.
-- Turn correct bold calls into "receipts" that resurface after match events.
-- Add team energy, chants, challenge cards, and post-match room awards.
-- Connect live match events to field animations and standing swings.
+- Multi-sport generalized template builder.
+- Real-time chat and presence.
+- Advanced projections and heatmaps as required launch features.
+- Automated email sending unless launch distribution requires it.

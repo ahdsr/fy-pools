@@ -5,6 +5,8 @@ import {
   PublicPoolMetaCard,
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
+import { RoundOf16BracketPanel } from "@/components/app/round-of-16-public-panels";
+import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { buildBracketView } from "@/lib/world-cup-pool/bracket";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
@@ -16,6 +18,24 @@ type BracketPageProps = {
 
 export default async function BracketPage({ params }: BracketPageProps) {
   const { poolSlug } = await params;
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+
+  if (roundOf16Pool) {
+    return (
+      <PublicPoolShell
+        poolName={roundOf16Pool.poolName}
+        eyebrow="Round of 16 bracket"
+        title="Matchup board"
+        description="Each configured Round of 16 matchup with winners shown after commissioner scoring."
+      >
+        <RoundOf16BracketPanel
+          settings={roundOf16Pool.settings}
+          standings={roundOf16Pool.latestStandings}
+        />
+      </PublicPoolShell>
+    );
+  }
+
   const pool = await getPublicPool(poolSlug);
   if (!pool) notFound();
 
