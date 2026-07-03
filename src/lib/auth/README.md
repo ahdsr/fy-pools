@@ -5,12 +5,13 @@ participants.
 
 ## Current Flow
 
-- `/sign-up` creates an email/password Supabase user and upserts the matching
-  `profiles` row with the submitted display name.
-- `/sign-in` signs in with email/password and redirects to a sanitized `next`
-  path, defaulting to `/dashboard`.
-- `/auth/callback` exchanges Supabase email-confirmation codes and redirects to
-  a sanitized `next` path.
+- `/sign-up` creates an email/password Supabase user. If Supabase returns an
+  immediate session, the matching `profiles` row is created with the submitted
+  display name.
+- `/sign-in` signs in with email/password, ensures a matching `profiles` row
+  exists, and redirects to a sanitized `next` path, defaulting to `/dashboard`.
+- `/auth/callback` exchanges Supabase email-confirmation codes, ensures a
+  matching `profiles` row exists, and redirects to a sanitized `next` path.
 - `/dashboard/*` routes are protected in `proxy.ts`; signed-out requests are
   redirected to `/sign-in?next=<original-dashboard-path>`.
 - `/join/<invite-code>` remains public so invited participants can see the pool

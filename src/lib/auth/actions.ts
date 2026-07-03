@@ -2,26 +2,16 @@
 
 import { redirect } from "next/navigation";
 
-import {
-  createSupabaseAdminClient,
-  createSupabaseServerClient,
-} from "@/lib/supabase/server";
 import { safeNextPath } from "@/lib/auth/paths";
+import {
+  ensureProfileForAuthUser,
+  upsertProfile,
+} from "@/lib/auth/profiles";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AuthActionState = {
   message?: string;
 };
-
-async function upsertProfile(userId: string, displayName: string) {
-  const admin = createSupabaseAdminClient();
-  const { error } = await admin.from("profiles").upsert({
-    id: userId,
-    display_name: displayName,
-    updated_at: new Date().toISOString(),
-  });
-
-  if (error) throw new Error(error.message);
-}
 
 export async function signInWithPasswordAction(
   _state: AuthActionState,
@@ -37,13 +27,17 @@ export async function signInWithPasswordAction(
 
   try {
     const supabase = await createSupabaseServerClient();
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
     if (error) {
       return { message: error.message };
+    }
+
+    if (data.user) {
+      await ensureProfileForAuthUser(data.user, email);
     }
   } catch (error) {
     return {
@@ -91,7 +85,7 @@ export async function signUpWithPasswordAction(
       return { message: error.message };
     }
 
-    if (data.user) {
+    if (data.session && data.user) {
       await upsertProfile(data.user.id, name);
     }
 

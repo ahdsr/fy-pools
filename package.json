@@ -6,7 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "supabase:login": "supabase login",
+    "supabase:link": "supabase link",
+    "supabase:db:push": "supabase db push",
+    "vercel:link": "vercel link",
+    "vercel:deploy": "vercel deploy --prod"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -33,7 +38,9 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
     "playwright": "^1.61.0",
+    "supabase": "^2.109.0",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vercel": "^54.20.0"
   }
 }
