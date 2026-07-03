@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import {
+  RoundOf16DuplicateEmailError,
   submitRoundOf16Picks,
   submitRoundOf16TestPicks,
 } from "@/lib/round-of-16/persistence";
@@ -13,6 +14,8 @@ import type {
 
 export type SubmitRoundOf16PicksState = {
   message?: string;
+  duplicateEmail?: string;
+  duplicateEmailClaimed?: boolean;
   submitted?: RoundOf16SubmittedEntry;
 };
 
@@ -62,6 +65,14 @@ export async function submitRoundOf16TestPicksAction(
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Test picks could not be submitted.";
+
+    if (error instanceof RoundOf16DuplicateEmailError) {
+      return {
+        message,
+        duplicateEmail: error.email,
+        duplicateEmailClaimed: error.claimed,
+      };
+    }
 
     return { message };
   }

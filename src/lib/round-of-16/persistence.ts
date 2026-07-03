@@ -23,6 +23,22 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
+export class RoundOf16DuplicateEmailError extends Error {
+  email: string;
+  claimed: boolean;
+
+  constructor({ email, claimed }: { email: string; claimed: boolean }) {
+    super(
+      claimed
+        ? "Picks already exist for this email. Sign in with that account to update them."
+        : "Picks were already submitted for this email. Create an account or sign in with this email to claim and update them.",
+    );
+    this.name = "RoundOf16DuplicateEmailError";
+    this.email = email;
+    this.claimed = claimed;
+  }
+}
+
 export type PublishedRoundOf16Pool = {
   poolId: string;
   poolSlug: string;
@@ -502,6 +518,31 @@ async function claimRoundOf16GuestEntryForUser({
   return guestEntry;
 }
 
+async function findRoundOf16EntryForEmail({
+  admin,
+  poolId,
+  email,
+}: {
+  admin: SupabaseAdmin;
+  poolId: string;
+  email: string;
+}) {
+  for (const field of ["guestEmail", "entryEmail", "inviteEmail"]) {
+    const { data, error } = await admin
+      .from("entries")
+      .select("id,user_id")
+      .eq("pool_id", poolId)
+      .eq(`metadata->>${field}`, email)
+      .limit(1)
+      .maybeSingle();
+
+    if (error) throw new Error(error.message);
+    if (data) return data;
+  }
+
+  return null;
+}
+
 export async function publishRoundOf16Pool({
   settings,
   participants,
@@ -775,6 +816,7 @@ export async function submitRoundOf16Picks({
         entry_number: 1,
         metadata: {
           inviteCode,
+          entryEmail: normalizeEmailAddress(user.email ?? ""),
           inviteEmail: joinData.invite.email,
         },
       },
@@ -918,21 +960,16 @@ export async function submitRoundOf16TestPicks({
     throw new Error("Complete every required winner and bonus pick.");
   }
 
-  const { data: existingGuestEntry, error: existingGuestError } = await admin
-    .from("entries")
-    .select("id,user_id")
-    .eq("pool_id", joinData.pool.id)
-    .eq("metadata->>guestEmail", guestEmail)
-    .limit(1)
-    .maybeSingle();
-
-  if (existingGuestError) throw new Error(existingGuestError.message);
+  const existingGuestEntry = await findRoundOf16EntryForEmail({
+    admin,
+    poolId: joinData.pool.id,
+    email: guestEmail,
+  });
   if (existingGuestEntry) {
-    throw new Error(
-      String(existingGuestEntry.user_id ?? "")
-        ? "Picks already exist for this email. Sign in with that account to update them."
-        : "Picks were already submitted for this email. Create an account or sign in with this email to claim and update them.",
-    );
+    throw new RoundOf16DuplicateEmailError({
+      email: guestEmail,
+      claimed: Boolean(String(existingGuestEntry.user_id ?? "")),
+    });
   }
 
   const { data: entry, error: entryError } = await admin

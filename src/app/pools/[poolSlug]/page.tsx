@@ -12,7 +12,7 @@ import {
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import {
   RoundOf16BracketPanel,
-  RoundOf16Leaderboard,
+  RoundOf16EntrantsPanel,
   RoundOf16PublicStats,
 } from "@/components/app/round-of-16-public-panels";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
@@ -46,15 +46,14 @@ export default async function PoolPage({ params }: PoolPageProps) {
       >
         <RoundOf16PublicStats pool={roundOf16Pool} />
 
-        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_30rem] xl:items-start">
-          <RoundOf16Leaderboard
-            rows={roundOf16Pool.latestStandings}
-            entries={roundOf16Pool.entries}
-            poolSlug={roundOf16Pool.poolSlug}
-          />
+        <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
           <RoundOf16BracketPanel
             settings={roundOf16Pool.settings}
             standings={roundOf16Pool.latestStandings}
+          />
+          <RoundOf16EntrantsPanel
+            entries={roundOf16Pool.entries}
+            poolSlug={roundOf16Pool.poolSlug}
           />
         </section>
       </PublicPoolShell>

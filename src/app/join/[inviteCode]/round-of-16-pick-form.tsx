@@ -80,6 +80,10 @@ function roundOf16Teams(settings: RoundOf16PoolSettings) {
   );
 }
 
+function normalizeEmail(value: string) {
+  return value.trim().toLowerCase();
+}
+
 function matchupSide(index: number) {
   return index < 4 ? "left" : "right";
 }
@@ -286,6 +290,11 @@ export function RoundOf16PickForm({
   const successOpen = Boolean(
     submittedAt && dismissedSubmissionAt !== submittedAt,
   );
+  const duplicateEmail = state.duplicateEmail ?? "";
+  const duplicateEmailActive =
+    testGuestMode &&
+    duplicateEmail &&
+    normalizeEmail(email) === normalizeEmail(duplicateEmail);
   const payload: RoundOf16PickPayload = {
     winners,
     bonusAnswers,
@@ -295,6 +304,7 @@ export function RoundOf16PickForm({
     enabledBonusProps.every((prop) =>
       String(bonusAnswers[prop.id] ?? "").trim(),
     ) &&
+    !duplicateEmailActive &&
     (!testGuestMode ||
       (displayName.trim().length > 0 && email.trim().length > 0));
 
@@ -384,7 +394,7 @@ export function RoundOf16PickForm({
         {testGuestMode ? (
           <LedgerPanel
             title="Entry details"
-            description="Use an email you can sign in with later to claim these picks."
+            description="Use one email per entry. If that email already has picks, sign in or create an account with it to claim them."
           >
             <LedgerRow className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">
@@ -411,6 +421,34 @@ export function RoundOf16PickForm({
                 />
               </div>
             </LedgerRow>
+            {duplicateEmailActive ? (
+              <LedgerRow className="border-t bg-destructive/5">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="font-semibold text-destructive">
+                      This email already has picks
+                    </p>
+                    <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                      {state.duplicateEmailClaimed
+                        ? "Sign in with this email to update the existing entry."
+                        : "Create an account or sign in with this email to claim and update the existing entry."}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button asChild variant="outline">
+                      <Link href={signInPathFor(joinPath)}>Sign in</Link>
+                    </Button>
+                    {!state.duplicateEmailClaimed ? (
+                      <Button asChild variant="primaryGreen">
+                        <Link href={signUpPathFor(joinPath)}>
+                          Create account to claim
+                        </Link>
+                      </Button>
+                    ) : null}
+                  </div>
+                </div>
+              </LedgerRow>
+            ) : null}
           </LedgerPanel>
         ) : null}
 
@@ -486,7 +524,7 @@ export function RoundOf16PickForm({
           </LedgerRows>
         </LedgerPanel>
 
-        {state.message ? (
+        {state.message && !duplicateEmailActive ? (
           <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
             {state.message}
           </p>

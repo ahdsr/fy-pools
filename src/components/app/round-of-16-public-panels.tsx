@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Circle, Trophy } from "lucide-react";
+import { CheckCircle2, Trophy } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { MatchupLine, TeamPill } from "@/components/app/pool-public-widgets";
@@ -183,6 +183,50 @@ export function RoundOf16Leaderboard({
   );
 }
 
+export function RoundOf16EntrantsPanel({
+  entries,
+  poolSlug,
+}: {
+  entries: RoundOf16PublicEntry[];
+  poolSlug: string;
+}) {
+  return (
+    <LedgerPanel
+      title="Entrants"
+      description="Submitted entries in this pool."
+    >
+      <LedgerRows>
+        {entries.map((entry) => (
+          <LedgerRow
+            key={entry.entryId}
+            className="flex items-center justify-between gap-4"
+          >
+            <div className="min-w-0">
+              <Link
+                href={`/pools/${poolSlug}/entry/${entry.entryId}`}
+                className="block truncate font-semibold text-brand-ink hover:text-brand-hot"
+              >
+                {entry.entryName}
+              </Link>
+              <p className="mt-1 text-sm font-normal text-muted-foreground">
+                Submitted {formatDateTime(entry.submittedAt)}
+              </p>
+            </div>
+            <Badge variant="outline">Entered</Badge>
+          </LedgerRow>
+        ))}
+        {entries.length === 0 ? (
+          <LedgerRow>
+            <p className="text-sm font-normal leading-6 text-muted-foreground">
+              No submitted entries yet.
+            </p>
+          </LedgerRow>
+        ) : null}
+      </LedgerRows>
+    </LedgerPanel>
+  );
+}
+
 export function RoundOf16BracketPanel({
   settings,
   standings,
@@ -205,27 +249,25 @@ export function RoundOf16BracketPanel({
             <LedgerRow key={matchup.id} className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <p className="font-semibold text-brand-ink">
-                  {matchup.label || `Round of 16 Match ${index + 1}`}
+                  Match {index + 1}
                 </p>
                 <Badge variant={result ? "secondary" : "outline"}>
                   {result ? "Final" : "Pending"}
                 </Badge>
               </div>
-              <div className="grid gap-2">
+              <div className="divide-y rounded-md border bg-background">
                 {[matchup.teamOne, matchup.teamTwo].map((team) => {
                   const winner = result && team === result;
 
                   return (
                     <div
                       key={team}
-                      className="flex items-center justify-between gap-3 rounded-md border bg-background px-3 py-2"
+                      className="flex min-h-11 items-center justify-between gap-3 px-3 py-2"
                     >
                       <TeamPill team={team} className="max-w-full" />
                       {winner ? (
                         <CheckCircle2 className="size-4 text-brand-success" />
-                      ) : (
-                        <Circle className="size-4 text-muted-foreground" />
-                      )}
+                      ) : null}
                     </div>
                   );
                 })}
