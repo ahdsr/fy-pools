@@ -1,5 +1,6 @@
 import {
   CollapsibleLedgerPanel,
+  LedgerPanel,
   LedgerRow,
   LedgerRows,
 } from "@/components/app/ledger";
@@ -36,45 +37,57 @@ export function GroupPicksPanel({
       description="Predicted order is compared against the current live order."
       defaultOpen={false}
     >
-      <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
-        {Object.entries(picks.groups).map(([groupId, group]) => {
-          const groupScore = score.groups.find(
-            (item) => item.groupId === groupId,
-          );
-          const currentOrder = results.groups?.[groupId]?.currentOrder ?? [];
-
-          return (
-            <div key={groupId} className="rounded-lg border bg-background">
-              <div className="flex items-center justify-between gap-3 border-b bg-surface-ledger px-4 py-3">
-                <h2 className="text-sm font-semibold text-brand-ink">
-                  Group {groupId}
-                </h2>
-                <PointsBadge
-                  points={groupScore?.points ?? 0}
-                  active={Boolean(groupScore?.points)}
-                />
-              </div>
-              <div className="grid gap-4 p-4 sm:grid-cols-2">
-                <TeamList title="Pick" teams={group.predictedOrder} picks={picks} />
-                <TeamList
-                  title="Current"
-                  teams={currentOrder}
-                  picks={picks}
-                  emptyLabel="Not started"
-                />
-              </div>
-              <div className="border-t px-4 py-3 text-sm text-muted-foreground">
-                Advancer hits:{" "}
-                <span className="font-semibold text-brand-ink">
-                  {groupScore?.advancementHits.length ?? 0}/
-                  {group.predictedAdvancers.length}
-                </span>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+      <GroupPicksContent picks={picks} results={results} score={score} />
     </CollapsibleLedgerPanel>
+  );
+}
+
+export function GroupPicksContent({
+  picks,
+  results,
+  score,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+  score: PoolScore;
+}) {
+  return (
+    <div className="grid gap-4 p-5 md:grid-cols-2 xl:grid-cols-3">
+      {Object.entries(picks.groups).map(([groupId, group]) => {
+        const groupScore = score.groups.find((item) => item.groupId === groupId);
+        const currentOrder = results.groups?.[groupId]?.currentOrder ?? [];
+
+        return (
+          <div key={groupId} className="rounded-lg border bg-background">
+            <div className="flex items-center justify-between gap-3 border-b bg-surface-ledger px-4 py-3">
+              <h2 className="text-sm font-semibold text-brand-ink">
+                Group {groupId}
+              </h2>
+              <PointsBadge
+                points={groupScore?.points ?? 0}
+                active={Boolean(groupScore?.points)}
+              />
+            </div>
+            <div className="grid gap-4 p-4 sm:grid-cols-2">
+              <TeamList title="Pick" teams={group.predictedOrder} picks={picks} />
+              <TeamList
+                title="Current"
+                teams={currentOrder}
+                picks={picks}
+                emptyLabel="Not started"
+              />
+            </div>
+            <div className="border-t px-4 py-3 text-sm text-muted-foreground">
+              Advancer hits:{" "}
+              <span className="font-semibold text-brand-ink">
+                {groupScore?.advancementHits.length ?? 0}/
+                {group.predictedAdvancers.length}
+              </span>
+            </div>
+          </div>
+        );
+      })}
+    </div>
   );
 }
 
@@ -117,32 +130,48 @@ export function PodiumBonusPanel({
   score: PoolScore;
 }) {
   return (
-    <CollapsibleLedgerPanel title="Podium and bonus" defaultOpen={false}>
-      <LedgerRows>
-        {score.finals.map((item) => (
-          <LedgerRow key={item.label}>
-            <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
-              {item.label}
-            </p>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <TeamPill team={item.predicted} picks={picks} />
-              <PointsBadge points={item.points} active={item.hit} />
-            </div>
-          </LedgerRow>
-        ))}
-        {score.bonus.map((item) => (
-          <LedgerRow key={item.id}>
-            <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
-              {item.label}
-            </p>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <TeamPill team={item.pick} picks={picks} />
-              <PointsBadge points={item.points} active={item.hit} />
-            </div>
-          </LedgerRow>
-        ))}
-      </LedgerRows>
+    <CollapsibleLedgerPanel
+      title="Podium and bonus"
+      description="Champion, podium, and bonus picks with their current scoring."
+      defaultOpen={false}
+    >
+      <PodiumBonusContent picks={picks} score={score} />
     </CollapsibleLedgerPanel>
+  );
+}
+
+export function PodiumBonusContent({
+  picks,
+  score,
+}: {
+  picks: EntryPicks;
+  score: PoolScore;
+}) {
+  return (
+    <LedgerRows>
+      {score.finals.map((item) => (
+        <LedgerRow key={item.label}>
+          <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
+            {item.label}
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <TeamPill team={item.predicted} picks={picks} />
+            <PointsBadge points={item.points} active={item.hit} />
+          </div>
+        </LedgerRow>
+      ))}
+      {score.bonus.map((item) => (
+        <LedgerRow key={item.id}>
+          <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
+            {item.label}
+          </p>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <TeamPill team={item.pick} picks={picks} />
+            <PointsBadge points={item.points} active={item.hit} />
+          </div>
+        </LedgerRow>
+      ))}
+    </LedgerRows>
   );
 }
 
@@ -161,71 +190,87 @@ export function AdvancementPicksPanel({ picks }: { picks: EntryPicks }) {
       description="Every team this entry picked to reach each knockout round."
       defaultOpen={false}
     >
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
-            <TableHead>Round</TableHead>
-            <TableHead>Teams</TableHead>
-            <TableHead className="text-right">Count</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {advancementStages.map((stage) => {
-            const teams = picks.advancement[stage.key];
-
-            return (
-              <TableRow key={stage.key}>
-                <TableCell className="font-medium text-brand-ink">
-                  {stage.label}
-                </TableCell>
-                <TableCell>
-                  <div className="flex flex-wrap gap-2">
-                    {teams.map((team) => (
-                      <TeamPill key={team} team={team} picks={picks} />
-                    ))}
-                  </div>
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                  {teams.length}
-                </TableCell>
-              </TableRow>
-            );
-          })}
-        </TableBody>
-      </Table>
+      <AdvancementPicksContent picks={picks} />
     </CollapsibleLedgerPanel>
   );
 }
 
-export function ThirdPlaceQualifierPicksPanel({ picks }: { picks: EntryPicks }) {
-  const selectedGroups = Object.entries(picks.thirdPlace).filter(
-    ([, pick]) => pick.selected,
-  );
+export function AdvancementPicksContent({ picks }: { picks: EntryPicks }) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
+          <TableHead>Round</TableHead>
+          <TableHead>Teams</TableHead>
+          <TableHead className="text-right">Count</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {advancementStages.map((stage) => {
+          const teams = picks.advancement[stage.key];
 
+          return (
+            <TableRow key={stage.key}>
+              <TableCell className="font-medium text-brand-ink">
+                {stage.label}
+              </TableCell>
+              <TableCell>
+                <div className="flex flex-wrap gap-2">
+                  {teams.map((team) => (
+                    <TeamPill key={team} team={team} picks={picks} />
+                  ))}
+                </div>
+              </TableCell>
+              <TableCell className="text-right font-semibold">
+                {teams.length}
+              </TableCell>
+            </TableRow>
+          );
+        })}
+      </TableBody>
+    </Table>
+  );
+}
+
+export function ThirdPlaceQualifierPicksPanel({ picks }: { picks: EntryPicks }) {
   return (
     <CollapsibleLedgerPanel
       title="Third-place qualifiers"
       description="The third-place group teams this entry selected to advance."
       defaultOpen={false}
     >
-      <LedgerRows>
-        <LedgerRow>
-          <div className="flex flex-wrap gap-2">
-            {selectedGroups.map(([groupId, pick]) => (
-              <div
-                key={groupId}
-                className="flex items-center gap-2 rounded-full border bg-background px-3 py-2"
-              >
-                <span className="text-xs font-semibold uppercase text-muted-foreground">
-                  Group {groupId}
-                </span>
-                <TeamPill team={pick.team} picks={picks} />
-              </div>
-            ))}
-          </div>
-        </LedgerRow>
-      </LedgerRows>
+      <ThirdPlaceQualifierPicksContent picks={picks} />
     </CollapsibleLedgerPanel>
+  );
+}
+
+export function ThirdPlaceQualifierPicksContent({
+  picks,
+}: {
+  picks: EntryPicks;
+}) {
+  const selectedGroups = Object.entries(picks.thirdPlace).filter(
+    ([, pick]) => pick.selected,
+  );
+
+  return (
+    <LedgerRows>
+      <LedgerRow>
+        <div className="flex flex-wrap gap-2">
+          {selectedGroups.map(([groupId, pick]) => (
+            <div
+              key={groupId}
+              className="flex items-center gap-2 rounded-full border bg-background px-3 py-2"
+            >
+              <span className="text-xs font-semibold uppercase text-muted-foreground">
+                Group {groupId}
+              </span>
+              <TeamPill team={pick.team} picks={picks} />
+            </div>
+          ))}
+        </div>
+      </LedgerRow>
+    </LedgerRows>
   );
 }
 
@@ -237,40 +282,139 @@ export function KnockoutScoringPanel({
   score: PoolScore;
 }) {
   return (
-    <CollapsibleLedgerPanel title="Knockout scoring" defaultOpen={false}>
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
-            <TableHead>Stage</TableHead>
-            <TableHead>Hits</TableHead>
-            <TableHead>Per hit</TableHead>
-            <TableHead>Points</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {score.knockout.map((stage) => (
-            <TableRow key={stage.stageKey}>
-              <TableCell className="font-medium text-brand-ink">
-                {stage.label}
-              </TableCell>
-              <TableCell>
-                {stage.hits.length ? (
-                  <div className="flex flex-wrap gap-2">
-                    {stage.hits.map((team) => (
-                      <TeamPill key={team} team={team} picks={picks} />
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-muted-foreground">No hits yet</span>
-                )}
-              </TableCell>
-              <TableCell>{stage.perTeam}</TableCell>
-              <TableCell className="font-semibold">{stage.points}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+    <CollapsibleLedgerPanel
+      title="Knockout scoring"
+      description="Round-by-round knockout hits and points from this entry."
+      defaultOpen={false}
+    >
+      <KnockoutScoringContent picks={picks} score={score} />
     </CollapsibleLedgerPanel>
+  );
+}
+
+export function KnockoutScoringContent({
+  picks,
+  score,
+}: {
+  picks: EntryPicks;
+  score: PoolScore;
+}) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
+          <TableHead>Stage</TableHead>
+          <TableHead>Hits</TableHead>
+          <TableHead>Per hit</TableHead>
+          <TableHead>Points</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {score.knockout.map((stage) => (
+          <TableRow key={stage.stageKey}>
+            <TableCell className="font-medium text-brand-ink">
+              {stage.label}
+            </TableCell>
+            <TableCell>
+              {stage.hits.length ? (
+                <div className="flex flex-wrap gap-2">
+                  {stage.hits.map((team) => (
+                    <TeamPill key={team} team={team} picks={picks} />
+                  ))}
+                </div>
+              ) : (
+                <span className="text-muted-foreground">No hits yet</span>
+              )}
+            </TableCell>
+            <TableCell>{stage.perTeam}</TableCell>
+            <TableCell className="font-semibold">{stage.points}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
+export function FullEntryAuditPanel({
+  picks,
+  results,
+  score,
+  bracket,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+  score: PoolScore;
+  bracket?: React.ReactNode;
+}) {
+  return (
+    <CollapsibleLedgerPanel
+      title="Full pick sheet and scoring audit"
+      description="Raw picks, bracket, and scoring details for checking the entry."
+      defaultOpen={false}
+    >
+      <div className="flex flex-wrap gap-2 border-b px-5 py-4">
+        <StatusBadge tone="neutral" label="Picks" />
+        <StatusBadge tone="neutral" label="Bracket" />
+        <StatusBadge tone="neutral" label="Scoring" />
+      </div>
+      <div className="divide-y">
+        <AuditSection title="Picks">
+          <GroupPicksContent picks={picks} results={results} score={score} />
+          <LedgerPanel
+            title="Advancement picks"
+            description="Teams this entry picked to reach each knockout round."
+            className="m-5 mt-0"
+          >
+            <AdvancementPicksContent picks={picks} />
+          </LedgerPanel>
+          <LedgerPanel
+            title="Third-place qualifiers"
+            description="Third-place group teams selected to advance."
+            className="m-5 mt-0"
+          >
+            <ThirdPlaceQualifierPicksContent picks={picks} />
+          </LedgerPanel>
+          <LedgerPanel
+            title="Podium and bonus"
+            description="Champion, podium, and bonus picks with current scoring."
+            className="m-5 mt-0"
+          >
+            <PodiumBonusContent picks={picks} score={score} />
+          </LedgerPanel>
+        </AuditSection>
+        <AuditSection title="Bracket">
+          {bracket ? (
+            <div className="p-5">{bracket}</div>
+          ) : (
+            <p className="px-5 py-4 text-sm text-muted-foreground">
+              No submitted bracket is available for this entry.
+            </p>
+          )}
+        </AuditSection>
+        <AuditSection title="Scoring">
+          <KnockoutScoringContent picks={picks} score={score} />
+        </AuditSection>
+      </div>
+    </CollapsibleLedgerPanel>
+  );
+}
+
+function AuditSection({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section>
+      <div className="border-b bg-surface-ledger/60 px-5 py-3">
+        <h3 className="text-sm font-semibold uppercase tracking-normal text-muted-foreground">
+          {title}
+        </h3>
+      </div>
+      {children}
+    </section>
   );
 }
 

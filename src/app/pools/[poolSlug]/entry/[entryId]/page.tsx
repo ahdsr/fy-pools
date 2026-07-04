@@ -2,22 +2,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowRight, CirclePlus } from "lucide-react";
 
-import {
-  AdvancementPicksPanel,
-  GroupPicksPanel,
-  KnockoutScoringPanel,
-  PodiumBonusPanel,
-  ThirdPlaceQualifierPicksPanel,
-  TodaysResultsPanel,
-} from "@/components/app/entry-detail-panels";
-import { FutureLeveragePanel } from "@/components/app/future-leverage-panel";
-import {
-  CollapsibleLedgerPanel,
-  LedgerPanel,
-  LedgerRow,
-  LedgerRows,
-} from "@/components/app/ledger";
-import { OpponentPathsPanel } from "@/components/app/opponent-paths-panel";
+import { FullEntryAuditPanel } from "@/components/app/entry-detail-panels";
+import { EntryMovementPanel } from "@/components/app/entry-movement-panel";
+import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { ScoreCards } from "@/components/app/pool-public-widgets";
 import {
   PublicPoolShell,
@@ -30,6 +17,7 @@ import { getAvailableTournamentTemplates } from "@/lib/templates/catalog";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
+import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
@@ -151,6 +139,13 @@ export default async function EntryPage({ params }: EntryPageProps) {
     entryId: entry.id,
     referencePicks: picks,
   });
+  const movementDigest = buildEntryMovementDigest({
+    entryId: entry.id,
+    leaderboardRows,
+    todaysResults,
+    futureLeverage,
+    opponentPaths,
+  });
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
   const availableTournamentTemplates =
     getAvailableTournamentTemplates("world-cup");
@@ -201,35 +196,22 @@ export default async function EntryPage({ params }: EntryPageProps) {
         }
       />
 
-      <TodaysResultsPanel report={todaysResults} picks={picks} />
+      <EntryMovementPanel digest={movementDigest} />
 
-      <FutureLeveragePanel report={futureLeverage} picks={picks} />
-
-      <GroupPicksPanel picks={picks} results={pool.results} score={score} />
-
-      {submittedBracket ? (
-        <CollapsibleLedgerPanel
-          title="Submitted bracket"
-          description="This entry's knockout path from the Round of 32 through the final."
-          defaultOpen={false}
-        >
-          <WorldCupBracket
-            rounds={submittedBracket.rounds}
-            thirdPlace={submittedBracket.thirdPlace}
-            picks={picks}
-          />
-        </CollapsibleLedgerPanel>
-      ) : null}
-
-      <PodiumBonusPanel picks={picks} score={score} />
-
-      <AdvancementPicksPanel picks={picks} />
-
-      <ThirdPlaceQualifierPicksPanel picks={picks} />
-
-      <KnockoutScoringPanel picks={picks} score={score} />
-
-      <OpponentPathsPanel report={opponentPaths} />
+      <FullEntryAuditPanel
+        picks={picks}
+        results={pool.results}
+        score={score}
+        bracket={
+          submittedBracket ? (
+            <WorldCupBracket
+              rounds={submittedBracket.rounds}
+              thirdPlace={submittedBracket.thirdPlace}
+              picks={picks}
+            />
+          ) : undefined
+        }
+      />
     </PublicPoolShell>
   );
 }
