@@ -7,7 +7,10 @@ import {
   deleteCommissionerPool,
   updateCommissionerRoundOf16AdminPool,
 } from "@/lib/round-of-16/persistence";
-import type { RoundOf16PoolSettings } from "@/lib/templates/round-of-16-draft";
+import type {
+  RoundOf16InviteInput,
+  RoundOf16PoolSettings,
+} from "@/lib/templates/round-of-16-draft";
 
 export type UpdatePoolAdminState = {
   message?: string;
@@ -19,30 +22,27 @@ export async function updatePoolAdminAction(
 ): Promise<UpdatePoolAdminState> {
   const poolId = String(formData.get("poolId") ?? "");
   const status = String(formData.get("status") ?? "open");
-  const basics: RoundOf16PoolSettings["basics"] = {
-    poolName: String(formData.get("poolName") ?? ""),
-    commissionerName: String(formData.get("commissionerName") ?? ""),
-    eventLabel: String(formData.get("eventLabel") ?? ""),
-    picksLockAt: String(formData.get("picksLockAt") ?? ""),
-    timezone: String(formData.get("timezone") ?? ""),
-    description: String(formData.get("description") ?? ""),
-  };
-  const inviteNote = String(formData.get("inviteNote") ?? "");
   let redirectPath = "";
 
   try {
+    const settings = JSON.parse(
+      String(formData.get("settings") ?? "{}"),
+    ) as RoundOf16PoolSettings;
+    const participants = JSON.parse(
+      String(formData.get("participants") ?? "[]"),
+    ) as RoundOf16InviteInput[];
     const updated = await updateCommissionerRoundOf16AdminPool({
       poolId,
       status,
-      basics,
-      inviteNote,
+      settings,
+      participants,
     });
 
     revalidatePath("/dashboard");
     revalidatePath("/dashboard/pools");
     revalidatePath(`/dashboard/pools/${poolId}/edit`);
     revalidatePath(`/pools/${updated.poolSlug}`);
-    redirectPath = "/dashboard/pools";
+    redirectPath = "/dashboard";
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Pool could not be updated.";

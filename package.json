@@ -10,8 +10,8 @@
     "supabase:login": "supabase login",
     "supabase:link": "supabase link",
     "supabase:db:push": "supabase db push",
-    "vercel:link": "vercel link",
-    "vercel:deploy": "vercel deploy --prod"
+    "vercel:link": "npx vercel@latest link",
+    "vercel:deploy": "npx vercel@latest deploy --prod"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",
@@ -19,7 +19,7 @@
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.20.0",
-    "next": "16.2.9",
+    "next": "16.2.10",
     "radix-ui": "^1.6.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
@@ -36,11 +36,13 @@
     "@types/react-dom": "^19",
     "@types/three": "^0.184.1",
     "eslint": "^9",
-    "eslint-config-next": "16.2.9",
+    "eslint-config-next": "16.2.10",
     "playwright": "^1.61.0",
     "supabase": "^2.109.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "vercel": "^54.20.0"
+    "typescript": "^5"
+  },
+  "overrides": {
+    "postcss": "8.5.15"
   }
 }

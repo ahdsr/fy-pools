@@ -215,6 +215,36 @@ export function createDefaultRoundOf16WizardState(
   };
 }
 
+export function createRoundOf16WizardStateFromSettings(
+  settings: RoundOf16PoolSettings,
+  templateSlug = ROUND_OF_16_TEMPLATE_SLUG,
+): RoundOf16WizardState {
+  const defaults = createDefaultRoundOf16WizardState(templateSlug);
+
+  return {
+    templateSlug,
+    basics: {
+      ...defaults.basics,
+      ...settings.basics,
+      timezone: settings.basics.timezone || defaults.basics.timezone,
+    },
+    matchups: settings.matchups.length ? settings.matchups : defaults.matchups,
+    bonusProps: settings.bonusProps.length
+      ? settings.bonusProps
+      : defaults.bonusProps,
+    scoring: {
+      ...defaults.scoring,
+      ...settings.scoring,
+    },
+    payouts: settings.payouts.length ? settings.payouts : defaults.payouts,
+    inviteSettings: {
+      expectedEntries: settings.expectedEntries ?? 0,
+      inviteNote: settings.inviteNote ?? "",
+      participants: [],
+    },
+  };
+}
+
 export function slugifyPoolName(value: string) {
   const slug = value
     .normalize("NFD")
@@ -347,7 +377,9 @@ export function getRoundOf16PayoutBalance({
 
 export function validateRoundOf16PoolSettings(
   settings: Partial<RoundOf16PoolSettings> | null | undefined,
+  options: { requireFutureDeadline?: boolean } = {},
 ) {
+  const requireFutureDeadline = options.requireFutureDeadline ?? true;
   const basics = settings?.basics;
   const poolName = textValue(basics?.poolName);
   const commissionerName = textValue(basics?.commissionerName);
@@ -364,7 +396,7 @@ export function validateRoundOf16PoolSettings(
   if (Number.isNaN(deadline.getTime())) {
     return "Pick deadline must be a valid date and time.";
   }
-  if (deadline.getTime() <= Date.now()) {
+  if (requireFutureDeadline && deadline.getTime() <= Date.now()) {
     return "Pick deadline must be in the future.";
   }
 
@@ -517,7 +549,10 @@ export function createRoundOf16PoolDraft(
   };
 }
 
-export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
+export function validateRoundOf16WizardState(
+  state: RoundOf16WizardState,
+  options: { requireFutureDeadline?: boolean } = {},
+) {
   const enabledProps = state.bonusProps.filter((prop) => prop.enabled);
   const scoringBalance = getRoundOf16ScoringBalance(
     toRoundOf16PoolSettings(state),
@@ -528,6 +563,7 @@ export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
   });
   const settingsError = validateRoundOf16PoolSettings(
     toRoundOf16PoolSettings(state),
+    options,
   );
   const inviteError = validateRoundOf16InviteInputs(
     state.inviteSettings.participants,
@@ -587,8 +623,11 @@ export function getEnabledRoundOf16BonusProps(settings: RoundOf16PoolSettings) {
   return settings.bonusProps.filter((prop) => prop.enabled);
 }
 
-export function isRoundOf16WizardStateComplete(state: RoundOf16WizardState) {
-  const validation = validateRoundOf16WizardState(state);
+export function isRoundOf16WizardStateComplete(
+  state: RoundOf16WizardState,
+  options: { requireFutureDeadline?: boolean } = {},
+) {
+  const validation = validateRoundOf16WizardState(state, options);
 
   return Object.values(validation).every(Boolean);
 }

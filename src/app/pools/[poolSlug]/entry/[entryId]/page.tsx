@@ -72,10 +72,17 @@ export default async function EntryPage({ params }: EntryPageProps) {
   if (roundOf16Pool) {
     const entry = roundOf16Pool.entries.find((item) => item.entryId === entryId);
     if (!entry) notFound();
+    if (!entry.picks) notFound();
 
     const standing = roundOf16Pool.latestStandings.find(
       (row) => row.entryId === entry.entryId,
     );
+    const detailEntry = {
+      ...entry,
+      picks: entry.picks,
+      editHref: "",
+      canEdit: false,
+    };
 
     return (
       <PublicPoolShell
@@ -98,7 +105,7 @@ export default async function EntryPage({ params }: EntryPageProps) {
         </div>
 
         <RoundOf16EntryDetail
-          entry={entry}
+          entry={detailEntry}
           settings={roundOf16Pool.settings}
           standing={standing}
         />

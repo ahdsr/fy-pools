@@ -185,29 +185,32 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
             </div>
           }
         >
-          <div className="space-y-5">
-            {previewNewEntrant ? (
-              <LedgerPanel
-                title="Previewing as a new entrant"
-                description="Your signed-in session stays active. This form shows what a new participant sees from the share link."
-                action={<Badge variant="outline">Preview</Badge>}
-              >
-                <LedgerRow>
-                  <p className="text-sm font-normal leading-6 text-muted-foreground">
-                    Submit with a different email only when you want to create a
-                    separate test entry.
-                  </p>
-                </LedgerRow>
-              </LedgerPanel>
-            ) : null}
-            <RoundOf16PickForm
-              inviteCode={inviteCode}
-              poolName={joinData.pool.name}
-              poolSlug={joinData.pool.slug}
-              settings={joinData.pool.settings}
-              testGuestMode
-            />
-          </div>
+          <LedgerPanel
+            title="Sign in required"
+            description="Entries are tied to verified accounts so picks, updates, and standings stay auditable."
+          >
+            <LedgerRow className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p className="text-sm font-normal leading-6 text-muted-foreground">
+                Create an account or sign in before submitting picks for this pool.
+              </p>
+              {previewNewEntrant && user ? (
+                <Button asChild variant="outline">
+                  <Link href={`/join/${encodeURIComponent(inviteCode)}`}>
+                    Return to your picks
+                  </Link>
+                </Button>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  <Button asChild variant="primaryGreen">
+                    <Link href={signUpPathFor(nextPath)}>Create account</Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link href={signInPathFor(nextPath)}>Sign in</Link>
+                  </Button>
+                </div>
+              )}
+            </LedgerRow>
+          </LedgerPanel>
         </PageShell>
       );
     }

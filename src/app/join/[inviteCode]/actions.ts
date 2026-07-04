@@ -54,14 +54,14 @@ export async function submitRoundOf16TestPicksAction(
     const payload = JSON.parse(
       String(formData.get("payload") ?? "{}"),
     ) as RoundOf16PickPayload;
-    const submitted = await submitRoundOf16TestPicks({
+    await submitRoundOf16TestPicks({
       inviteCode,
       displayName: String(formData.get("displayName") ?? ""),
       email: String(formData.get("email") ?? ""),
       payload,
     });
 
-    return { submitted };
+    return {};
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Test picks could not be submitted.";

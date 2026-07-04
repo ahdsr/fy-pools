@@ -6,7 +6,10 @@ import {
   type RoundOf16StoredLeaderboardRow,
 } from "@/lib/round-of-16/persistence";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import {
+  createSupabaseAdminClient,
+  getSupabaseUser,
+} from "@/lib/supabase/server";
 import type {
   RoundOf16PickPayload,
   RoundOf16PoolSettings,
@@ -18,7 +21,14 @@ export type RoundOf16PublicEntry = {
   entryName: string;
   submittedAt: string;
   status: string;
+  picks?: RoundOf16PickPayload;
+  picksVisible: boolean;
+};
+
+export type RoundOf16ViewerEntry = RoundOf16PublicEntry & {
   picks: RoundOf16PickPayload;
+  editHref: string;
+  canEdit: boolean;
 };
 
 export type RoundOf16PublicPool = {
@@ -31,7 +41,25 @@ export type RoundOf16PublicPool = {
   settings: RoundOf16PoolSettings;
   entries: RoundOf16PublicEntry[];
   latestStandings: RoundOf16StoredLeaderboardRow[];
+  picksArePublic: boolean;
+  viewerEntry?: RoundOf16ViewerEntry;
 };
+
+function entryMetadata(value: unknown) {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+function pickDeadlineHasPassed(settings: RoundOf16PoolSettings) {
+  const deadline = settings.basics.picksLockAt;
+  if (!deadline) return false;
+
+  const parsed = new Date(deadline);
+  if (Number.isNaN(parsed.getTime())) return false;
+
+  return Date.now() >= parsed.getTime();
+}
 
 export async function getPublicRoundOf16Pool(poolSlug: string) {
   if ((PUBLIC_POOL_SLUGS as readonly string[]).includes(poolSlug)) return null;
@@ -50,17 +78,38 @@ export async function getPublicRoundOf16Pool(poolSlug: string) {
   const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
     .roundOf16;
   if (!settings) return null;
+  const status = String(pool.status ?? "open");
+  const picksArePublic =
+    pickDeadlineHasPassed(settings) ||
+    ["locked", "completed", "archived"].includes(status);
 
   const { data: entries, error: entriesError } = await admin
     .from("entries")
     .select(
-      "id,display_name,entry_picks(id,status,submitted_at,entry_pick_items(id,value))",
+      "id,user_id,display_name,metadata,entry_picks(id,status,submitted_at,entry_pick_items(id,value))",
     )
     .eq("pool_id", pool.id)
     .order("created_at", { ascending: true });
 
   if (entriesError) throw new Error(entriesError.message);
 
+  const user = await getSupabaseUser();
+  const viewerEntryRecord = user
+    ? (entries ?? []).find((entry) => String(entry.user_id ?? "") === user.id)
+    : undefined;
+  const { data: shareInvite } =
+    viewerEntryRecord && user
+      ? await admin
+          .from("pool_invites")
+          .select("code")
+          .eq("pool_id", pool.id)
+          .is("email", null)
+          .order("created_at", { ascending: true })
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+
+  let viewerEntry: RoundOf16ViewerEntry | undefined;
   const publicEntries = (entries ?? []).flatMap((entry) => {
     const entryPick = Array.isArray(entry.entry_picks)
       ? entry.entry_picks[0]
@@ -77,27 +126,48 @@ export async function getPublicRoundOf16Pool(poolSlug: string) {
       ? entryPick.entry_pick_items
       : [];
     const { payload } = pickPayloadAndItemIdsFromItems({ settings, items });
+    const isViewerEntry = String(entry.id) === String(viewerEntryRecord?.id ?? "");
+    const entryCanRevealPicks = picksArePublic || isViewerEntry;
+    const publicEntry = {
+      entryId: String(entry.id),
+      entryName: String(entry.display_name),
+      submittedAt: String(entryPick.submitted_at ?? ""),
+      status: String(entryPick.status ?? "submitted"),
+      picks: entryCanRevealPicks ? payload : undefined,
+      picksVisible: entryCanRevealPicks,
+    } satisfies RoundOf16PublicEntry;
 
-    return [
-      {
-        entryId: String(entry.id),
-        entryName: String(entry.display_name),
-        submittedAt: String(entryPick.submitted_at ?? ""),
-        status: String(entryPick.status ?? "submitted"),
-        picks: payload,
-      } satisfies RoundOf16PublicEntry,
-    ];
+    if (isViewerEntry) {
+      const viewerMetadata = entryMetadata(entry.metadata);
+      const editInviteCode =
+        String(viewerMetadata.inviteCode ?? "") || String(shareInvite?.code ?? "");
+
+      if (editInviteCode) {
+        viewerEntry = {
+          ...publicEntry,
+          picks: payload,
+          editHref: `/join/${editInviteCode}`,
+          canEdit: !pickDeadlineHasPassed(settings),
+        };
+      }
+    }
+
+    return [publicEntry];
   });
 
   return {
     poolId: String(pool.id),
     poolSlug: String(pool.slug),
     poolName: String(pool.name),
-    status: String(pool.status ?? "open"),
+    status,
     createdAt: String(pool.created_at ?? ""),
     updatedAt: String(pool.updated_at ?? ""),
     settings,
     entries: publicEntries,
-    latestStandings: await getLatestRoundOf16Standings(String(pool.id)),
+    latestStandings: picksArePublic
+      ? await getLatestRoundOf16Standings(String(pool.id))
+      : [],
+    picksArePublic,
+    viewerEntry,
   } satisfies RoundOf16PublicPool;
 }

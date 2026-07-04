@@ -23,6 +23,12 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
+const TEAM_BONUS_PROP_IDS = new Set([
+  "most-goals-team",
+  "biggest-upset",
+  "most-clean-sheets",
+]);
+
 export class RoundOf16DuplicateEmailError extends Error {
   email: string;
   claimed: boolean;
@@ -164,8 +170,126 @@ function normalizeEmailAddress(value: string) {
   return value.trim().toLowerCase();
 }
 
-function isValidEmailAddress(value: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+function normalizePickValue(value: unknown) {
+  return typeof value === "string" || typeof value === "number"
+    ? String(value).trim()
+    : "";
+}
+
+function normalizePickKey(value: unknown) {
+  return String(value ?? "")
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "")
+    .trim()
+    .toLowerCase();
+}
+
+function sanitizeRoundOf16PickPayload({
+  settings,
+  payload,
+  requireComplete,
+}: {
+  settings: RoundOf16PoolSettings;
+  payload: unknown;
+  requireComplete: boolean;
+}): { payload: RoundOf16PickPayload; error?: string } {
+  const source =
+    payload && typeof payload === "object" && !Array.isArray(payload)
+      ? (payload as Partial<RoundOf16PickPayload>)
+      : {};
+  const winners =
+    source.winners && typeof source.winners === "object" && !Array.isArray(source.winners)
+      ? source.winners
+      : {};
+  const bonusAnswers =
+    source.bonusAnswers &&
+    typeof source.bonusAnswers === "object" &&
+    !Array.isArray(source.bonusAnswers)
+      ? source.bonusAnswers
+      : {};
+  const matchupById = new Map(settings.matchups.map((matchup) => [matchup.id, matchup]));
+  const allowedMatchupIds = new Set(matchupById.keys());
+  const allowedBonusIds = new Set(
+    getEnabledRoundOf16BonusProps(settings).map((prop) => prop.id),
+  );
+  const sanitized = emptyRoundOf16PickPayload();
+
+  for (const key of Object.keys(winners)) {
+    if (!allowedMatchupIds.has(key) && normalizePickValue(winners[key])) {
+      return { payload: sanitized, error: "Submitted picks include an unknown matchup." };
+    }
+  }
+
+  for (const matchup of settings.matchups) {
+    const winner = normalizePickValue(winners[matchup.id]);
+    if (!winner) {
+      if (requireComplete) {
+        return { payload: sanitized, error: "Complete every required winner and bonus pick." };
+      }
+      continue;
+    }
+
+    const allowedWinners = [matchup.teamOne, matchup.teamTwo];
+    if (
+      !allowedWinners.some(
+        (team) => normalizePickKey(team) === normalizePickKey(winner),
+      )
+    ) {
+      return { payload: sanitized, error: "Winner picks must match one of the matchup teams." };
+    }
+
+    sanitized.winners[matchup.id] = winner;
+  }
+
+  const poolTeams = settings.matchups.flatMap((matchup) => [
+    matchup.teamOne,
+    matchup.teamTwo,
+  ]);
+  for (const key of Object.keys(bonusAnswers)) {
+    if (!allowedBonusIds.has(key) && normalizePickValue(bonusAnswers[key])) {
+      return { payload: sanitized, error: "Submitted picks include an unknown bonus prop." };
+    }
+  }
+
+  for (const prop of getEnabledRoundOf16BonusProps(settings)) {
+    const answer = normalizePickValue(bonusAnswers[prop.id]);
+    if (!answer) {
+      if (requireComplete) {
+        return { payload: sanitized, error: "Complete every required winner and bonus pick." };
+      }
+      continue;
+    }
+
+    if (TEAM_BONUS_PROP_IDS.has(prop.id)) {
+      if (
+        !poolTeams.some((team) => normalizePickKey(team) === normalizePickKey(answer))
+      ) {
+        return { payload: sanitized, error: "Team bonus picks must match a pool team." };
+      }
+    }
+
+    if (prop.id === "penalty-decisions") {
+      const numericAnswer = Number(answer);
+      if (
+        !Number.isInteger(numericAnswer) ||
+        numericAnswer < 0 ||
+        numericAnswer > settings.matchups.length
+      ) {
+        return {
+          payload: sanitized,
+          error: "Penalty shootout picks must be a whole number in range.",
+        };
+      }
+    }
+
+    if (answer.length > 120) {
+      return { payload: sanitized, error: "Bonus answers must be 120 characters or fewer." };
+    }
+
+    sanitized.bonusAnswers[prop.id] = answer;
+  }
+
+  return { payload: sanitized };
 }
 
 function entryMetadata(value: unknown) {
@@ -518,31 +642,6 @@ async function claimRoundOf16GuestEntryForUser({
   return guestEntry;
 }
 
-async function findRoundOf16EntryForEmail({
-  admin,
-  poolId,
-  email,
-}: {
-  admin: SupabaseAdmin;
-  poolId: string;
-  email: string;
-}) {
-  for (const field of ["guestEmail", "entryEmail", "inviteEmail"]) {
-    const { data, error } = await admin
-      .from("entries")
-      .select("id,user_id")
-      .eq("pool_id", poolId)
-      .eq(`metadata->>${field}`, email)
-      .limit(1)
-      .maybeSingle();
-
-    if (error) throw new Error(error.message);
-    if (data) return data;
-  }
-
-  return null;
-}
-
 export async function publishRoundOf16Pool({
   settings,
   participants,
@@ -584,70 +683,76 @@ export async function publishRoundOf16Pool({
 
   if (poolError) throw new Error(poolError.message);
 
-  const { error: memberError } = await admin.from("pool_members").upsert(
-    {
+  try {
+    const { error: memberError } = await admin.from("pool_members").upsert(
+      {
+        pool_id: pool.id,
+        user_id: user.id,
+        role: "commissioner",
+      },
+      { onConflict: "pool_id,user_id" },
+    );
+
+    if (memberError) throw new Error(memberError.message);
+
+    const inviteRows = validParticipants.map((participant) => ({
       pool_id: pool.id,
-      user_id: user.id,
-      role: "commissioner",
-    },
-    { onConflict: "pool_id,user_id" },
-  );
+      email: participant.email,
+      display_name: participant.displayName,
+      code: buildInviteCode(),
+      status: "pending",
+      expires_at: getInviteExpiresAt(settings),
+    }));
+    const signupInviteRow = {
+      pool_id: pool.id,
+      email: null,
+      display_name: "Signup link",
+      code: buildInviteCode(),
+      status: "pending",
+      expires_at: getInviteExpiresAt(settings),
+    };
+    const { data: invites, error: invitesError } = await admin
+      .from("pool_invites")
+      .insert([signupInviteRow, ...inviteRows])
+      .select("email,display_name,code,status,expires_at");
 
-  if (memberError) throw new Error(memberError.message);
+    if (invitesError) throw new Error(invitesError.message);
 
-  const inviteRows = validParticipants.map((participant) => ({
-    pool_id: pool.id,
-    email: participant.email,
-    display_name: participant.displayName,
-    code: buildInviteCode(),
-    status: "pending",
-    expires_at: getInviteExpiresAt(settings),
-  }));
-  const signupInviteRow = {
-    pool_id: pool.id,
-    email: null,
-    display_name: "Signup link",
-    code: buildInviteCode(),
-    status: "pending",
-    expires_at: getInviteExpiresAt(settings),
-  };
-  const { data: invites, error: invitesError } = await admin
-    .from("pool_invites")
-    .insert([signupInviteRow, ...inviteRows])
-    .select("email,display_name,code,status,expires_at");
+    const signupInvite =
+      (invites ?? []).find((invite) => !String(invite.email ?? "")) ??
+      invites?.[0];
 
-  if (invitesError) throw new Error(invitesError.message);
+    if (!signupInvite) {
+      throw new Error("Signup invite could not be created.");
+    }
 
-  const signupInvite =
-    (invites ?? []).find((invite) => !String(invite.email ?? "")) ?? invites?.[0];
-
-  if (!signupInvite) {
-    throw new Error("Signup invite could not be created.");
+    return {
+      poolId: pool.id,
+      poolSlug: pool.slug,
+      poolName: pool.name,
+      poolHref: `/pools/${pool.slug}`,
+      inviteNote: settings.inviteNote,
+      signupInviteLink: {
+        code: String(signupInvite.code),
+        href: `/join/${signupInvite.code}`,
+        status: String(signupInvite.status ?? "pending"),
+        expiresAt: String(signupInvite.expires_at ?? ""),
+      },
+      inviteLinks: (invites ?? [])
+        .filter((invite) => String(invite.email ?? ""))
+        .map((invite) => ({
+          email: String(invite.email ?? ""),
+          displayName: String(invite.display_name ?? ""),
+          code: String(invite.code),
+          href: `/join/${invite.code}`,
+          status: String(invite.status ?? "pending"),
+          expiresAt: String(invite.expires_at ?? ""),
+        })),
+    };
+  } catch (error) {
+    await admin.from("pools").delete().eq("id", pool.id);
+    throw error;
   }
-
-  return {
-    poolId: pool.id,
-    poolSlug: pool.slug,
-    poolName: pool.name,
-    poolHref: `/pools/${pool.slug}`,
-    inviteNote: settings.inviteNote,
-    signupInviteLink: {
-      code: String(signupInvite.code),
-      href: `/join/${signupInvite.code}`,
-      status: String(signupInvite.status ?? "pending"),
-      expiresAt: String(signupInvite.expires_at ?? ""),
-    },
-    inviteLinks: (invites ?? [])
-      .filter((invite) => String(invite.email ?? ""))
-      .map((invite) => ({
-        email: String(invite.email ?? ""),
-        displayName: String(invite.display_name ?? ""),
-        code: String(invite.code),
-        href: `/join/${invite.code}`,
-        status: String(invite.status ?? "pending"),
-        expiresAt: String(invite.expires_at ?? ""),
-      })),
-  };
 }
 
 export async function getJoinPoolData(inviteCode: string) {
@@ -764,20 +869,25 @@ export async function submitRoundOf16Picks({
   }
 
   const settings = joinData.pool.settings;
+  if (!joinData.invite.isShareLink) {
+    const inviteEmail = normalizeEmailAddress(joinData.invite.email);
+    const userEmail = normalizeEmailAddress(user.email ?? "");
+    if (!inviteEmail || !userEmail || inviteEmail !== userEmail) {
+      throw new Error("Sign in with the email address this invite was sent to.");
+    }
+  }
+
   if (pickDeadlineHasPassed(settings)) {
     throw new Error("The pick deadline has passed.");
   }
 
-  const missingWinner = settings.matchups.find(
-    (matchup) => !payload.winners[matchup.id],
-  );
-  const missingBonus = getEnabledRoundOf16BonusProps(settings).find(
-    (prop) => !String(payload.bonusAnswers[prop.id] ?? "").trim(),
-  );
-
-  if (missingWinner || missingBonus) {
-    throw new Error("Complete every required winner and bonus pick.");
-  }
+  const sanitized = sanitizeRoundOf16PickPayload({
+    settings,
+    payload,
+    requireComplete: true,
+  });
+  if (sanitized.error) throw new Error(sanitized.error);
+  const validPayload = sanitized.payload;
 
   const displayName =
     user.user_metadata?.display_name ??
@@ -867,7 +977,7 @@ export async function submitRoundOf16Picks({
     pick_type: "bracket_winner",
     value: {
       matchupId: matchup.id,
-      winner: payload.winners[matchup.id],
+      winner: validPayload.winners[matchup.id],
     },
     submitted_at: submittedAt,
   }));
@@ -877,7 +987,7 @@ export async function submitRoundOf16Picks({
     pick_type: prop.id === "penalty-decisions" ? "numeric_bonus" : "text_bonus",
     value: {
       propId: prop.id,
-      answer: payload.bonusAnswers[prop.id],
+      answer: validPayload.bonusAnswers[prop.id],
     },
     submitted_at: submittedAt,
   }));
@@ -924,143 +1034,12 @@ export async function submitRoundOf16TestPicks({
   email: string;
   payload: RoundOf16PickPayload;
 }) {
+  void inviteCode;
+  void displayName;
+  void email;
+  void payload;
   assertSupabaseConfigured();
-
-  const name = displayName.trim();
-  const guestEmail = normalizeEmailAddress(email);
-  if (!name) throw new Error("Display name is required.");
-  if (!guestEmail || !isValidEmailAddress(guestEmail)) {
-    throw new Error("A valid email address is required.");
-  }
-
-  const admin = createSupabaseAdminClient();
-  const joinData = await getJoinPoolData(inviteCode);
-
-  if (!joinData) throw new Error("Invite not found.");
-  if (!joinData.invite.isShareLink) {
-    throw new Error("Test entries can only use the general share link.");
-  }
-  if (joinData.invite.status === "revoked" || joinData.invite.status === "expired") {
-    throw new Error("This invite is no longer available.");
-  }
-
-  const settings = joinData.pool.settings;
-  if (pickDeadlineHasPassed(settings)) {
-    throw new Error("The pick deadline has passed.");
-  }
-
-  const missingWinner = settings.matchups.find(
-    (matchup) => !payload.winners[matchup.id],
-  );
-  const missingBonus = getEnabledRoundOf16BonusProps(settings).find(
-    (prop) => !String(payload.bonusAnswers[prop.id] ?? "").trim(),
-  );
-
-  if (missingWinner || missingBonus) {
-    throw new Error("Complete every required winner and bonus pick.");
-  }
-
-  const existingGuestEntry = await findRoundOf16EntryForEmail({
-    admin,
-    poolId: joinData.pool.id,
-    email: guestEmail,
-  });
-  if (existingGuestEntry) {
-    throw new RoundOf16DuplicateEmailError({
-      email: guestEmail,
-      claimed: Boolean(String(existingGuestEntry.user_id ?? "")),
-    });
-  }
-
-  const { data: entry, error: entryError } = await admin
-    .from("entries")
-    .insert({
-      pool_id: joinData.pool.id,
-      user_id: null,
-      display_name: name,
-      entry_number: 1,
-      metadata: {
-        inviteCode,
-        inviteType: "share-link",
-        testGuest: true,
-        guestEmail,
-      },
-    })
-    .select("id")
-    .single();
-
-  if (entryError) throw new Error(entryError.message);
-
-  const submittedAt = new Date().toISOString();
-  const { data: entryPick, error: entryPickError } = await admin
-    .from("entry_picks")
-    .insert({
-      entry_id: entry.id,
-      template_version_id: joinData.pool.templateVersionId,
-      status: "submitted",
-      submitted_at: submittedAt,
-      updated_at: submittedAt,
-    })
-    .select("id")
-    .single();
-
-  if (entryPickError) throw new Error(entryPickError.message);
-
-  const fieldMap = await ensureRoundOf16PickFields({
-    admin,
-    templateVersionId: joinData.pool.templateVersionId,
-    settings,
-  });
-  const winnerItems = settings.matchups.map((matchup, index) => ({
-    entry_pick_id: entryPick.id,
-    template_pick_field_id: fieldMap.get(`r16_${index + 1}_winner`)?.id,
-    pick_type: "bracket_winner",
-    value: {
-      matchupId: matchup.id,
-      winner: payload.winners[matchup.id],
-    },
-    submitted_at: submittedAt,
-  }));
-  const bonusItems = getEnabledRoundOf16BonusProps(settings).map((prop) => ({
-    entry_pick_id: entryPick.id,
-    template_pick_field_id: fieldMap.get(`bonus_${prop.id}`)?.id,
-    pick_type: prop.id === "penalty-decisions" ? "numeric_bonus" : "text_bonus",
-    value: {
-      propId: prop.id,
-      answer: payload.bonusAnswers[prop.id],
-    },
-    submitted_at: submittedAt,
-  }));
-  const pickItems = [...winnerItems, ...bonusItems].filter(
-    (item) => item.template_pick_field_id,
-  );
-  const { error: itemsError } = await admin
-    .from("entry_pick_items")
-    .insert(pickItems);
-
-  if (itemsError) throw new Error(itemsError.message);
-
-  await admin.from("commissioner_notifications").insert({
-    pool_id: joinData.pool.id,
-    recipient_id: joinData.pool.ownerId,
-    actor_id: null,
-    event_type: "entry_submitted",
-    title: "Test entry submitted",
-    body: `${name} submitted test picks for ${joinData.pool.name}.`,
-    metadata: {
-      entryId: entry.id,
-      entryPickId: entryPick.id,
-      inviteCode,
-      guestEmail,
-      testGuest: true,
-    },
-  });
-
-  return {
-    entryId: String(entry.id),
-    entryPickId: String(entryPick.id),
-    submittedAt,
-  };
+  throw new Error("Guest entries are disabled. Sign in or create an account to submit picks.");
 }
 
 export async function getCommissionerNotifications() {
@@ -1270,6 +1249,73 @@ function rankRoundOf16Rows(rows: Omit<RoundOf16StoredLeaderboardRow, "rank">[]) 
     });
 }
 
+async function replaceRoundOf16ScoreSnapshot({
+  admin,
+  poolId,
+  rankedRows,
+  scoredRows,
+}: {
+  admin: SupabaseAdmin;
+  poolId: string;
+  rankedRows: RoundOf16StoredLeaderboardRow[];
+  scoredRows: {
+    entryId: string;
+    breakdownRows: {
+      entry_id: unknown;
+      entry_pick_item_id: string | null;
+      points_awarded: number;
+      max_points: number;
+      reason: string;
+    }[];
+  }[];
+}) {
+  const { error: snapshotError } = await admin.rpc(
+    "replace_round_of_16_score_snapshot",
+    {
+      p_pool_id: poolId,
+      p_entry_ids: scoredRows.map((row) => row.entryId),
+      p_breakdowns: scoredRows.flatMap((row) => row.breakdownRows),
+      p_rows: rankedRows,
+    },
+  );
+
+  if (!snapshotError) return;
+
+  const missingRpc =
+    snapshotError.code === "42883" ||
+    snapshotError.code === "PGRST202" ||
+    snapshotError.message.includes("replace_round_of_16_score_snapshot");
+  if (!missingRpc) throw new Error(snapshotError.message);
+
+  const entryIds = scoredRows.map((row) => row.entryId);
+  if (entryIds.length > 0) {
+    const { error: deleteError } = await admin
+      .from("score_breakdowns")
+      .delete()
+      .in("entry_id", entryIds);
+
+    if (deleteError) throw new Error(deleteError.message);
+
+    const breakdownRows = scoredRows.flatMap((row) => row.breakdownRows);
+    if (breakdownRows.length > 0) {
+      const { error: insertError } = await admin
+        .from("score_breakdowns")
+        .insert(breakdownRows);
+
+      if (insertError) throw new Error(insertError.message);
+    }
+  }
+
+  const { error: insertSnapshotError } = await admin
+    .from("standings_snapshots")
+    .insert({
+      pool_id: poolId,
+      rows: rankedRows,
+    });
+
+  if (insertSnapshotError) throw new Error(insertSnapshotError.message);
+}
+
 export async function refreshRoundOf16Scoring({
   poolId,
   results,
@@ -1314,6 +1360,13 @@ export async function refreshRoundOf16ScoringForPool({
   const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
     .roundOf16;
   if (!settings) throw new Error("Round of 16 settings were not found.");
+  const sanitizedResults = sanitizeRoundOf16PickPayload({
+    settings,
+    payload: results,
+    requireComplete: false,
+  });
+  if (sanitizedResults.error) throw new Error(sanitizedResults.error);
+  const validResults = sanitizedResults.payload;
 
   const { data: entries, error: entriesError } = await admin
     .from("entries")
@@ -1343,7 +1396,11 @@ export async function refreshRoundOf16ScoringForPool({
       settings,
       items,
     });
-    const score = scoreRoundOf16Entry({ settings, picks: payload, results });
+    const score = scoreRoundOf16Entry({
+      settings,
+      picks: payload,
+      results: validResults,
+    });
 
     return [
       {
@@ -1364,25 +1421,6 @@ export async function refreshRoundOf16ScoringForPool({
     ];
   });
 
-  const entryIds = scoredRows.map((row) => row.entryId);
-  if (entryIds.length > 0) {
-    const { error: deleteError } = await admin
-      .from("score_breakdowns")
-      .delete()
-      .in("entry_id", entryIds);
-
-    if (deleteError) throw new Error(deleteError.message);
-
-    const breakdownRows = scoredRows.flatMap((row) => row.breakdownRows);
-    if (breakdownRows.length > 0) {
-      const { error: insertError } = await admin
-        .from("score_breakdowns")
-        .insert(breakdownRows);
-
-      if (insertError) throw new Error(insertError.message);
-    }
-  }
-
   const rowsWithoutBreakdowns = scoredRows.map((row) => ({
     entryId: row.entryId,
     entryName: row.entryName,
@@ -1392,15 +1430,12 @@ export async function refreshRoundOf16ScoringForPool({
     lines: row.lines,
   }));
   const rankedRows = rankRoundOf16Rows(rowsWithoutBreakdowns);
-
-  const { error: snapshotError } = await admin
-    .from("standings_snapshots")
-    .insert({
-      pool_id: poolId,
-      rows: rankedRows,
-    });
-
-  if (snapshotError) throw new Error(snapshotError.message);
+  await replaceRoundOf16ScoreSnapshot({
+    admin,
+    poolId,
+    rankedRows,
+    scoredRows,
+  });
 
   return rankedRows;
 }
@@ -1453,13 +1488,13 @@ export async function getCommissionerRoundOf16AdminPool(poolId: string) {
 export async function updateCommissionerRoundOf16AdminPool({
   poolId,
   status,
-  basics,
-  inviteNote,
+  settings,
+  participants = [],
 }: {
   poolId: string;
   status: string;
-  basics: RoundOf16PoolSettings["basics"];
-  inviteNote: string;
+  settings: RoundOf16PoolSettings;
+  participants?: RoundOf16InviteInput[];
 }) {
   const user = await requireSupabaseUser();
   const admin = createSupabaseAdminClient();
@@ -1485,20 +1520,29 @@ export async function updateCommissionerRoundOf16AdminPool({
     ? status
     : "open";
   const nextSettings: RoundOf16PoolSettings = {
-    ...currentSettings,
     basics: {
       ...currentSettings.basics,
-      poolName: basics.poolName.trim(),
-      commissionerName: basics.commissionerName.trim(),
-      eventLabel: basics.eventLabel.trim(),
-      picksLockAt: basics.picksLockAt.trim(),
-      timezone: basics.timezone.trim(),
-      description: basics.description.trim(),
+      ...settings.basics,
+      poolName: settings.basics.poolName.trim(),
+      commissionerName: settings.basics.commissionerName.trim(),
+      eventLabel: settings.basics.eventLabel.trim(),
+      picksLockAt: settings.basics.picksLockAt.trim(),
+      timezone: settings.basics.timezone.trim(),
+      description: settings.basics.description.trim(),
     },
-    inviteNote: inviteNote.trim(),
+    matchups: settings.matchups,
+    bonusProps: settings.bonusProps,
+    scoring: settings.scoring,
+    payouts: settings.payouts,
+    expectedEntries: settings.expectedEntries ?? 0,
+    inviteNote: settings.inviteNote.trim(),
   };
-  const validationError = validateRoundOf16PoolSettings(nextSettings);
+  const validationError = validateRoundOf16PoolSettings(nextSettings, {
+    requireFutureDeadline: false,
+  });
   if (validationError) throw new Error(validationError);
+  const participantsError = validateRoundOf16InviteInputs(participants);
+  if (participantsError) throw new Error(participantsError);
 
   const { error: updateError } = await admin
     .from("pools")
@@ -1514,6 +1558,41 @@ export async function updateCommissionerRoundOf16AdminPool({
     .eq("id", poolId);
 
   if (updateError) throw new Error(updateError.message);
+
+  const validParticipants = normalizeRoundOf16Participants(participants);
+  if (validParticipants.length > 0) {
+    const { data: existingInvites, error: existingInvitesError } = await admin
+      .from("pool_invites")
+      .select("email")
+      .eq("pool_id", poolId)
+      .not("email", "is", null);
+
+    if (existingInvitesError) throw new Error(existingInvitesError.message);
+
+    const existingEmails = new Set(
+      (existingInvites ?? []).map((invite) =>
+        String(invite.email ?? "").toLowerCase(),
+      ),
+    );
+    const inviteRows = validParticipants
+      .filter((participant) => !existingEmails.has(participant.email))
+      .map((participant) => ({
+        pool_id: poolId,
+        email: participant.email,
+        display_name: participant.displayName,
+        code: buildInviteCode(),
+        status: "pending",
+        expires_at: getInviteExpiresAt(nextSettings),
+      }));
+
+    if (inviteRows.length > 0) {
+      const { error: invitesError } = await admin
+        .from("pool_invites")
+        .insert(inviteRows);
+
+      if (invitesError) throw new Error(invitesError.message);
+    }
+  }
 
   return {
     poolId,

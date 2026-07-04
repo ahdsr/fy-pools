@@ -53,6 +53,10 @@ import {
   publishRoundOf16PoolAction,
   type PublishRoundOf16State,
 } from "./actions";
+import {
+  updatePoolAdminAction,
+  type UpdatePoolAdminState,
+} from "../actions";
 
 const stepDefinitions = [
   {
@@ -693,10 +697,22 @@ function CopyInviteLinkButton({
   );
 }
 
-export function NewPoolWizardStart() {
+type EditPoolWizardConfig = {
+  poolId: string;
+  poolSlug: string;
+  status: string;
+  initialState: RoundOf16WizardState;
+};
+
+export function NewPoolWizardStart({
+  editPool,
+}: {
+  editPool?: EditPoolWizardConfig;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const templates = React.useMemo(() => getAllTemplates(), []);
+  const isEditingPool = Boolean(editPool);
   const queryTemplate = searchParams.get("template") ?? "";
   const queryDraftId = searchParams.get("draft") ?? "";
   const initialTemplate = templates.some(
@@ -709,14 +725,20 @@ export function NewPoolWizardStart() {
     () => new Set(),
   );
   const [state, setState] = React.useState<RoundOf16WizardState>(() =>
-    createDefaultRoundOf16WizardState(initialTemplate),
+    editPool?.initialState ?? createDefaultRoundOf16WizardState(initialTemplate),
   );
-  const [createdDraftId, setCreatedDraftId] = React.useState(queryDraftId);
+  const [createdDraftId, setCreatedDraftId] = React.useState(
+    isEditingPool ? "" : queryDraftId,
+  );
   const [editingDraftId, setEditingDraftId] = React.useState("");
   const [publishState, publishAction, publishPending] = React.useActionState(
     publishRoundOf16PoolAction,
     {},
   );
+  const [updateState, updateAction, updatePending] = React.useActionState<
+    UpdatePoolAdminState,
+    FormData
+  >(updatePoolAdminAction, {});
   const draftStorageSnapshot = React.useSyncExternalStore(
     subscribeToDraftStorage,
     getDraftStorageSnapshot,
@@ -733,10 +755,11 @@ export function NewPoolWizardStart() {
   const roundOf16Template = templates.find(
     (template) => template.slug === ROUND_OF_16_TEMPLATE_SLUG,
   );
-  const validation = validateRoundOf16WizardState(state);
+  const validationOptions = { requireFutureDeadline: !isEditingPool };
+  const validation = validateRoundOf16WizardState(state, validationOptions);
   const currentStepDefinition = stepDefinitions[currentStep];
   const currentStepValid = stepIsValid(currentStepDefinition.key, validation);
-  const wizardComplete = isRoundOf16WizardStateComplete(state);
+  const wizardComplete = isRoundOf16WizardStateComplete(state, validationOptions);
   const enabledBonusCount = state.bonusProps.filter((prop) => prop.enabled).length;
   const scoringBalance = getRoundOf16ScoringBalance(
     toRoundOf16PoolSettings(state),
@@ -752,6 +775,9 @@ export function NewPoolWizardStart() {
   const serializedParticipants = JSON.stringify(
     state.inviteSettings.participants,
   );
+  const formAction = isEditingPool ? updateAction : publishAction;
+  const submitPending = isEditingPool ? updatePending : publishPending;
+  const actionMessage = isEditingPool ? updateState.message : publishState.message;
 
   function selectRoundOf16Template() {
     setState((current) => ({
@@ -868,7 +894,7 @@ export function NewPoolWizardStart() {
     });
   }
 
-  if (publishState.published) {
+  if (!isEditingPool && publishState.published) {
     return (
       <PageShell
         eyebrow="Pool wizard"
@@ -881,7 +907,7 @@ export function NewPoolWizardStart() {
     );
   }
 
-  if (createdDraft) {
+  if (!isEditingPool && createdDraft) {
     return (
       <PageShell
         eyebrow="Pool wizard"
@@ -897,8 +923,12 @@ export function NewPoolWizardStart() {
   return (
     <PageShell
       eyebrow="Pool wizard"
-      title="Set up a Round of 16 pool"
-      description="A guided commissioner flow for winner picks, bonus props, scoring, payouts, and invite planning."
+      title={isEditingPool ? `Edit ${state.basics.poolName}` : "Set up a Round of 16 pool"}
+      description={
+        isEditingPool
+          ? "Update the same format, picks, scoring, payouts, and invite details from the setup wizard."
+          : "A guided commissioner flow for winner picks, bonus props, scoring, payouts, and invite planning."
+      }
       showHeader={false}
     >
       <section className="grid gap-5 lg:grid-cols-[18rem_minmax(0,1fr)] lg:items-start">
@@ -909,22 +939,24 @@ export function NewPoolWizardStart() {
             completedSteps={completedSteps}
             onStepSelect={goToStep}
           />
-          <LedgerPanel title="Draft output">
+          <LedgerPanel title={isEditingPool ? "Pool record" : "Draft output"}>
             <LedgerRows>
               <LedgerRow>
                 <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                  Storage
+                  {isEditingPool ? "Status" : "Storage"}
                 </p>
                 <p className="mt-1 font-mono text-sm text-brand-ink">
-                  poolwaffle.poolDrafts
+                  {isEditingPool ? editPool?.status : "poolwaffle.poolDrafts"}
                 </p>
               </LedgerRow>
               <LedgerRow>
                 <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                  Current format
+                  {isEditingPool ? "Public page" : "Current format"}
                 </p>
                 <p className="mt-1 text-sm font-semibold text-brand-ink">
-                  {selectedTemplate?.name ?? "Choose a template"}
+                  {isEditingPool
+                    ? `/pools/${editPool?.poolSlug}`
+                    : selectedTemplate?.name ?? "Choose a template"}
                 </p>
               </LedgerRow>
             </LedgerRows>
@@ -940,7 +972,13 @@ export function NewPoolWizardStart() {
             </Badge>
           }
         >
-          <form action={publishAction} className="space-y-6 p-5">
+          <form action={formAction} className="space-y-6 p-5">
+            {editPool ? (
+              <>
+                <input type="hidden" name="poolId" value={editPool.poolId} />
+                <input type="hidden" name="status" value={editPool.status} />
+              </>
+            ) : null}
             <input type="hidden" name="settings" value={serializedSettings} />
             <input
               type="hidden"
@@ -1438,12 +1476,14 @@ export function NewPoolWizardStart() {
               <div className="space-y-5">
                 <div className="rounded-lg border bg-surface-ledger/70 p-4">
                   <p className="font-semibold text-brand-ink">
-                    Publish creates a share link
+                    {isEditingPool
+                      ? "Save updates to this pool"
+                      : "Publish creates a share link"}
                   </p>
                   <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                    You do not need every player&apos;s email now. Publish the
-                    pool, copy the signup link, and let players share it with
-                    anyone else who should join.
+                    {isEditingPool
+                      ? "Changes apply to the existing pool page. New direct invite emails entered here will receive their own join links; existing direct invites stay unchanged."
+                      : "You do not need every player's email now. Publish the pool, copy the signup link, and let players share it with anyone else who should join."}
                   </p>
                 </div>
 
@@ -1530,8 +1570,9 @@ export function NewPoolWizardStart() {
                   ) : (
                     <LedgerRow className="rounded-lg border bg-background">
                       <p className="text-sm font-normal leading-6 text-muted-foreground">
-                        No direct invites added. The pool can still be published
-                        and shared with the general signup link.
+                        {isEditingPool
+                          ? "No new direct invites added. Existing pool links remain active."
+                          : "No direct invites added. The pool can still be published and shared with the general signup link."}
                       </p>
                     </LedgerRow>
                   )}
@@ -1540,9 +1581,9 @@ export function NewPoolWizardStart() {
               </div>
             ) : null}
 
-            {publishState.message ? (
+            {actionMessage ? (
               <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
-                {publishState.message}
+                {actionMessage}
               </p>
             ) : null}
 
@@ -1557,21 +1598,35 @@ export function NewPoolWizardStart() {
                   <ArrowLeft /> Back
                 </Button>
                 <Button asChild variant="ghost">
-                  <Link href="/dashboard/pools">Cancel</Link>
+                  <Link href={isEditingPool ? "/dashboard" : "/dashboard/pools"}>
+                    Cancel
+                  </Link>
                 </Button>
               </div>
 
               {currentStepDefinition.key === "review" ? (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                  <Button type="button" variant="outline" onClick={handleSaveDraft}>
-                    <Save /> Save draft
-                  </Button>
+                  {!isEditingPool ? (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={handleSaveDraft}
+                    >
+                      <Save /> Save draft
+                    </Button>
+                  ) : null}
                   <Button
                     type="submit"
                     variant="primaryGreen"
-                    disabled={!wizardComplete || publishPending}
+                    disabled={!wizardComplete || submitPending}
                   >
-                    {publishPending ? "Publishing..." : "Publish pool"}{" "}
+                    {submitPending
+                      ? isEditingPool
+                        ? "Saving..."
+                        : "Publishing..."
+                      : isEditingPool
+                        ? "Save changes"
+                        : "Publish pool"}{" "}
                     <CheckCircle2 />
                   </Button>
                 </div>

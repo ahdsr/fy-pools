@@ -100,20 +100,34 @@ function BracketTeamButton({
   return (
     <button
       type="button"
-      aria-pressed={selected}
+      role="radio"
+      aria-checked={selected}
       onClick={onSelect}
       className={cn(
         "flex min-h-10 w-full items-center justify-between gap-3 border-t px-3 py-2 text-left text-sm font-semibold text-brand-ink transition first:border-t-0 hover:bg-cta-green-soft",
         selected && "bg-cta-green-soft text-brand-ink",
       )}
     >
-      <TeamPill
-        team={team}
-        className={cn(
-          "max-w-full",
-          selected ? "font-bold" : "text-brand-ink",
-        )}
-      />
+      <span className="flex min-w-0 items-center gap-3">
+        <span
+          aria-hidden="true"
+          className={cn(
+            "flex size-4 shrink-0 items-center justify-center rounded-full border border-muted-foreground/55 bg-background",
+            selected && "border-brand-success",
+          )}
+        >
+          {selected ? (
+            <span className="size-2 rounded-full bg-brand-success" />
+          ) : null}
+        </span>
+        <TeamPill
+          team={team}
+          className={cn(
+            "max-w-full",
+            selected ? "font-bold" : "text-brand-ink",
+          )}
+        />
+      </span>
       {selected ? (
         <CheckCircle2 className="size-4 shrink-0 text-brand-success" />
       ) : null}
@@ -159,16 +173,18 @@ function BracketMatchCard({
             </span>
           ) : null}
         </div>
-        <BracketTeamButton
-          team={matchup.teamOne}
-          selected={winner === matchup.teamOne}
-          onSelect={() => onWinnerChange(matchup.teamOne)}
-        />
-        <BracketTeamButton
-          team={matchup.teamTwo}
-          selected={winner === matchup.teamTwo}
-          onSelect={() => onWinnerChange(matchup.teamTwo)}
-        />
+        <div role="radiogroup" aria-label={`Match ${index + 1} winner`}>
+          <BracketTeamButton
+            team={matchup.teamOne}
+            selected={winner === matchup.teamOne}
+            onSelect={() => onWinnerChange(matchup.teamOne)}
+          />
+          <BracketTeamButton
+            team={matchup.teamTwo}
+            selected={winner === matchup.teamTwo}
+            onSelect={() => onWinnerChange(matchup.teamTwo)}
+          />
+        </div>
       </article>
     </div>
   );

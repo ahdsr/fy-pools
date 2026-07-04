@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { CheckCircle2, Trophy } from "lucide-react";
+import { CheckCircle2, Pencil, Trophy } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { MatchupLine, TeamPill } from "@/components/app/pool-public-widgets";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -15,6 +16,7 @@ import {
 import type {
   RoundOf16PublicEntry,
   RoundOf16PublicPool,
+  RoundOf16ViewerEntry,
 } from "@/lib/round-of-16/public";
 import type { RoundOf16StoredLeaderboardRow } from "@/lib/round-of-16/persistence";
 import {
@@ -97,6 +99,65 @@ export function RoundOf16PublicStats({ pool }: { pool: RoundOf16PublicPool }) {
   );
 }
 
+export function RoundOf16ViewerEntryPanel({
+  entry,
+  settings,
+}: {
+  entry: NonNullable<RoundOf16PublicPool["viewerEntry"]>;
+  settings: RoundOf16PoolSettings;
+}) {
+  const bonusProps = getEnabledRoundOf16BonusProps(settings);
+
+  return (
+    <LedgerPanel
+      title="Your picks"
+      description={`Submitted ${formatDateTime(entry.submittedAt)}.`}
+      action={
+        entry.canEdit ? (
+          <Button asChild variant="primaryGreen">
+            <Link href={entry.editHref}>
+              Edit picks <Pencil />
+            </Link>
+          </Button>
+        ) : (
+          <Badge variant="outline">Locked</Badge>
+        )
+      }
+    >
+      <LedgerRows>
+        <LedgerRow className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          {settings.matchups.map((matchup, index) => (
+            <div key={matchup.id} className="min-w-0">
+              <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                Match {index + 1}
+              </p>
+              <TeamPill
+                team={entry.picks.winners[matchup.id]}
+                className="mt-1 max-w-full"
+                emptyLabel="No pick"
+              />
+            </div>
+          ))}
+        </LedgerRow>
+        {bonusProps.length ? (
+          <LedgerRow className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {bonusProps.map((prop) => (
+              <div key={prop.id} className="min-w-0">
+                <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                  {prop.label}
+                </p>
+                <p className="mt-1 truncate font-semibold text-brand-ink">
+                  {entry.picks.bonusAnswers[prop.id] ?? "No answer"}
+                </p>
+              </div>
+            ))}
+          </LedgerRow>
+        ) : null}
+      </LedgerRows>
+    </LedgerPanel>
+  );
+}
+
 export function RoundOf16Leaderboard({
   rows,
   entries,
@@ -111,7 +172,7 @@ export function RoundOf16Leaderboard({
       <LedgerPanel
         id="leaderboard"
         title="Leaderboard"
-        description="Standings appear after automatic scoring updates run."
+        description="Standings appear after picks lock and scoring updates run."
       >
         <LedgerRows>
           {entries.map((entry) => (
@@ -186,14 +247,20 @@ export function RoundOf16Leaderboard({
 export function RoundOf16EntrantsPanel({
   entries,
   poolSlug,
+  picksArePublic,
 }: {
   entries: RoundOf16PublicEntry[];
   poolSlug: string;
+  picksArePublic: boolean;
 }) {
   return (
     <LedgerPanel
       title="Entrants"
-      description="Submitted entries in this pool."
+      description={
+        picksArePublic
+          ? "Submitted entries in this pool."
+          : "Submitted entries are listed now. Pick details unlock after the deadline."
+      }
     >
       <LedgerRows>
         {entries.map((entry) => (
@@ -202,17 +269,25 @@ export function RoundOf16EntrantsPanel({
             className="flex items-center justify-between gap-4"
           >
             <div className="min-w-0">
-              <Link
-                href={`/pools/${poolSlug}/entry/${entry.entryId}`}
-                className="block truncate font-semibold text-brand-ink hover:text-brand-hot"
-              >
-                {entry.entryName}
-              </Link>
+              {entry.picksVisible ? (
+                <Link
+                  href={`/pools/${poolSlug}/entry/${entry.entryId}`}
+                  className="block truncate font-semibold text-brand-ink hover:text-brand-hot"
+                >
+                  {entry.entryName}
+                </Link>
+              ) : (
+                <p className="truncate font-semibold text-brand-ink">
+                  {entry.entryName}
+                </p>
+              )}
               <p className="mt-1 text-sm font-normal text-muted-foreground">
                 Submitted {formatDateTime(entry.submittedAt)}
               </p>
             </div>
-            <Badge variant="outline">Entered</Badge>
+            <Badge variant="outline">
+              {entry.picksVisible ? "Viewable" : "Locked"}
+            </Badge>
           </LedgerRow>
         ))}
         {entries.length === 0 ? (
@@ -285,7 +360,7 @@ export function RoundOf16EntryDetail({
   settings,
   standing,
 }: {
-  entry: RoundOf16PublicEntry;
+  entry: RoundOf16ViewerEntry;
   settings: RoundOf16PoolSettings;
   standing?: RoundOf16StoredLeaderboardRow;
 }) {

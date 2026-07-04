@@ -13,11 +13,14 @@ Set these values in the production app host, such as Vercel:
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 SUPABASE_SERVICE_ROLE_KEY=
+FY_POOLS_SCORING_API_KEY=
 ```
 
 Use the values from the target Supabase project's API settings. The service role
 key must stay server-only and must not be exposed to browser code, client
 components, logs, analytics, or public build output.
+Set `FY_POOLS_SCORING_API_KEY` to a high-entropy secret used by trusted scoring
+jobs when calling the Round of 16 scoring refresh API.
 
 The Stripe and Resend variables in `.env.example` are reserved for later launch
 work. They are not required for the Round of 16 MVP flow unless payments or
@@ -108,7 +111,7 @@ email before signing in and publishing the first pool.
 Before marking the Supabase setup blocker complete:
 
 1. Apply migrations to a fresh production or throwaway Supabase project.
-2. Set the three required Supabase variables in the deployed app environment.
+2. Set the required Supabase and scoring API variables in the deployed app environment.
 3. Create a commissioner account from `/sign-up`.
 4. Publish a Round of 16 pool with at least one participant email.
 5. Open a generated `/join/<invite-code>` link in a signed-out session.

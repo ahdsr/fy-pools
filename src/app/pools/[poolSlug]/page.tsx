@@ -14,6 +14,7 @@ import {
   RoundOf16BracketPanel,
   RoundOf16EntrantsPanel,
   RoundOf16PublicStats,
+  RoundOf16ViewerEntryPanel,
 } from "@/components/app/round-of-16-public-panels";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import {
@@ -46,6 +47,13 @@ export default async function PoolPage({ params }: PoolPageProps) {
       >
         <RoundOf16PublicStats pool={roundOf16Pool} />
 
+        {roundOf16Pool.viewerEntry ? (
+          <RoundOf16ViewerEntryPanel
+            entry={roundOf16Pool.viewerEntry}
+            settings={roundOf16Pool.settings}
+          />
+        ) : null}
+
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
           <RoundOf16BracketPanel
             settings={roundOf16Pool.settings}
@@ -54,6 +62,7 @@ export default async function PoolPage({ params }: PoolPageProps) {
           <RoundOf16EntrantsPanel
             entries={roundOf16Pool.entries}
             poolSlug={roundOf16Pool.poolSlug}
+            picksArePublic={roundOf16Pool.picksArePublic}
           />
         </section>
       </PublicPoolShell>
