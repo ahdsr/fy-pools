@@ -82,7 +82,7 @@ export function EditPoolForm({ pool }: { pool: CommissionerRoundOf16AdminPool })
                 required
               />
             </Field>
-            <Field label="Picks lock at" htmlFor="picks-lock-at">
+            <Field label="Picks lock at (EST)" htmlFor="picks-lock-at">
               <Input
                 id="picks-lock-at"
                 name="picksLockAt"
@@ -91,14 +91,11 @@ export function EditPoolForm({ pool }: { pool: CommissionerRoundOf16AdminPool })
                 required
               />
             </Field>
-            <Field label="Timezone" htmlFor="timezone">
-              <Input
-                id="timezone"
-                name="timezone"
-                defaultValue={pool.settings.basics.timezone}
-                required
-              />
-            </Field>
+            <input
+              type="hidden"
+              name="timezone"
+              value={pool.settings.basics.timezone || "America/Toronto"}
+            />
             <div className="md:col-span-2">
               <Field label="Description" htmlFor="description">
                 <Textarea

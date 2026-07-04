@@ -368,8 +368,6 @@ function LockedSetupBracketMatchCard({
   matchup: RoundOf16WizardState["matchups"][number];
   index: number;
 }) {
-  const complete = matchup.teamOne.trim() && matchup.teamTwo.trim();
-
   return (
     <div className="relative">
       <span
@@ -382,18 +380,12 @@ function LockedSetupBracketMatchCard({
       <article
         className={cn(
           "overflow-hidden rounded-lg border bg-background shadow-sm",
-          complete && "border-primary/35 ring-1 ring-primary/10",
         )}
       >
-        <div className="flex items-center justify-between gap-3 border-b bg-surface-ledger/60 px-3 py-2">
+        <div className="border-b bg-surface-ledger/60 px-3 py-2">
           <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
             Match {index + 1}
           </p>
-          {complete ? (
-            <span className="text-xs font-semibold text-brand-success">
-              Locked
-            </span>
-          ) : null}
         </div>
         <LockedSetupBracketTeam
           label="Team 1"
@@ -874,6 +866,7 @@ export function NewPoolWizardStart() {
         basics: {
           ...defaults.basics,
           ...createdDraft.basics,
+          timezone: createdDraft.basics.timezone || defaults.basics.timezone,
         },
         matchups: createdDraft.matchups,
         bonusProps: createdDraft.bonusProps,
@@ -1119,7 +1112,7 @@ export function NewPoolWizardStart() {
                   />
                 </FieldShell>
                 <FieldShell
-                  label="Picks lock at"
+                  label="Picks lock at (EST)"
                   htmlFor="picks-lock-at"
                   error={
                     state.basics.picksLockAt.trim()
@@ -1137,29 +1130,6 @@ export function NewPoolWizardStart() {
                         basics: {
                           ...current.basics,
                           picksLockAt: event.target.value,
-                        },
-                      }))
-                    }
-                  />
-                </FieldShell>
-                <FieldShell
-                  label="Timezone"
-                  htmlFor="timezone"
-                  error={
-                    state.basics.timezone.trim()
-                      ? undefined
-                      : "Timezone is required."
-                  }
-                >
-                  <Input
-                    id="timezone"
-                    value={state.basics.timezone}
-                    onChange={(event) =>
-                      setState((current) => ({
-                        ...current,
-                        basics: {
-                          ...current.basics,
-                          timezone: event.target.value,
                         },
                       }))
                     }
