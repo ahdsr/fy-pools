@@ -30,14 +30,16 @@ automated email sending are explicitly added back to the launch scope.
 
 1. Create a new production Supabase project.
 2. In Supabase Auth, enable email/password signups for the private MVP test
-   group.
+   group, require email confirmation, require recent reauthentication for
+   password changes, and set the minimum password length to at least 8
+   characters.
 3. Add production auth redirect URLs:
    - `https://<production-domain>/auth/callback`
    - `https://<production-domain>/sign-in`
    - `https://<production-domain>/sign-up`
    - `https://<production-domain>/join/*` when wildcard redirects are allowed.
 4. Configure the site URL to the production domain.
-5. If email confirmation is enabled, verify that the email template links route
+5. Verify that confirmation and password-recovery email template links route
    back through `/auth/callback`.
 6. Keep provider OAuth settings disabled unless they are intentionally added in a
    later auth-readiness pass.
@@ -103,8 +105,8 @@ There is no global admin role in the MVP.
 4. Publishing creates the pool with `pools.owner_id` set to that commissioner.
 5. Participant links are generated from `pool_invites.code` and shared manually.
 
-If production email confirmation is enabled, the commissioner must confirm their
-email before signing in and publishing the first pool.
+The commissioner must confirm their email before signing in and publishing the
+first pool.
 
 ## Launch Smoke Test Prerequisites
 

@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import type { NextRequest } from "next/server";
 
 import { refreshRoundOf16ScoringForPool } from "@/lib/round-of-16/persistence";
@@ -28,6 +29,16 @@ function stringRecord(value: unknown) {
   return Object.fromEntries(entries) as Record<string, string>;
 }
 
+function secretsMatch(candidate: string, expected: string) {
+  const candidateBuffer = Buffer.from(candidate);
+  const expectedBuffer = Buffer.from(expected);
+
+  return (
+    candidateBuffer.length === expectedBuffer.length &&
+    timingSafeEqual(candidateBuffer, expectedBuffer)
+  );
+}
+
 function authorizeScoringRequest(request: NextRequest): ApiKeyResult {
   const configuredKey = process.env.FY_POOLS_SCORING_API_KEY?.trim();
 
@@ -45,7 +56,10 @@ function authorizeScoringRequest(request: NextRequest): ApiKeyResult {
     : "";
   const headerKey = request.headers.get("x-fy-pools-api-key")?.trim() ?? "";
 
-  if (bearerToken === configuredKey || headerKey === configuredKey) {
+  if (
+    secretsMatch(bearerToken, configuredKey) ||
+    secretsMatch(headerKey, configuredKey)
+  ) {
     return { ok: true };
   }
 
@@ -108,9 +122,11 @@ export async function POST(request: NextRequest, { params }: ScoreRouteContext) 
       rows,
     });
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Scoring could not be refreshed.";
+    console.error("[fy-pools] Round of 16 scoring refresh failed", error);
 
-    return Response.json({ error: message }, { status: 500 });
+    return Response.json(
+      { error: "Scoring could not be refreshed." },
+      { status: 500 },
+    );
   }
 }

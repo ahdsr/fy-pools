@@ -425,7 +425,7 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
           id="password"
           name="password"
           type="password"
-          minLength={6}
+          minLength={8}
           required
         />
       </div>
@@ -502,7 +502,7 @@ export function MockResetPasswordForm({ nextPath }: MockAuthFormProps) {
           id="new-password"
           name="password"
           type="password"
-          minLength={6}
+          minLength={8}
           required
         />
       </div>
@@ -512,7 +512,7 @@ export function MockResetPasswordForm({ nextPath }: MockAuthFormProps) {
           id="confirm-password"
           name="confirmPassword"
           type="password"
-          minLength={6}
+          minLength={8}
           required
         />
       </div>
@@ -581,7 +581,7 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
           id="signup-password"
           name="password"
           type="password"
-          minLength={6}
+          minLength={8}
           required
         />
       </div>

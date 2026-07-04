@@ -37,6 +37,9 @@ yarn-error.log*
 # local dev server logs
 dev-server*.log
 
+# generated browser profiles from visual comparison runs
+visual-comparison/chrome-profile*/
+
 # vercel
 .vercel
 

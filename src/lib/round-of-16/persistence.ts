@@ -292,12 +292,6 @@ function sanitizeRoundOf16PickPayload({
   return { payload: sanitized };
 }
 
-function entryMetadata(value: unknown) {
-  return value && typeof value === "object" && !Array.isArray(value)
-    ? (value as Record<string, unknown>)
-    : {};
-}
-
 export async function requireSupabaseUser() {
   assertSupabaseConfigured();
   const user = await getSupabaseUser();
@@ -325,6 +319,12 @@ export async function ensureProfile({
   });
 
   if (error) throw new Error(error.message);
+}
+
+function userHasConfirmedEmail(
+  user: NonNullable<Awaited<ReturnType<typeof getSupabaseUser>>>,
+) {
+  return Boolean(user.email_confirmed_at || user.confirmed_at);
 }
 
 async function ensureRoundOf16TemplateVersion(admin: SupabaseAdmin) {
@@ -577,71 +577,6 @@ export function pickPayloadAndItemIdsFromItems({
   return { payload, itemIds };
 }
 
-async function claimRoundOf16GuestEntryForUser({
-  admin,
-  poolId,
-  user,
-}: {
-  admin: SupabaseAdmin;
-  poolId: string;
-  user: NonNullable<Awaited<ReturnType<typeof getSupabaseUser>>>;
-}) {
-  const email = normalizeEmailAddress(user.email ?? "");
-  if (!email) return null;
-
-  const { data: guestEntry, error } = await admin
-    .from("entries")
-    .select(
-      "id,display_name,metadata,entry_picks(id,status,submitted_at,entry_pick_items(value))",
-    )
-    .eq("pool_id", poolId)
-    .is("user_id", null)
-    .eq("metadata->>guestEmail", email)
-    .order("created_at", { ascending: true })
-    .limit(1)
-    .maybeSingle();
-
-  if (error) throw new Error(error.message);
-  if (!guestEntry) return null;
-
-  const guestDisplayName = String(guestEntry.display_name ?? "").trim();
-  const displayName =
-    user.user_metadata?.display_name ??
-    (guestDisplayName || user.email?.split("@")[0] || "Participant");
-  const metadata = entryMetadata(guestEntry.metadata);
-  const claimedAt = new Date().toISOString();
-
-  await ensureProfile({ userId: user.id, displayName });
-
-  const { error: memberError } = await admin.from("pool_members").upsert(
-    {
-      pool_id: poolId,
-      user_id: user.id,
-      role: "player",
-    },
-    { onConflict: "pool_id,user_id" },
-  );
-
-  if (memberError) throw new Error(memberError.message);
-
-  const { error: updateError } = await admin
-    .from("entries")
-    .update({
-      user_id: user.id,
-      metadata: {
-        ...metadata,
-        claimedAt,
-        claimedBy: user.id,
-      },
-    })
-    .eq("id", guestEntry.id)
-    .is("user_id", null);
-
-  if (updateError) throw new Error(updateError.message);
-
-  return guestEntry;
-}
-
 export async function publishRoundOf16Pool({
   settings,
   participants,
@@ -780,7 +715,7 @@ export async function getJoinPoolData(inviteCode: string) {
   const deadlineHasPassed = pickDeadlineHasPassed(settings);
 
   if (user) {
-    let { data: entry } = await admin
+    const { data: entry } = await admin
       .from("entries")
       .select(
         "id,entry_picks(id,status,submitted_at,entry_pick_items(value))",
@@ -788,14 +723,6 @@ export async function getJoinPoolData(inviteCode: string) {
       .eq("pool_id", poolRecord.id)
       .eq("user_id", user.id)
       .maybeSingle();
-
-    if (!entry && !String(invite.email ?? "")) {
-      entry = await claimRoundOf16GuestEntryForUser({
-        admin,
-        poolId: String(poolRecord.id),
-        user,
-      });
-    }
 
     const entryPick = Array.isArray(entry?.entry_picks)
       ? entry.entry_picks[0]
@@ -875,6 +802,9 @@ export async function submitRoundOf16Picks({
     if (!inviteEmail || !userEmail || inviteEmail !== userEmail) {
       throw new Error("Sign in with the email address this invite was sent to.");
     }
+    if (!userHasConfirmedEmail(user)) {
+      throw new Error("Confirm your email address before submitting invited picks.");
+    }
   }
 
   if (pickDeadlineHasPassed(settings)) {
@@ -896,129 +826,74 @@ export async function submitRoundOf16Picks({
     "Participant";
   await ensureProfile({ userId: user.id, displayName });
 
-  await admin.from("pool_members").upsert(
-    {
-      pool_id: joinData.pool.id,
-      user_id: user.id,
-      role: "player",
-    },
-    { onConflict: "pool_id,user_id" },
-  );
-
-  if (!joinData.invite.isShareLink) {
-    await admin
-      .from("pool_invites")
-      .update({
-        status: "accepted",
-        accepted_by: user.id,
-        accepted_at: new Date().toISOString(),
-      })
-      .eq("id", joinData.invite.id);
-  }
-
-  const { data: entry, error: entryError } = await admin
-    .from("entries")
-    .upsert(
-      {
-        pool_id: joinData.pool.id,
-        user_id: user.id,
-        display_name: displayName,
-        entry_number: 1,
-        metadata: {
-          inviteCode,
-          entryEmail: normalizeEmailAddress(user.email ?? ""),
-          inviteEmail: joinData.invite.email,
-        },
-      },
-      { onConflict: "pool_id,user_id,entry_number" },
-    )
-    .select("id")
-    .single();
-
-  if (entryError) throw new Error(entryError.message);
-
-  const { data: existingPick } = await admin
-    .from("entry_picks")
-    .select("id,status")
-    .eq("entry_id", entry.id)
-    .eq("template_version_id", joinData.pool.templateVersionId)
-    .maybeSingle();
-
-  if (existingPick?.status === "locked") {
-    throw new Error("Your picks are locked.");
-  }
-
   const submittedAt = new Date().toISOString();
-  const { data: entryPick, error: entryPickError } = await admin
-    .from("entry_picks")
-    .upsert(
-      {
-        entry_id: entry.id,
-        template_version_id: joinData.pool.templateVersionId,
-        status: "submitted",
-        submitted_at: submittedAt,
-        updated_at: submittedAt,
-      },
-      { onConflict: "entry_id,template_version_id" },
-    )
-    .select("id")
-    .single();
-
-  if (entryPickError) throw new Error(entryPickError.message);
-
   const fieldMap = await ensureRoundOf16PickFields({
     admin,
     templateVersionId: joinData.pool.templateVersionId,
     settings,
   });
   const winnerItems = settings.matchups.map((matchup, index) => ({
-    entry_pick_id: entryPick.id,
     template_pick_field_id: fieldMap.get(`r16_${index + 1}_winner`)?.id,
     pick_type: "bracket_winner",
     value: {
       matchupId: matchup.id,
       winner: validPayload.winners[matchup.id],
     },
-    submitted_at: submittedAt,
   }));
   const bonusItems = getEnabledRoundOf16BonusProps(settings).map((prop) => ({
-    entry_pick_id: entryPick.id,
     template_pick_field_id: fieldMap.get(`bonus_${prop.id}`)?.id,
     pick_type: prop.id === "penalty-decisions" ? "numeric_bonus" : "text_bonus",
     value: {
       propId: prop.id,
       answer: validPayload.bonusAnswers[prop.id],
     },
-    submitted_at: submittedAt,
   }));
   const pickItems = [...winnerItems, ...bonusItems].filter(
     (item) => item.template_pick_field_id,
   );
-  const { error: itemsError } = await admin
-    .from("entry_pick_items")
-    .upsert(pickItems, {
-      onConflict: "entry_pick_id,template_pick_field_id",
-    });
+  if (pickItems.length !== winnerItems.length + bonusItems.length) {
+    throw new Error("Pool pick fields are not configured correctly.");
+  }
 
-  if (itemsError) throw new Error(itemsError.message);
-
-  await admin.from("commissioner_notifications").insert({
-    pool_id: joinData.pool.id,
-    recipient_id: joinData.pool.ownerId,
-    actor_id: user.id,
-    event_type: "entry_submitted",
-    title: "Entry submitted",
-    body: `${displayName} submitted picks for ${joinData.pool.name}.`,
-    metadata: {
-      entryId: entry.id,
-      entryPickId: entryPick.id,
-      inviteCode,
+  const { data: submittedRows, error: submitError } = await admin.rpc(
+    "submit_round_of_16_picks_transaction",
+    {
+      p_pool_id: joinData.pool.id,
+      p_user_id: user.id,
+      p_template_version_id: joinData.pool.templateVersionId,
+      p_invite_id: joinData.invite.id,
+      p_accept_invite: !joinData.invite.isShareLink,
+      p_display_name: displayName,
+      p_entry_number: 1,
+      p_entry_metadata: {
+        inviteCode,
+        entryEmail: normalizeEmailAddress(user.email ?? ""),
+        inviteEmail: joinData.invite.email,
+      },
+      p_submitted_at: submittedAt,
+      p_pick_items: pickItems.map((item) => ({
+        template_pick_field_id: item.template_pick_field_id,
+        pick_type: item.pick_type,
+        value: item.value,
+      })),
+      p_owner_id: joinData.pool.ownerId,
+      p_pool_name: joinData.pool.name,
+      p_invite_code: inviteCode,
     },
-  });
+  );
+
+  if (submitError) throw new Error(submitError.message);
+
+  const submittedRow = Array.isArray(submittedRows)
+    ? submittedRows[0]
+    : submittedRows;
+  if (!submittedRow?.entry_id || !submittedRow?.entry_pick_id) {
+    throw new Error("Picks were not submitted.");
+  }
 
   return {
-    entryId: String(entry.id),
-    entryPickId: String(entryPick.id),
+    entryId: String(submittedRow.entry_id),
+    entryPickId: String(submittedRow.entry_pick_id),
     submittedAt,
   };
 }
@@ -1142,24 +1017,7 @@ export async function getCommissionerPoolSummaries() {
       .roundOf16;
     const deadline = getRoundOf16DeadlineStatus(settings);
     const invites = Array.isArray(pool.pool_invites) ? pool.pool_invites : [];
-    let shareInvite = invites.find((invite) => !String(invite.email ?? ""));
-    if (!shareInvite && settings) {
-      const { data: createdShareInvite, error: shareInviteError } = await admin
-        .from("pool_invites")
-        .insert({
-          pool_id: pool.id,
-          email: null,
-          display_name: "Signup link",
-          code: buildInviteCode(),
-          status: "pending",
-          expires_at: getInviteExpiresAt(settings),
-        })
-        .select("id,email,code,status,expires_at")
-        .single();
-
-      if (shareInviteError) throw new Error(shareInviteError.message);
-      shareInvite = createdShareInvite;
-    }
+    const shareInvite = invites.find((invite) => !String(invite.email ?? ""));
     const namedInvites = invites.filter((invite) => String(invite.email ?? ""));
     const entries = Array.isArray(pool.entries) ? pool.entries : [];
     const inviteCounts = namedInvites.reduce(

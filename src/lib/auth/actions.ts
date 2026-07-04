@@ -80,8 +80,8 @@ export async function signUpWithPasswordAction(
     return { message: "Name, email, and password are required." };
   }
 
-  if (password.length < 6) {
-    return { message: "Password must be at least 6 characters." };
+  if (password.length < 8) {
+    return { message: "Password must be at least 8 characters." };
   }
 
   try {
@@ -175,8 +175,8 @@ export async function updatePasswordAction(
     return { message: "Password and confirmation are required." };
   }
 
-  if (password.length < 6) {
-    return { message: "Password must be at least 6 characters." };
+  if (password.length < 8) {
+    return { message: "Password must be at least 8 characters." };
   }
 
   if (password !== confirmPassword) {
