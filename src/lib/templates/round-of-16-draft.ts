@@ -208,15 +208,9 @@ export function createDefaultRoundOf16WizardState(
       { id: "payout-3", place: "3rd Place", amount: "" },
     ],
     inviteSettings: {
-      expectedEntries: 16,
+      expectedEntries: 0,
       inviteNote: "",
-      participants: [
-        {
-          id: "participant-1",
-          email: "",
-          displayName: "",
-        },
-      ],
+      participants: [],
     },
   };
 }
@@ -287,6 +281,67 @@ export function getRoundOf16ScoringBalance(
       winnerTotal > 0 &&
       bonusTotal <= maxBonusTotal &&
       highestBonusPoints <= maxSingleBonusPoints,
+  };
+}
+
+export function parseCurrencyAmount(value: string | null | undefined) {
+  const normalized = textValue(value).replace(/[$,\s]/g, "");
+  if (!normalized) return null;
+  if (!/^\d+(\.\d{1,2})?$/.test(normalized)) return Number.NaN;
+
+  return Math.round(Number(normalized) * 100);
+}
+
+export function formatCurrencyAmount(cents: number) {
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: cents % 100 === 0 ? 0 : 2,
+  }).format(cents / 100);
+}
+
+export function getRoundOf16PayoutBalance({
+  prizePoolLabel,
+  payouts,
+}: Pick<RoundOf16ScoringDraft, "prizePoolLabel"> & {
+  payouts: RoundOf16PayoutDraft[];
+}) {
+  const prizePoolCents = parseCurrencyAmount(prizePoolLabel);
+  const payoutAmounts = payouts.map((payout) => ({
+    id: payout.id,
+    place: payout.place,
+    amount: payout.amount,
+    cents: parseCurrencyAmount(payout.amount),
+  }));
+  const invalidPayout = payoutAmounts.find((payout) =>
+    Number.isNaN(payout.cents),
+  );
+  const payoutTotalCents = payoutAmounts.reduce(
+    (total, payout) =>
+      total +
+      (typeof payout.cents === "number" && !Number.isNaN(payout.cents)
+        ? payout.cents
+        : 0),
+    0,
+  );
+  const remainingCents =
+    typeof prizePoolCents === "number" && !Number.isNaN(prizePoolCents)
+      ? prizePoolCents - payoutTotalCents
+      : null;
+
+  return {
+    prizePoolCents,
+    payoutAmounts,
+    payoutTotalCents,
+    remainingCents,
+    invalidPrizePool: Number.isNaN(prizePoolCents),
+    invalidPayout,
+    balanced:
+      typeof prizePoolCents === "number" &&
+      !Number.isNaN(prizePoolCents) &&
+      prizePoolCents > 0 &&
+      !invalidPayout &&
+      remainingCents === 0,
   };
 }
 
@@ -387,6 +442,24 @@ export function validateRoundOf16PoolSettings(
   ) {
     return "Payout amounts need a place label.";
   }
+  const payoutBalance = getRoundOf16PayoutBalance({
+    prizePoolLabel: textValue(settings?.scoring?.prizePoolLabel),
+    payouts,
+  });
+  if (payoutBalance.prizePoolCents === null) {
+    return "Prize pool total is required.";
+  }
+  if (payoutBalance.invalidPrizePool) {
+    return "Prize pool total must be a dollar amount.";
+  }
+  if (payoutBalance.invalidPayout) {
+    return `${payoutBalance.invalidPayout.place || "Payout"} amount must be a dollar amount.`;
+  }
+  if (!payoutBalance.balanced) {
+    return `Payouts must add up to ${formatCurrencyAmount(
+      payoutBalance.prizePoolCents,
+    )}.`;
+  }
 
   return null;
 }
@@ -449,6 +522,10 @@ export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
   const scoringBalance = getRoundOf16ScoringBalance(
     toRoundOf16PoolSettings(state),
   );
+  const payoutBalance = getRoundOf16PayoutBalance({
+    prizePoolLabel: state.scoring.prizePoolLabel,
+    payouts: state.payouts,
+  });
   const settingsError = validateRoundOf16PoolSettings(
     toRoundOf16PoolSettings(state),
   );
@@ -479,13 +556,14 @@ export function validateRoundOf16WizardState(state: RoundOf16WizardState) {
       Number.isFinite(state.scoring.winnerPoints) &&
       state.scoring.winnerPoints > 0 &&
       scoringBalance.balanced &&
+      payoutBalance.balanced &&
       state.payouts.every(
         (payout) =>
           payout.place.trim().length > 0 || payout.amount.trim().length === 0,
       ),
     invites:
       Number.isFinite(state.inviteSettings.expectedEntries) &&
-      state.inviteSettings.expectedEntries > 0 &&
+      state.inviteSettings.expectedEntries >= 0 &&
       !settingsError &&
       !inviteError,
   };

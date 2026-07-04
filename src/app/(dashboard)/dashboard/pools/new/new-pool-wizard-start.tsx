@@ -37,10 +37,12 @@ import {
   ROUND_OF_16_TEMPLATE_SLUG,
   createDefaultRoundOf16WizardState,
   createRoundOf16PoolDraft,
+  formatCurrencyAmount,
+  getRoundOf16PayoutBalance,
   getRoundOf16ScoringBalance,
   isRoundOf16WizardStateComplete,
+  parseCurrencyAmount,
   saveRoundOf16Draft,
-  slugifyPoolName,
   toRoundOf16PoolSettings,
   validateRoundOf16WizardState,
   validateRoundOf16InviteInputs,
@@ -113,6 +115,24 @@ function percentLabel(value: number) {
   if (!Number.isFinite(value)) return "0%";
 
   return `${Math.round(value * 100)}%`;
+}
+
+function payoutAmountError(value: string) {
+  return Number.isNaN(parseCurrencyAmount(value))
+    ? "Use a dollar amount."
+    : undefined;
+}
+
+function fairThreePlacePayouts(prizePoolCents: number) {
+  const first = Math.round(prizePoolCents * 0.5);
+  const second = Math.round(prizePoolCents * 0.3);
+  const third = prizePoolCents - first - second;
+
+  return [
+    { place: "1st Place", amount: formatCurrencyAmount(first) },
+    { place: "2nd Place", amount: formatCurrencyAmount(second) },
+    { place: "3rd Place", amount: formatCurrencyAmount(third) },
+  ];
 }
 
 function buildWizardHref(templateSlug: string, draftId?: string) {
@@ -793,11 +813,12 @@ export function NewPoolWizardStart() {
   const scoringBalance = getRoundOf16ScoringBalance(
     toRoundOf16PoolSettings(state),
   );
+  const payoutBalance = getRoundOf16PayoutBalance({
+    prizePoolLabel: state.scoring.prizePoolLabel,
+    payouts: state.payouts,
+  });
   const inviteError = validateRoundOf16InviteInputs(
     state.inviteSettings.participants,
-  );
-  const filledPayouts = state.payouts.filter(
-    (payout) => payout.place.trim() || payout.amount.trim(),
   );
   const serializedSettings = JSON.stringify(toRoundOf16PoolSettings(state));
   const serializedParticipants = JSON.stringify(
@@ -836,6 +857,27 @@ export function NewPoolWizardStart() {
           amount: "",
         },
       ],
+    }));
+  }
+
+  function applyFairPayoutSplit() {
+    const prizePoolCents = parseCurrencyAmount(state.scoring.prizePoolLabel);
+    if (
+      typeof prizePoolCents !== "number" ||
+      Number.isNaN(prizePoolCents) ||
+      prizePoolCents <= 0
+    ) {
+      return;
+    }
+
+    const split = fairThreePlacePayouts(prizePoolCents);
+    setState((current) => ({
+      ...current,
+      payouts: current.payouts.map((payout, index) => ({
+        ...payout,
+        place: split[index]?.place ?? payout.place,
+        amount: split[index]?.amount ?? "",
+      })),
     }));
   }
 
@@ -1297,7 +1339,17 @@ export function NewPoolWizardStart() {
                       }
                     />
                   </FieldShell>
-                  <FieldShell label="Prize pool label" htmlFor="prize-pool">
+                  <FieldShell
+                    label="Prize pool total"
+                    htmlFor="prize-pool"
+                    error={
+                      payoutBalance.prizePoolCents === null
+                        ? "Prize pool total is required."
+                        : payoutBalance.invalidPrizePool
+                          ? "Use a dollar amount."
+                          : undefined
+                    }
+                  >
                     <Input
                       id="prize-pool"
                       placeholder="$500"
@@ -1324,12 +1376,83 @@ export function NewPoolWizardStart() {
                     <div>
                       <h3 className="font-semibold text-brand-ink">Payouts</h3>
                       <p className="text-sm font-normal leading-6 text-muted-foreground">
-                        Optional labels for the commissioner ledger.
+                        Payouts must add up to the prize pool total.
                       </p>
                     </div>
-                    <Button type="button" variant="outline" onClick={addPayoutRow}>
-                      <Plus /> Add payout
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={applyFairPayoutSplit}
+                        disabled={
+                          typeof payoutBalance.prizePoolCents !== "number" ||
+                          Number.isNaN(payoutBalance.prizePoolCents) ||
+                          payoutBalance.prizePoolCents <= 0
+                        }
+                      >
+                        Use 50/30/20 split
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={addPayoutRow}
+                      >
+                        <Plus /> Add payout
+                      </Button>
+                    </div>
+                  </div>
+                  <div
+                    className={cn(
+                      "grid gap-3 rounded-lg border bg-background p-4 text-sm sm:grid-cols-3",
+                      payoutBalance.balanced
+                        ? "border-brand-success/30"
+                        : "border-destructive/25",
+                    )}
+                  >
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                        Prize pool
+                      </p>
+                      <p className="mt-1 font-semibold text-brand-ink">
+                        {typeof payoutBalance.prizePoolCents === "number" &&
+                        !Number.isNaN(payoutBalance.prizePoolCents)
+                          ? formatCurrencyAmount(payoutBalance.prizePoolCents)
+                          : "Not set"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                        Payout total
+                      </p>
+                      <p className="mt-1 font-semibold text-brand-ink">
+                        {formatCurrencyAmount(payoutBalance.payoutTotalCents)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                        Tally
+                      </p>
+                      <p
+                        className={cn(
+                          "mt-1 font-semibold",
+                          payoutBalance.balanced
+                            ? "text-brand-success"
+                            : "text-destructive",
+                        )}
+                      >
+                        {payoutBalance.balanced
+                          ? "Balanced"
+                          : payoutBalance.remainingCents === null
+                            ? "Enter prize pool"
+                            : payoutBalance.remainingCents > 0
+                              ? `${formatCurrencyAmount(
+                                  payoutBalance.remainingCents,
+                                )} unallocated`
+                              : `${formatCurrencyAmount(
+                                  Math.abs(payoutBalance.remainingCents),
+                                )} over`}
+                      </p>
+                    </div>
                   </div>
                   <LedgerRows className="overflow-hidden rounded-lg border">
                     {state.payouts.map((payout) => (
@@ -1356,6 +1479,7 @@ export function NewPoolWizardStart() {
                         <FieldShell
                           label="Amount"
                           htmlFor={`${payout.id}-amount`}
+                          error={payoutAmountError(payout.amount)}
                         >
                           <Input
                             id={`${payout.id}-amount`}
@@ -1378,81 +1502,56 @@ export function NewPoolWizardStart() {
             ) : null}
 
             {currentStepDefinition.key === "review" ? (
-              <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_20rem]">
-                <div className="space-y-5">
-                  <div className="grid gap-5 md:grid-cols-2">
-                    <FieldShell
-                      label="Expected entries"
-                      htmlFor="expected-entries"
+              <div className="space-y-5">
+                <div className="rounded-lg border bg-surface-ledger/70 p-4">
+                  <p className="font-semibold text-brand-ink">
+                    Publish creates a share link
+                  </p>
+                  <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                    You do not need every player&apos;s email now. Publish the
+                    pool, copy the signup link, and let players share it with
+                    anyone else who should join.
+                  </p>
+                </div>
+
+                <FieldShell label="Invite note" htmlFor="invite-note">
+                  <Textarea
+                    id="invite-note"
+                    placeholder="Optional note shown with the signup link."
+                    value={state.inviteSettings.inviteNote}
+                    onChange={(event) =>
+                      setState((current) => ({
+                        ...current,
+                        inviteSettings: {
+                          ...current.inviteSettings,
+                          inviteNote: event.target.value,
+                        },
+                      }))
+                    }
+                  />
+                </FieldShell>
+
+                <div className="space-y-3">
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <h3 className="font-semibold text-brand-ink">
+                        Direct invites
+                      </h3>
+                      <p className="text-sm font-normal leading-6 text-muted-foreground">
+                        Optional. Add emails only when you want individual join
+                        links in addition to the general signup link.
+                      </p>
+                    </div>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={addParticipantRow}
                     >
-                      <Input
-                        id="expected-entries"
-                        type="number"
-                        min={0}
-                        value={state.inviteSettings.expectedEntries}
-                        onChange={(event) =>
-                          setState((current) => ({
-                            ...current,
-                            inviteSettings: {
-                              ...current.inviteSettings,
-                              expectedEntries: Math.max(
-                                0,
-                                numberFromInput(event.target.value),
-                              ),
-                            },
-                          }))
-                        }
-                      />
-                    </FieldShell>
-                    <div className="rounded-lg border bg-background p-4">
-                      <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                        Pool page preview
-                      </p>
-                      <p className="mt-2 font-mono text-sm text-brand-ink">
-                        /pools/
-                        {state.basics.poolName
-                          ? slugifyPoolName(state.basics.poolName)
-                          : "..."}
-                      </p>
-                      <p className="mt-2 text-xs font-normal leading-5 text-muted-foreground">
-                        The exact preview link is generated after publishing.
-                      </p>
-                    </div>
+                      <Plus /> Add direct invite
+                    </Button>
                   </div>
-                  <FieldShell label="Invite note" htmlFor="invite-note">
-                    <Textarea
-                      id="invite-note"
-                      placeholder="Tell players when picks lock and how to join."
-                      value={state.inviteSettings.inviteNote}
-                      onChange={(event) =>
-                        setState((current) => ({
-                          ...current,
-                          inviteSettings: {
-                            ...current.inviteSettings,
-                            inviteNote: event.target.value,
-                          },
-                        }))
-                      }
-                    />
-                  </FieldShell>
-                  <div className="space-y-3">
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      <div>
-                        <h3 className="font-semibold text-brand-ink">
-                          Participants
-                        </h3>
-                        <p className="text-sm font-normal leading-6 text-muted-foreground">
-                          Each email gets its own join link after publishing.
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        variant="outline"
-                        onClick={addParticipantRow}
-                      >
-                        <Plus /> Add participant
-                      </Button>
-                    </div>
+
+                  {state.inviteSettings.participants.length > 0 ? (
                     <LedgerRows className="overflow-hidden rounded-lg border">
                       {state.inviteSettings.participants.map((participant) => (
                         <LedgerRow
@@ -1495,53 +1594,16 @@ export function NewPoolWizardStart() {
                         </LedgerRow>
                       ))}
                     </LedgerRows>
-                    <FieldError>{inviteError}</FieldError>
-                  </div>
-                  <div className="rounded-lg border bg-background p-5">
-                    <h3 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
-                      {state.basics.poolName || "Untitled pool"}
-                    </h3>
-                    <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">
-                      {state.matchups.length} Round of 16 matchups,{" "}
-                      {enabledBonusCount} enabled props,{" "}
-                      {state.scoring.winnerPoints} points per winner, and{" "}
-                      {state.inviteSettings.expectedEntries} expected entries.
-                    </p>
-                    <p className="mt-2 text-sm font-normal leading-6 text-muted-foreground">
-                      {scoringBalance.winnerTotal} matchup points and{" "}
-                      {scoringBalance.bonusTotal} bonus points available.
-                    </p>
-                  </div>
+                  ) : (
+                    <LedgerRow className="rounded-lg border bg-background">
+                      <p className="text-sm font-normal leading-6 text-muted-foreground">
+                        No direct invites added. The pool can still be published
+                        and shared with the general signup link.
+                      </p>
+                    </LedgerRow>
+                  )}
+                  <FieldError>{inviteError}</FieldError>
                 </div>
-                <LedgerRows className="overflow-hidden rounded-lg border bg-background">
-                  {stepDefinitions.slice(0, -1).map((step) => {
-                    const complete = stepIsValid(step.key, validation);
-
-                    return (
-                      <LedgerRow
-                        key={step.key}
-                        className="flex items-center gap-3"
-                      >
-                        {complete ? (
-                          <CheckCircle2 className="size-5 text-brand-success" />
-                        ) : (
-                          <Circle className="size-5 text-muted-foreground" />
-                        )}
-                        <p className="font-medium text-brand-ink">
-                          {step.title}
-                        </p>
-                      </LedgerRow>
-                    );
-                  })}
-                  <LedgerRow>
-                    <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                      Payout rows
-                    </p>
-                    <p className="mt-1 text-sm font-semibold text-brand-ink">
-                      {filledPayouts.length || 0} configured
-                    </p>
-                  </LedgerRow>
-                </LedgerRows>
               </div>
             ) : null}
 
