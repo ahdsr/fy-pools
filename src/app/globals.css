@@ -9,9 +9,9 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-pool-sans);
+  --font-sans: var(--font-momo-trust-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-pool-heading);
+  --font-heading: var(--font-momo-trust-display);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

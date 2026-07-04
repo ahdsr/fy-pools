@@ -1,23 +1,55 @@
 import type { Metadata } from "next";
-import {
-  Geist_Mono,
-  Manrope,
-  Outfit,
-} from "next/font/google";
+import { Geist_Mono } from "next/font/google";
+import localFont from "next/font/local";
 
 import { MockAuthProvider } from "@/components/app/mock-auth";
 import "./globals.css";
 
-const poolSans = Manrope({
-  variable: "--font-pool-sans",
-  subsets: ["latin"],
+const momoTrustSans = localFont({
+  src: [
+    {
+      path: "./fonts/momo-trust-sans-300.ttf",
+      weight: "300",
+      style: "normal",
+    },
+    {
+      path: "./fonts/momo-trust-sans-400.ttf",
+      weight: "400",
+      style: "normal",
+    },
+    {
+      path: "./fonts/momo-trust-sans-500.ttf",
+      weight: "500",
+      style: "normal",
+    },
+    {
+      path: "./fonts/momo-trust-sans-600.ttf",
+      weight: "600",
+      style: "normal",
+    },
+    {
+      path: "./fonts/momo-trust-sans-700.ttf",
+      weight: "700",
+      style: "normal",
+    },
+    {
+      path: "./fonts/momo-trust-sans-800.ttf",
+      weight: "800",
+      style: "normal",
+    },
+  ],
+  variable: "--font-momo-trust-sans",
   display: "swap",
+  fallback: ["system-ui", "Arial", "sans-serif"],
+  adjustFontFallback: false,
 });
 
-const poolHeading = Outfit({
-  variable: "--font-pool-heading",
-  subsets: ["latin"],
+const momoTrustDisplay = localFont({
+  src: "./fonts/momo-trust-display-400.ttf",
+  variable: "--font-momo-trust-display",
   display: "swap",
+  fallback: ["Georgia", "Times New Roman", "serif"],
+  adjustFontFallback: false,
 });
 
 const geistMono = Geist_Mono({
@@ -44,7 +76,7 @@ export default function RootLayout({
     <html
       lang="en"
       data-theme="premium-pools"
-      className={`${poolSans.variable} ${poolHeading.variable} ${geistMono.variable} ${poolSans.className} h-full antialiased`}
+      className={`${momoTrustSans.variable} ${momoTrustDisplay.variable} ${geistMono.variable} ${momoTrustSans.className} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <MockAuthProvider>{children}</MockAuthProvider>
