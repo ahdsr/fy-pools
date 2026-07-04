@@ -356,128 +356,37 @@ function ScoringBalanceGuide({
   );
 }
 
-function setupBracketSide(index: number) {
-  return index < 4 ? "left" : "right";
-}
-
-function LockedSetupBracketTeam({
-  label,
-  value,
-}: {
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="border-t first:border-t-0">
-      <p className="block px-3 pt-2 text-[0.68rem] font-semibold uppercase tracking-normal text-muted-foreground">
-        {label}
-      </p>
-      <div className="px-3 pb-3 pt-1.5">
-        <div className="min-h-10 rounded-md border bg-muted/30 px-3 py-2">
-          <TeamPill team={value} className="max-w-full text-sm" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function LockedSetupBracketMatchCard({
-  matchup,
-  index,
-}: {
-  matchup: RoundOf16WizardState["matchups"][number];
-  index: number;
-}) {
-  return (
-    <div className="relative">
-      <span
-        aria-hidden="true"
-        className={cn(
-          "pointer-events-none absolute top-1/2 hidden h-px w-4 -translate-y-px border-t border-brand-rule/70 lg:block",
-          setupBracketSide(index) === "left" ? "left-full" : "right-full",
-        )}
-      />
-      <article
-        className={cn(
-          "overflow-hidden rounded-lg border bg-background shadow-sm",
-        )}
-      >
-        <div className="border-b bg-surface-ledger/60 px-3 py-2">
-          <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-            Match {index + 1}
-          </p>
-        </div>
-        <LockedSetupBracketTeam
-          label="Team 1"
-          value={matchup.teamOne}
-        />
-        <LockedSetupBracketTeam
-          label="Team 2"
-          value={matchup.teamTwo}
-        />
-      </article>
-    </div>
-  );
-}
-
-function SetupBracketSummary({
+function AutomaticMatchupsList({
   matchups,
 }: {
   matchups: RoundOf16WizardState["matchups"];
 }) {
   return (
-    <div className="rounded-lg border bg-background shadow-sm">
-      <div className="border-b bg-surface-ledger/60 px-3 py-2">
-        <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-          Round of 16
-        </p>
-      </div>
+    <div className="overflow-hidden rounded-lg border bg-background">
       <div className="grid divide-y">
         {matchups.map((matchup, index) => (
-          <div key={matchup.id} className="min-h-11 px-3 py-2">
-            <p className="text-[0.68rem] font-medium uppercase tracking-normal text-muted-foreground">
+          <div
+            key={matchup.id}
+            className="grid gap-3 px-4 py-3 sm:grid-cols-[5rem_minmax(0,1fr)] sm:items-center"
+          >
+            <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
               Match {index + 1}
             </p>
-            <p className="mt-0.5 truncate text-sm font-semibold text-brand-ink">
-              {matchup.teamOne || "Team 1"} vs {matchup.teamTwo || "Team 2"}
-            </p>
+            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+              <TeamPill
+                team={matchup.teamOne}
+                className="max-w-full border-0 bg-transparent p-0 shadow-none"
+              />
+              <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                vs
+              </span>
+              <TeamPill
+                team={matchup.teamTwo}
+                className="max-w-full border-0 bg-transparent p-0 shadow-none"
+              />
+            </div>
           </div>
         ))}
-      </div>
-    </div>
-  );
-}
-
-function LockedSetupBracketPreview({
-  matchups,
-}: {
-  matchups: RoundOf16WizardState["matchups"];
-}) {
-  const leftMatchups = matchups.slice(0, 4);
-  const rightMatchups = matchups.slice(4);
-
-  return (
-    <div className="overflow-x-auto">
-      <div className="grid min-w-[58rem] gap-5 p-1 lg:grid-cols-[minmax(0,1fr)_17rem_minmax(0,1fr)] lg:items-center">
-        <div className="grid gap-4">
-          {leftMatchups.map((matchup, index) => (
-            <LockedSetupBracketMatchCard
-              key={matchup.id}
-              matchup={matchup}
-              index={index}
-            />
-          ))}
-        </div>
-        <SetupBracketSummary matchups={matchups} />
-        <div className="grid gap-4">
-          {rightMatchups.map((matchup, index) => (
-            <LockedSetupBracketMatchCard
-              key={matchup.id}
-              matchup={matchup}
-              index={index + 4}
-            />
-          ))}
-        </div>
       </div>
     </div>
   );
@@ -487,10 +396,12 @@ function StepProgress({
   currentStep,
   validation,
   completedSteps,
+  onStepSelect,
 }: {
   currentStep: number;
   validation: ReturnType<typeof validateRoundOf16WizardState>;
   completedSteps: ReadonlySet<StepKey>;
+  onStepSelect: (stepIndex: number) => void;
 }) {
   return (
     <LedgerRows className="overflow-hidden rounded-lg border bg-surface-paper">
@@ -499,15 +410,9 @@ function StepProgress({
         const complete =
           completedSteps.has(step.key) && stepIsValid(step.key, validation);
         const active = currentStep === index;
-
-        return (
-          <LedgerRow
-            key={step.key}
-            className={cn(
-              "grid grid-cols-[auto_1fr_auto] items-center gap-3",
-              active ? "bg-cta-green-soft" : undefined,
-            )}
-          >
+        const canGoBack = index < currentStep;
+        const rowContent = (
+          <>
             <span
               className={cn(
                 "inline-flex size-9 items-center justify-center rounded-full border bg-background",
@@ -528,6 +433,29 @@ function StepProgress({
               </p>
             </div>
             {active ? <Badge variant="secondary">Now</Badge> : null}
+          </>
+        );
+        const rowClassName = cn(
+          "grid grid-cols-[auto_1fr_auto] items-center gap-3 px-5 py-4",
+          active ? "bg-cta-green-soft" : undefined,
+        );
+
+        return (
+          <LedgerRow key={step.key} className="p-0">
+            {canGoBack ? (
+              <button
+                type="button"
+                className={cn(
+                  rowClassName,
+                  "w-full text-left transition hover:bg-cta-green-soft/70 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25",
+                )}
+                onClick={() => onStepSelect(index)}
+              >
+                {rowContent}
+              </button>
+            ) : (
+              <div className={rowClassName}>{rowContent}</div>
+            )}
           </LedgerRow>
         );
       })}
@@ -846,6 +774,10 @@ export function NewPoolWizardStart() {
     setCurrentStep((step) => Math.max(step - 1, 0));
   }
 
+  function goToStep(stepIndex: number) {
+    setCurrentStep((step) => (stepIndex < step ? Math.max(stepIndex, 0) : step));
+  }
+
   function addPayoutRow() {
     setState((current) => ({
       ...current,
@@ -975,6 +907,7 @@ export function NewPoolWizardStart() {
             currentStep={currentStep}
             validation={validation}
             completedSteps={completedSteps}
+            onStepSelect={goToStep}
           />
           <LedgerPanel title="Draft output">
             <LedgerRows>
@@ -1210,7 +1143,7 @@ export function NewPoolWizardStart() {
                     the same participant form as invited players.
                   </p>
                 </div>
-                <LockedSetupBracketPreview matchups={state.matchups} />
+                <AutomaticMatchupsList matchups={state.matchups} />
               </div>
             ) : null}
 
