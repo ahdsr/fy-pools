@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import type { FutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
+import type { PoolAnalytics } from "@/lib/world-cup-pool/leaderboard";
 import type { OpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
 import type { TodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
 import type {
@@ -66,6 +67,74 @@ function futureReport(
     raceMilestones: [],
     matches,
     chasers,
+  };
+}
+
+function analytics(
+  rows: { id: string; rank: number; total: number; maxPossible: number }[],
+  leaderTotal = rows[0]?.total ?? 0,
+): PoolAnalytics {
+  return {
+    payoutPlaces: 4,
+    leaderTotal,
+    payoutCutoff: 0,
+    leaderNames: ["Leader"],
+    leaderClinched: false,
+    aliveCount: rows.length,
+    payoutAliveCount: rows.length,
+    rows: rows.map((item) => ({
+      id: item.id,
+      name: item.id,
+      rank: item.rank,
+      currentTotal: item.total,
+      currentGapToLeader: Math.max(0, leaderTotal - item.total),
+      remaining: {
+        group: 0,
+        knockout: 0,
+        finals: 0,
+        bonus: 0,
+        total: Math.max(0, item.maxPossible - item.total),
+      },
+      maxPossible: item.maxPossible,
+      canWin: item.maxPossible >= leaderTotal,
+      canReachPayout: true,
+      payoutPlaces: 4,
+      ceilingRank: item.rank,
+    })),
+  };
+}
+
+function opponentPaths(
+  opponent: Partial<OpponentPathsReport["opponents"][number]> = {},
+): OpponentPathsReport {
+  return {
+    target: {
+      id: "target",
+      name: "Player",
+      rank: 2,
+      total: 10,
+    },
+    defaultOpponentIds: ["leader"],
+    opponents: [
+      {
+        id: "leader",
+        name: "Leader",
+        rank: 1,
+        total: 20,
+        gap: 10,
+        neededSwing: 11,
+        playerUpside: 0,
+        opponentThreat: 0,
+        routeCovered: 0,
+        routeComplete: false,
+        gainEvents: [],
+        threatEvents: [],
+        routeEvents: [],
+        groups: [],
+        matches: [],
+        ...opponent,
+      },
+    ],
   };
 }
 
@@ -255,7 +324,7 @@ describe("buildEntryMovementDigest", () => {
       opponentPaths: null,
     });
 
-    expect(digest?.deciders).toHaveLength(5);
+    expect(digest?.matchDeciders).toHaveLength(5);
     expect(digest?.closeRivals).toHaveLength(4);
     expect(digest?.closeRivals.map((rival) => rival.id)).toEqual([
       "third",
@@ -329,5 +398,198 @@ describe("buildEntryMovementDigest", () => {
     expect(digest?.closeRivals[1]?.id).toBe("tie");
     expect(digest?.closeRivals[1]?.relation).toBe("tied");
     expect(digest?.closeRivals[1]?.neededSwing).toBe(1);
+  });
+
+  it("marks the current leader as leading", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("target", "Player", 1, 30),
+        row("chaser", "Chaser", 2, 20),
+      ],
+      todaysResults: null,
+      futureLeverage: null,
+      opponentPaths: null,
+      analytics: analytics([
+        { id: "target", rank: 1, total: 30, maxPossible: 40 },
+        { id: "chaser", rank: 2, total: 20, maxPossible: 35 },
+      ], 30),
+    });
+
+    expect(digest?.winPath.status).toBe("leading");
+    expect(digest?.winPath.summary).toContain("currently leading");
+  });
+
+  it("marks an entry mathematically out when max possible cannot reach the leader", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("leader", "Leader", 1, 30),
+        row("target", "Player", 2, 10),
+      ],
+      todaysResults: null,
+      futureLeverage: null,
+      opponentPaths: opponentPaths(),
+      analytics: analytics([
+        { id: "leader", rank: 1, total: 30, maxPossible: 30 },
+        { id: "target", rank: 2, total: 10, maxPossible: 20 },
+      ], 30),
+    });
+
+    expect(digest?.winPath.status).toBe("mathematicallyOut");
+    expect(digest?.winPath.summary).toContain("Mathematically out");
+  });
+
+  it("shows no visible route when max possible can catch the leader but route events are incomplete", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("leader", "Leader", 1, 30),
+        row("target", "Player", 2, 10),
+      ],
+      todaysResults: null,
+      futureLeverage: null,
+      opponentPaths: opponentPaths({
+        neededSwing: 21,
+        routeCovered: 8,
+        routeComplete: false,
+      }),
+      analytics: analytics([
+        { id: "leader", rank: 1, total: 30, maxPossible: 30 },
+        { id: "target", rank: 2, total: 10, maxPossible: 40 },
+      ], 30),
+    });
+
+    expect(digest?.winPath.status).toBe("noVisibleRoute");
+    expect(digest?.winPath.summary).toContain("No visible win route");
+  });
+
+  it("shows can win when a complete leader route exists", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("leader", "Leader", 1, 30),
+        row("target", "Player", 2, 10),
+      ],
+      todaysResults: null,
+      futureLeverage: null,
+      opponentPaths: opponentPaths({
+        neededSwing: 21,
+        routeCovered: 24,
+        routeComplete: true,
+        routeEvents: [
+          {
+            id: "event-1",
+            category: "Knockout",
+            title: "Brazil win the quarter-final",
+            detail: "",
+            points: 12,
+            teams: ["Brazil"],
+          },
+        ],
+      }),
+      analytics: analytics([
+        { id: "leader", rank: 1, total: 30, maxPossible: 30 },
+        { id: "target", rank: 2, total: 10, maxPossible: 40 },
+      ], 30),
+    });
+
+    expect(digest?.winPath.status).toBe("canWin");
+    expect(digest?.winPath.events[0]?.title).toBe("Brazil win the quarter-final");
+  });
+
+  it("collapses multiple outcomes for one match into one match card with best and danger labels", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("leader", "Leader", 1, 20),
+        row("target", "Player", 2, 10),
+      ],
+      todaysResults: null,
+      futureLeverage: futureReport([
+        {
+          id: "match-40",
+          date: "2026-07-16T19:00:00Z",
+          detail: "Scheduled",
+          homeTeam: "Brazil",
+          awayTeam: "Norway",
+          pathNotes: ["Brazil result vs #1 Leader"],
+          bestOutcome: {
+            outcome: "home",
+            label: "Brazil win",
+            rank: 1,
+            total: 25,
+            pointChange: 15,
+            rankChange: 1,
+            entriesPassed: ["Leader"],
+            chasersPassing: [],
+          },
+          worstOutcome: {
+            outcome: "away",
+            label: "Norway win",
+            rank: 2,
+            total: 10,
+            pointChange: 0,
+            rankChange: 0,
+            entriesPassed: [],
+            chasersPassing: ["Matthew Wozniczka (2)"],
+          },
+          outcomes: [],
+        },
+      ]),
+      opponentPaths: null,
+    });
+
+    expect(digest?.matchDeciders).toHaveLength(1);
+    expect(digest?.matchDeciders[0]?.best?.label).toBe("Best result");
+    expect(digest?.matchDeciders[0]?.danger?.label).toBe("Danger result");
+    expect(digest?.matchDeciders[0]?.danger?.summary).not.toContain("Want");
+    expect(digest?.matchDeciders[0]?.danger?.summary).not.toContain("(2)");
+  });
+
+  it("removes unexplained duplicate suffixes from player names in movement copy", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("adam", "Adam Banaszek (1)", 1, 20),
+        row("target", "Player", 2, 10),
+      ],
+      todaysResults: null,
+      futureLeverage: futureReport([
+        {
+          id: "match-50",
+          date: "2026-07-17T19:00:00Z",
+          detail: "Scheduled",
+          homeTeam: "Belgium",
+          awayTeam: "France",
+          pathNotes: [],
+          bestOutcome: {
+            outcome: "home",
+            label: "Belgium win",
+            rank: 1,
+            total: 25,
+            pointChange: 15,
+            rankChange: 1,
+            entriesPassed: ["Adam Banaszek (1)"],
+            chasersPassing: [],
+          },
+          worstOutcome: {
+            outcome: "away",
+            label: "France win",
+            rank: 2,
+            total: 10,
+            pointChange: 0,
+            rankChange: 0,
+            entriesPassed: [],
+            chasersPassing: [],
+          },
+          outcomes: [],
+        },
+      ]),
+      opponentPaths: null,
+    });
+
+    expect(digest?.matchDeciders[0]?.best?.summary).toContain("Adam Banaszek");
+    expect(digest?.matchDeciders[0]?.best?.summary).not.toContain("(1)");
   });
 });

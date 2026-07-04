@@ -1,4 +1,11 @@
-import { ArrowDownRight, ArrowUpRight, ShieldAlert, UsersRound } from "lucide-react";
+import {
+  ArrowDownRight,
+  ArrowUpRight,
+  Route,
+  ShieldAlert,
+  Trophy,
+  UsersRound,
+} from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { StatusBadge } from "@/components/app/pool-public-widgets";
@@ -7,7 +14,8 @@ import { cn } from "@/lib/utils";
 import type {
   CloseRival,
   EntryMovementDigest,
-  MovementDecider,
+  MovementMatchDecider,
+  MovementOutcomeSpotlight,
 } from "@/lib/world-cup-pool/entry-movement-digest";
 
 export function EntryMovementPanel({
@@ -23,6 +31,7 @@ export function EntryMovementPanel({
       description="Current rank pressure, nearby rivals, and the outcomes that can move this entry."
     >
       <RaceSnapshot digest={digest} />
+      <WinPathPanel digest={digest} />
       <BigDeciders digest={digest} />
       <CloseRivals digest={digest} />
     </LedgerPanel>
@@ -33,14 +42,28 @@ function RaceSnapshot({ digest }: { digest: EntryMovementDigest }) {
   const { target, raceSnapshot } = digest;
 
   return (
-    <LedgerRows className="grid md:grid-cols-3 xl:grid-cols-6 md:divide-x md:divide-y-0">
+    <LedgerRows className="grid md:grid-cols-3 xl:grid-cols-5 md:divide-x md:divide-y-0">
       <SnapshotMetric
-        label="Now"
+        label="Current"
         value={`#${target.rank}`}
         note={`${target.total} pts of ${target.totalEntries} entries`}
       />
       <SnapshotMetric
-        label="Closest ahead"
+        label="Leader gap"
+        value={digest.winPath.gap ? `${digest.winPath.gap} pts` : "0 pts"}
+        note={
+          digest.winPath.leaderNames.length
+            ? `Leader: ${digest.winPath.leaderNames.join(", ")}`
+            : "No leader found"
+        }
+      />
+      <SnapshotMetric
+        label="Can still win?"
+        value={winPathShortLabel(digest.winPath.status)}
+        note={digest.winPath.summary}
+      />
+      <SnapshotMetric
+        label="Closest target"
         value={raceSnapshot.closestAhead ? `#${raceSnapshot.closestAhead.rank}` : "-"}
         note={
           raceSnapshot.closestAhead
@@ -49,7 +72,7 @@ function RaceSnapshot({ digest }: { digest: EntryMovementDigest }) {
         }
       />
       <SnapshotMetric
-        label="Closest chaser"
+        label="Biggest danger"
         value={
           raceSnapshot.closestChaser ? `#${raceSnapshot.closestChaser.rank}` : "-"
         }
@@ -58,21 +81,6 @@ function RaceSnapshot({ digest }: { digest: EntryMovementDigest }) {
             ? `${raceSnapshot.closestChaser.name}, ${raceSnapshot.closestChaser.gap} pts back`
             : "No close chaser"
         }
-      />
-      <SnapshotMetric
-        label="Best path"
-        value={`#${raceSnapshot.bestReachableRank}`}
-        note={`${raceSnapshot.bestReachableTotal} pts reachable`}
-      />
-      <SnapshotMetric
-        label="Paths up"
-        value={raceSnapshot.pathsUp}
-        note={`${raceSnapshot.impactfulMatchCount} match${raceSnapshot.impactfulMatchCount === 1 ? "" : "es"} with impact`}
-      />
-      <SnapshotMetric
-        label="Downside"
-        value={raceSnapshot.biggestDownside ? "Live" : "Low"}
-        note={raceSnapshot.biggestDownside ?? "No visible drop trigger"}
       />
     </LedgerRows>
   );
@@ -102,6 +110,82 @@ function SnapshotMetric({
   );
 }
 
+function WinPathPanel({ digest }: { digest: EntryMovementDigest }) {
+  const { winPath } = digest;
+
+  return (
+    <div className="border-t px-5 py-5">
+      <div
+        className={cn(
+          "rounded-lg border p-4",
+          winPath.status === "mathematicallyOut"
+            ? "border-destructive/20 bg-destructive/5"
+            : winPath.status === "canWin" || winPath.status === "leading"
+              ? "border-brand-mark/20 bg-cta-green-soft"
+              : "bg-background",
+        )}
+      >
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="flex min-w-0 gap-3">
+            <span
+              className={cn(
+                "mt-0.5 flex size-9 shrink-0 items-center justify-center rounded-full border bg-surface-paper",
+                winPath.status === "mathematicallyOut"
+                  ? "text-destructive"
+                  : "text-brand-mark",
+              )}
+              aria-hidden="true"
+            >
+              {winPath.status === "leading" ? (
+                <Trophy className="size-5" />
+              ) : (
+                <Route className="size-5" />
+              )}
+            </span>
+            <div className="min-w-0">
+              <h3 className="text-lg font-semibold tracking-normal text-brand-ink">
+                Win path
+              </h3>
+              <p className="mt-1 text-base font-semibold leading-6 text-brand-ink">
+                {winPath.summary}
+              </p>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                Current {winPath.entryTotal} pts. Max possible{" "}
+                {winPath.maxPossible} pts. Leader has {winPath.leaderTotal} pts.
+              </p>
+            </div>
+          </div>
+          <Badge
+            variant={
+              winPath.status === "mathematicallyOut" ? "destructive" : "secondary"
+            }
+          >
+            {winPathStatusLabel(winPath.status)}
+          </Badge>
+        </div>
+
+        {winPath.status === "canWin" && winPath.events.length ? (
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {winPath.events.map((event) => (
+              <div
+                key={`${event.category}:${event.title}`}
+                className="rounded-md border bg-surface-paper px-3 py-2"
+              >
+                <p className="text-sm font-semibold leading-5 text-brand-ink">
+                  {event.title}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {event.category} · +{event.points} route pts
+                </p>
+              </div>
+            ))}
+          </div>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 function BigDeciders({ digest }: { digest: EntryMovementDigest }) {
   return (
     <div className="border-t">
@@ -111,19 +195,19 @@ function BigDeciders({ digest }: { digest: EntryMovementDigest }) {
             Big deciders
           </h3>
           <p className="mt-1 text-sm leading-5 text-muted-foreground">
-            Watch the outcome, then the rank swing.
+            The matches where one result helps, hurts, or clarifies the path.
           </p>
         </div>
         <StatusBadge
-          tone={digest.deciders.length ? "helpful" : "neutral"}
-          label={`${digest.deciders.length} active`}
+          tone={digest.matchDeciders.length ? "helpful" : "neutral"}
+          label={`${digest.matchDeciders.length} match${digest.matchDeciders.length === 1 ? "" : "es"}`}
         />
       </div>
 
-      {digest.deciders.length ? (
-        <LedgerRows>
-          {digest.deciders.map((decider) => (
-            <DeciderRow key={decider.id} decider={decider} />
+      {digest.matchDeciders.length ? (
+        <LedgerRows className="grid gap-0 xl:grid-cols-2 xl:divide-x xl:[&>*:nth-child(2n+1)]:border-r">
+          {digest.matchDeciders.map((decider) => (
+            <MatchDeciderRow key={decider.id} decider={decider} />
           ))}
         </LedgerRows>
       ) : (
@@ -135,50 +219,64 @@ function BigDeciders({ digest }: { digest: EntryMovementDigest }) {
   );
 }
 
-function DeciderRow({ decider }: { decider: MovementDecider }) {
-  const Icon =
-    decider.direction === "down" || decider.direction === "mixed"
-      ? ArrowDownRight
-      : ArrowUpRight;
-
+function MatchDeciderRow({ decider }: { decider: MovementMatchDecider }) {
   return (
     <LedgerRow>
-      <div className="grid gap-4 lg:grid-cols-[1fr_minmax(12rem,18rem)] lg:items-start">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <Icon
-              className={cn(
-                "size-4",
-                decider.direction === "down" || decider.direction === "mixed"
-                  ? "text-destructive"
-                  : decider.direction === "up"
-                    ? "text-brand-mark"
-                    : "text-muted-foreground",
-              )}
-              aria-hidden="true"
-            />
-            <p className="font-semibold text-brand-ink">{decider.title}</p>
-          </div>
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            <span className="font-semibold text-brand-ink">Want:</span>{" "}
-            {decider.desiredOutcome}
-          </p>
-          <p className="mt-1 text-base font-semibold leading-6 text-brand-ink">
-            {decider.impact}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <h4 className="font-semibold text-brand-ink">{decider.title}</h4>
+        <Badge variant="outline">{decider.timing}</Badge>
+      </div>
+      <div className="mt-4 grid gap-3">
+        {decider.best ? <OutcomeBlock outcome={decider.best} /> : null}
+        {decider.danger ? <OutcomeBlock outcome={decider.danger} /> : null}
+        {decider.neutral && !decider.best ? (
+          <OutcomeBlock outcome={decider.neutral} />
+        ) : null}
+      </div>
+    </LedgerRow>
+  );
+}
+
+function OutcomeBlock({ outcome }: { outcome: MovementOutcomeSpotlight }) {
+  const isDanger = outcome.label === "Danger result";
+  const Icon = isDanger ? ArrowDownRight : ArrowUpRight;
+
+  return (
+    <div
+      className={cn(
+        "rounded-md border px-3 py-3",
+        isDanger ? "border-destructive/20 bg-destructive/5" : "bg-background",
+      )}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon
+            className={cn(
+              "size-4 shrink-0",
+              isDanger ? "text-destructive" : "text-brand-mark",
+            )}
+            aria-hidden="true"
+          />
+          <p className="text-sm font-semibold text-brand-ink">
+            {outcome.label}:{" "}
+            <span className="text-muted-foreground">{outcome.outcome}</span>
           </p>
         </div>
-        <div className="flex flex-wrap gap-2 lg:justify-end">
-          {decider.tags.map((tag) => (
+        <div className="flex flex-wrap gap-2">
+          {outcome.badges.map((badge) => (
             <Badge
-              key={tag}
-              variant={decider.direction === "down" ? "destructive" : "outline"}
+              key={badge}
+              variant={isDanger ? "destructive" : "outline"}
             >
-              {tag}
+              {badge}
             </Badge>
           ))}
         </div>
       </div>
-    </LedgerRow>
+      <p className="mt-2 text-sm font-medium leading-6 text-brand-ink">
+        {outcome.summary}
+      </p>
+    </div>
   );
 }
 
@@ -254,4 +352,18 @@ function relationLabel(relation: CloseRival["relation"]) {
   if (relation === "ahead") return "Ahead";
   if (relation === "chaser") return "Chaser";
   return "Tied";
+}
+
+function winPathStatusLabel(status: EntryMovementDigest["winPath"]["status"]) {
+  if (status === "leading") return "Leading";
+  if (status === "canWin") return "Can still win";
+  if (status === "noVisibleRoute") return "No visible route";
+  return "Out";
+}
+
+function winPathShortLabel(status: EntryMovementDigest["winPath"]["status"]) {
+  if (status === "leading") return "Yes";
+  if (status === "canWin") return "Yes";
+  if (status === "noVisibleRoute") return "Unclear";
+  return "No";
 }

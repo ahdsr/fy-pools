@@ -19,7 +19,10 @@ import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
 import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
-import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
+import {
+  buildLeaderboardRows,
+  buildPoolAnalytics,
+} from "@/lib/world-cup-pool/leaderboard";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
 import { buildTodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
@@ -145,6 +148,12 @@ export default async function EntryPage({ params }: EntryPageProps) {
     todaysResults,
     futureLeverage,
     opponentPaths,
+    analytics: buildPoolAnalytics(
+      pool.entriesConfig,
+      pool.picksByPath,
+      pool.results,
+      leaderboardRows,
+    ),
   });
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
   const availableTournamentTemplates =
