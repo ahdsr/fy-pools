@@ -28,3 +28,16 @@ export function isSupabaseConfigured() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
   );
 }
+
+export function getAppSiteUrl() {
+  const configuredUrl =
+    process.env.NEXT_PUBLIC_SITE_URL ??
+    (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "");
+  const fallbackUrl = "https://fy-pools.vercel.app";
+
+  try {
+    return new URL(configuredUrl || fallbackUrl).origin;
+  } catch {
+    return fallbackUrl;
+  }
+}

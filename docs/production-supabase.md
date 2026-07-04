@@ -12,6 +12,7 @@ Set these values in the production app host, such as Vercel:
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
+NEXT_PUBLIC_SITE_URL=
 SUPABASE_SERVICE_ROLE_KEY=
 FY_POOLS_SCORING_API_KEY=
 ```
@@ -19,6 +20,8 @@ FY_POOLS_SCORING_API_KEY=
 Use the values from the target Supabase project's API settings. The service role
 key must stay server-only and must not be exposed to browser code, client
 components, logs, analytics, or public build output.
+Set `NEXT_PUBLIC_SITE_URL` to the canonical production origin, for example
+`https://fy-pools.vercel.app`, so auth emails use a stable callback host.
 Set `FY_POOLS_SCORING_API_KEY` to a high-entropy secret used by trusted scoring
 jobs when calling the Round of 16 scoring refresh API.
 

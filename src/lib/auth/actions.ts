@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { resetPasswordPathFor, safeNextPath } from "@/lib/auth/paths";
@@ -8,25 +7,12 @@ import {
   ensureProfileForAuthUser,
   upsertProfile,
 } from "@/lib/auth/profiles";
+import { getAppSiteUrl } from "@/lib/supabase/config";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 export type AuthActionState = {
   message?: string;
 };
-
-function isLocalHost(host: string) {
-  return host.startsWith("localhost") || host.startsWith("127.0.0.1");
-}
-
-async function requestOrigin() {
-  const headerStore = await headers();
-  const host =
-    headerStore.get("x-forwarded-host") ?? headerStore.get("host") ?? "";
-  const forwardedProtocol = headerStore.get("x-forwarded-proto");
-  const protocol = forwardedProtocol ?? (isLocalHost(host) ? "http" : "https");
-
-  return host ? `${protocol}://${host}` : "https://fy-pools.vercel.app";
-}
 
 export async function signInWithPasswordAction(
   _state: AuthActionState,
@@ -136,7 +122,7 @@ export async function requestPasswordResetAction(
   }
 
   try {
-    const origin = await requestOrigin();
+    const origin = getAppSiteUrl();
     const callbackUrl = new URL("/auth/callback", origin);
     callbackUrl.searchParams.set("next", resetPasswordPathFor(nextPath));
 

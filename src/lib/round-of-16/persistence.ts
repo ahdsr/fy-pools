@@ -105,6 +105,18 @@ export type CommissionerNotification = {
   poolName: string;
 };
 
+export type CommissionerAuditEvent = {
+  id: string;
+  poolId: string;
+  poolName: string;
+  poolSlug: string;
+  actorId: string;
+  eventType: string;
+  summary: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+};
+
 export type RoundOf16StoredLeaderboardRow = {
   entryId: string;
   entryName: string;
@@ -182,6 +194,34 @@ function normalizePickKey(value: unknown) {
     .replace(/\p{Diacritic}/gu, "")
     .trim()
     .toLowerCase();
+}
+
+async function recordCommissionerAuditEvent({
+  admin,
+  poolId,
+  actorId,
+  eventType,
+  summary,
+  metadata = {},
+}: {
+  admin: SupabaseAdmin;
+  poolId?: string | null;
+  actorId?: string | null;
+  eventType: string;
+  summary: string;
+  metadata?: Record<string, unknown>;
+}) {
+  const { error } = await admin.from("audit_events").insert({
+    pool_id: poolId ?? null,
+    actor_id: actorId ?? null,
+    event_type: eventType,
+    summary,
+    metadata,
+  });
+
+  if (error) {
+    console.error("[fy-pools] Failed to record commissioner audit event", error);
+  }
 }
 
 function sanitizeRoundOf16PickPayload({
@@ -661,6 +701,34 @@ export async function publishRoundOf16Pool({
       throw new Error("Signup invite could not be created.");
     }
 
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId: pool.id,
+      actorId: user.id,
+      eventType: "pool.published",
+      summary: `Published ${settings.basics.poolName}.`,
+      metadata: {
+        poolSlug: pool.slug,
+        template: ROUND_OF_16_TEMPLATE_SLUG,
+        directInviteCount: validParticipants.length,
+        hasSignupInvite: true,
+        pickDeadline: settings.basics.picksLockAt,
+      },
+    });
+
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId: pool.id,
+      actorId: user.id,
+      eventType: "invite.created",
+      summary: `Created ${validParticipants.length} direct invite${validParticipants.length === 1 ? "" : "s"} and one signup link.`,
+      metadata: {
+        directInviteCount: validParticipants.length,
+        signupInviteCode: String(signupInvite.code),
+        expiresAt: String(signupInvite.expires_at ?? ""),
+      },
+    });
+
     return {
       poolId: pool.id,
       poolSlug: pool.slug,
@@ -876,8 +944,6 @@ export async function submitRoundOf16Picks({
         pick_type: item.pick_type,
         value: item.value,
       })),
-      p_owner_id: joinData.pool.ownerId,
-      p_pool_name: joinData.pool.name,
       p_invite_code: inviteCode,
     },
   );
@@ -1085,6 +1151,75 @@ export async function getCommissionerPoolSummaries() {
   }));
 }
 
+export async function getCommissionerAuditEvents(limit = 8) {
+  if (!isSupabaseConfigured()) return [];
+
+  const user = await getSupabaseUser();
+  if (!user) return [];
+
+  const admin = createSupabaseAdminClient();
+  const { data: ownedPools, error: ownedPoolsError } = await admin
+    .from("pools")
+    .select("id")
+    .eq("owner_id", user.id);
+
+  if (ownedPoolsError) throw new Error(ownedPoolsError.message);
+
+  const poolIds = (ownedPools ?? []).map((pool) => String(pool.id));
+  const selectFields =
+    "id,pool_id,actor_id,event_type,summary,metadata,created_at,pools(name,slug)";
+  const [actorEvents, poolEvents] = await Promise.all([
+    admin
+      .from("audit_events")
+      .select(selectFields)
+      .eq("actor_id", user.id)
+      .order("created_at", { ascending: false })
+      .limit(limit),
+    poolIds.length > 0
+      ? admin
+          .from("audit_events")
+          .select(selectFields)
+          .in("pool_id", poolIds)
+          .order("created_at", { ascending: false })
+          .limit(limit)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  if (actorEvents.error) throw new Error(actorEvents.error.message);
+  if (poolEvents.error) throw new Error(poolEvents.error.message);
+
+  const eventsById = new Map<string, (typeof actorEvents.data)[number]>();
+  for (const event of [...(actorEvents.data ?? []), ...(poolEvents.data ?? [])]) {
+    eventsById.set(String(event.id), event);
+  }
+
+  return [...eventsById.values()]
+    .sort(
+      (a, b) =>
+        new Date(String(b.created_at ?? "")).getTime() -
+        new Date(String(a.created_at ?? "")).getTime(),
+    )
+    .slice(0, limit)
+    .map((event) => {
+      const pool = Array.isArray(event.pools) ? event.pools[0] : event.pools;
+
+      return {
+        id: String(event.id),
+        poolId: String(event.pool_id ?? ""),
+        poolName: String(pool?.name ?? ""),
+        poolSlug: String(pool?.slug ?? ""),
+        actorId: String(event.actor_id ?? ""),
+        eventType: String(event.event_type ?? ""),
+        summary: String(event.summary ?? ""),
+        metadata:
+          event.metadata && typeof event.metadata === "object"
+            ? (event.metadata as Record<string, unknown>)
+            : {},
+        createdAt: String(event.created_at ?? ""),
+      } satisfies CommissionerAuditEvent;
+    });
+}
+
 function rankRoundOf16Rows(rows: Omit<RoundOf16StoredLeaderboardRow, "rank">[]) {
   let lastTotal: number | null = null;
   let lastRank = 0;
@@ -1194,15 +1329,24 @@ export async function refreshRoundOf16Scoring({
     throw new Error("Only the pool commissioner can refresh scoring.");
   }
 
-  return refreshRoundOf16ScoringForPool({ poolId, results });
+  return refreshRoundOf16ScoringForPool({
+    poolId,
+    results,
+    actorId: user.id,
+    source: "commissioner",
+  });
 }
 
 export async function refreshRoundOf16ScoringForPool({
   poolId,
   results,
+  actorId = null,
+  source = "scoring-api",
 }: {
   poolId: string;
   results: RoundOf16ResultPayload;
+  actorId?: string | null;
+  source?: "commissioner" | "scoring-api";
 }) {
   assertSupabaseConfigured();
 
@@ -1294,6 +1438,21 @@ export async function refreshRoundOf16ScoringForPool({
     rankedRows,
     scoredRows,
   });
+  await recordCommissionerAuditEvent({
+    admin,
+    poolId,
+    actorId,
+    eventType: "scoring.refreshed",
+    summary: `Refreshed scoring for ${rankedRows.length} submitted entr${rankedRows.length === 1 ? "y" : "ies"}.`,
+    metadata: {
+      source,
+      scoredEntryCount: rankedRows.length,
+      winnerResultCount: Object.keys(validResults.winners).length,
+      bonusResultCount: Object.keys(validResults.bonusAnswers).length,
+      standingsLeader: rankedRows[0]?.entryName ?? null,
+      standingsLeaderTotal: rankedRows[0]?.total ?? null,
+    },
+  });
 
   return rankedRows;
 }
@@ -1358,7 +1517,7 @@ export async function updateCommissionerRoundOf16AdminPool({
   const admin = createSupabaseAdminClient();
   const { data: pool, error: poolError } = await admin
     .from("pools")
-    .select("id,name,slug,owner_id,settings")
+    .select("id,name,slug,status,owner_id,settings")
     .eq("id", poolId)
     .maybeSingle();
 
@@ -1418,6 +1577,7 @@ export async function updateCommissionerRoundOf16AdminPool({
   if (updateError) throw new Error(updateError.message);
 
   const validParticipants = normalizeRoundOf16Participants(participants);
+  let createdInviteCount = 0;
   if (validParticipants.length > 0) {
     const { data: existingInvites, error: existingInvitesError } = await admin
       .from("pool_invites")
@@ -1449,7 +1609,82 @@ export async function updateCommissionerRoundOf16AdminPool({
         .insert(inviteRows);
 
       if (invitesError) throw new Error(invitesError.message);
+      createdInviteCount = inviteRows.length;
     }
+  }
+
+  const currentDeadline = currentSettings.basics.picksLockAt;
+  const nextDeadline = nextSettings.basics.picksLockAt;
+  const currentStatus = String(pool.status ?? "open");
+  const changedFields = [
+    currentStatus !== nextStatus ? "status" : "",
+    currentDeadline !== nextDeadline ? "deadline" : "",
+    String(pool.name) !== nextSettings.basics.poolName ? "name" : "",
+    currentSettings.inviteNote !== nextSettings.inviteNote ? "invite note" : "",
+    createdInviteCount > 0 ? "direct invites" : "",
+  ].filter(Boolean);
+
+  if (changedFields.length > 0) {
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId,
+      actorId: user.id,
+      eventType: "pool.updated",
+      summary: `Updated ${nextSettings.basics.poolName}: ${changedFields.join(", ")}.`,
+      metadata: {
+        poolSlug: String(pool.slug),
+        changedFields,
+        previousStatus: currentStatus,
+        nextStatus,
+        previousDeadline: currentDeadline,
+        nextDeadline,
+        createdInviteCount,
+      },
+    });
+  }
+
+  if (currentStatus !== nextStatus) {
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId,
+      actorId: user.id,
+      eventType: "pool.status_changed",
+      summary: `Changed pool status from ${currentStatus} to ${nextStatus}.`,
+      metadata: {
+        poolSlug: String(pool.slug),
+        previousStatus: currentStatus,
+        nextStatus,
+      },
+    });
+  }
+
+  if (currentDeadline !== nextDeadline) {
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId,
+      actorId: user.id,
+      eventType: "pool.deadline_changed",
+      summary: `Changed pick deadline from ${currentDeadline || "not set"} to ${nextDeadline}.`,
+      metadata: {
+        poolSlug: String(pool.slug),
+        previousDeadline: currentDeadline,
+        nextDeadline,
+      },
+    });
+  }
+
+  if (createdInviteCount > 0) {
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId,
+      actorId: user.id,
+      eventType: "invite.created",
+      summary: `Created ${createdInviteCount} new direct invite${createdInviteCount === 1 ? "" : "s"}.`,
+      metadata: {
+        poolSlug: String(pool.slug),
+        createdInviteCount,
+      },
+    });
   }
 
   return {
@@ -1464,7 +1699,7 @@ export async function deleteCommissionerPool(poolId: string) {
   const admin = createSupabaseAdminClient();
   const { data: pool, error: poolError } = await admin
     .from("pools")
-    .select("id,slug,owner_id")
+    .select("id,name,slug,owner_id")
     .eq("id", poolId)
     .maybeSingle();
 
@@ -1480,6 +1715,19 @@ export async function deleteCommissionerPool(poolId: string) {
     .eq("id", poolId);
 
   if (deleteError) throw new Error(deleteError.message);
+
+  await recordCommissionerAuditEvent({
+    admin,
+    poolId: null,
+    actorId: user.id,
+    eventType: "pool.deleted",
+    summary: `Deleted ${String(pool.name)}.`,
+    metadata: {
+      poolId,
+      poolSlug: String(pool.slug),
+      poolName: String(pool.name),
+    },
+  });
 
   return {
     poolId,

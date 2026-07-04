@@ -7,6 +7,7 @@ import {
   Edit,
   ExternalLink,
   FileSpreadsheet,
+  History,
   ListChecks,
   Trophy,
   Users,
@@ -23,8 +24,10 @@ import { PlaceholderGrid } from "@/components/app/placeholder-grid";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
+  getCommissionerAuditEvents,
   getCommissionerNotifications,
   getCommissionerPoolSummaries,
+  type CommissionerAuditEvent,
   type CommissionerPoolSummary,
 } from "@/lib/round-of-16/persistence";
 import { DraftPoolRows } from "./draft-pool-rows";
@@ -40,6 +43,14 @@ function formatDateTime(value: string) {
   if (Number.isNaN(parsed.getTime())) return value;
 
   return parsed.toLocaleString();
+}
+
+function formatAuditEventType(value: string) {
+  return value
+    .split(".")
+    .filter(Boolean)
+    .map((part) => part.slice(0, 1).toUpperCase() + part.slice(1))
+    .join(" ");
 }
 
 function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
@@ -128,10 +139,33 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
   );
 }
 
+function AuditEventRow({ event }: { event: CommissionerAuditEvent }) {
+  return (
+    <LedgerRow className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center">
+      <span className="grid size-9 place-items-center rounded-full border bg-background text-brand-mark">
+        <History className="size-4" />
+      </span>
+      <div className="min-w-0">
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="font-semibold text-brand-ink">{event.summary}</p>
+          {event.poolName ? (
+            <Badge variant="outline">{event.poolName}</Badge>
+          ) : null}
+        </div>
+        <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+          {formatAuditEventType(event.eventType)}
+        </p>
+      </div>
+      <Badge variant="outline">{formatDateTime(event.createdAt)}</Badge>
+    </LedgerRow>
+  );
+}
+
 export default async function DashboardPage() {
-  const [pools, notifications] = await Promise.all([
+  const [pools, notifications, auditEvents] = await Promise.all([
     getCommissionerPoolSummaries(),
     getCommissionerNotifications(),
+    getCommissionerAuditEvents(),
   ]);
 
   return (
@@ -225,6 +259,29 @@ export default async function DashboardPage() {
       </LedgerPanel>
 
       <LedgerPanel
+        title="Recent activity"
+        description="Operating notes for pool publish, invites, lock changes, deadline changes, scoring refreshes, and deletes."
+        action={<Badge variant="outline">{auditEvents.length} recent</Badge>}
+      >
+        {auditEvents.length ? (
+          <LedgerRows>
+            {auditEvents.map((event) => (
+              <AuditEventRow key={event.id} event={event} />
+            ))}
+          </LedgerRows>
+        ) : (
+          <LedgerRow className="flex items-start gap-3">
+            <History className="mt-1 size-5 shrink-0 text-brand-mark" />
+            <p className="text-sm font-normal leading-6 text-muted-foreground">
+              No commissioner activity has been recorded yet. Publish a pool,
+              add invites, change a deadline, lock a pool, or refresh scoring
+              to start the operating log.
+            </p>
+          </LedgerRow>
+        )}
+      </LedgerPanel>
+
+      <LedgerPanel
         title="Workspace"
         description="Two starting points define the MVP: pool operations and spreadsheet import."
       >
@@ -259,10 +316,6 @@ export default async function DashboardPage() {
       </LedgerPanel>
       <PlaceholderGrid
         items={[
-          {
-            title: "Recent activity",
-            body: "Audit events will show imports, lock changes, scoring refreshes, and commissioner actions.",
-          },
           {
             title: "Result sync",
             body: "Cloudflare jobs can update results once the result provider contract is defined.",

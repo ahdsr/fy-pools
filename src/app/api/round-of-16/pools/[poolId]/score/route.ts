@@ -11,8 +11,25 @@ type ScoreRouteContext = {
 };
 
 type ApiKeyResult =
-  | { ok: true }
+  | { ok: true; keyId: string }
   | { ok: false; status: number; message: string };
+
+const SCORING_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const SCORING_RATE_LIMIT_MAX_REQUESTS = 20;
+
+type RateLimitBucket = {
+  count: number;
+  resetAt: number;
+};
+
+const globalScope = globalThis as typeof globalThis & {
+  __fyPoolsScoringRateLimit?: Map<string, RateLimitBucket>;
+};
+
+function getScoringRateLimitBuckets() {
+  globalScope.__fyPoolsScoringRateLimit ??= new Map<string, RateLimitBucket>();
+  return globalScope.__fyPoolsScoringRateLimit;
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
@@ -39,6 +56,45 @@ function secretsMatch(candidate: string, expected: string) {
   );
 }
 
+function rateLimitKeyForRequest(request: NextRequest, keyId: string) {
+  const forwardedFor = request.headers.get("x-forwarded-for") ?? "";
+  const forwardedIp = forwardedFor.split(",")[0]?.trim();
+  const realIp = request.headers.get("x-real-ip")?.trim();
+  const ip = forwardedIp || realIp || "unknown";
+
+  return `${keyId}:${ip}`;
+}
+
+function checkScoringRateLimit(request: NextRequest, keyId: string) {
+  const now = Date.now();
+  const buckets = getScoringRateLimitBuckets();
+
+  for (const [storedKey, bucket] of buckets) {
+    if (bucket.resetAt <= now) buckets.delete(storedKey);
+  }
+
+  const bucketKey = rateLimitKeyForRequest(request, keyId);
+  const current = buckets.get(bucketKey);
+
+  if (!current || current.resetAt <= now) {
+    buckets.set(bucketKey, {
+      count: 1,
+      resetAt: now + SCORING_RATE_LIMIT_WINDOW_MS,
+    });
+    return { ok: true as const };
+  }
+
+  if (current.count >= SCORING_RATE_LIMIT_MAX_REQUESTS) {
+    return {
+      ok: false as const,
+      retryAfterSeconds: Math.max(1, Math.ceil((current.resetAt - now) / 1000)),
+    };
+  }
+
+  current.count += 1;
+  return { ok: true as const };
+}
+
 function authorizeScoringRequest(request: NextRequest): ApiKeyResult {
   const configuredKey = process.env.FY_POOLS_SCORING_API_KEY?.trim();
 
@@ -60,7 +116,7 @@ function authorizeScoringRequest(request: NextRequest): ApiKeyResult {
     secretsMatch(bearerToken, configuredKey) ||
     secretsMatch(headerKey, configuredKey)
   ) {
-    return { ok: true };
+    return { ok: true, keyId: configuredKey.slice(0, 8) };
   }
 
   return {
@@ -92,6 +148,19 @@ export async function POST(request: NextRequest, { params }: ScoreRouteContext) 
     return Response.json(
       { error: authorization.message },
       { status: authorization.status },
+    );
+  }
+
+  const rateLimit = checkScoringRateLimit(request, authorization.keyId);
+  if (!rateLimit.ok) {
+    return Response.json(
+      { error: "Too many scoring refresh requests." },
+      {
+        status: 429,
+        headers: {
+          "Retry-After": String(rateLimit.retryAfterSeconds),
+        },
+      },
     );
   }
 
