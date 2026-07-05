@@ -12,6 +12,7 @@ import {
   buildPoolAnalytics,
 } from "@/lib/world-cup-pool/leaderboard";
 import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
+import { findEntryScenarioProjection } from "@/lib/world-cup-pool/opponent-paths";
 import {
   teamCanStillEarnFinalPosition,
   teamIsStillAlive,
@@ -21,6 +22,71 @@ import type {
   EntryPicks,
   PoolResults,
 } from "@/lib/world-cup-pool/types";
+
+const scoringRules = {
+  groupAdvancement: 1,
+  exactTopTwoBonus: 0,
+  exactTopFourBonus: 0,
+  roundOf16: 0,
+  quarterFinalists: 0,
+  semifinalists: 0,
+  thirdPlaceMatch: 0,
+  finalists: 0,
+  thirdPlace: 10,
+  runnerUp: 15,
+  champion: 25,
+  bonus: 0,
+};
+
+function makeSharedPodiumPicks(predictedAdvancers: string[]): EntryPicks {
+  return {
+    meta: {
+      title: "Synthetic picks",
+      owner: "Synthetic",
+    },
+    scoringRules,
+    bonus: [],
+    groups: {
+      A: {
+        teams: [
+          { name: "Alpha" },
+          { name: "Beta" },
+          { name: "Gamma" },
+          { name: "Delta" },
+        ],
+        predictedOrder: ["Delta", "Gamma", "Beta", "Alpha"],
+        predictedAdvancers,
+      },
+    },
+    thirdPlace: {},
+    knockout: {
+      roundOf32: [],
+      roundOf16: [],
+      quarterFinals: [],
+      semiFinals: [],
+      final: {
+        teams: [],
+        winner: "",
+      },
+      thirdPlace: {
+        teams: [],
+        winner: "",
+      },
+    },
+    advancement: {
+      roundOf16: [],
+      quarterFinalists: [],
+      semifinalists: [],
+      finalists: [],
+      thirdPlaceMatch: [],
+    },
+    podium: {
+      champion: "",
+      runnerUp: "England",
+      thirdPlace: "",
+    },
+  };
+}
 
 const lucasEntry = entriesJson.entries.find(
   (entry) => entry.id === "lucas-sokolowski",
@@ -158,5 +224,52 @@ describe("World Cup projection eligibility", () => {
         }
       }
     }
+  });
+
+  it("projects the final position when shared picks also help blockers", () => {
+    const entriesConfig: EntriesConfig = {
+      poolName: "Synthetic pool",
+      entries: [
+        { id: "blocker-one", name: "Blocker One", picksPath: "one.json" },
+        { id: "blocker-two", name: "Blocker Two", picksPath: "two.json" },
+        { id: "selected", name: "Selected", picksPath: "selected.json" },
+      ],
+    };
+    const picksByPath = new Map<string, EntryPicks>([
+      ["one.json", makeSharedPodiumPicks(["Alpha", "Beta"])],
+      ["two.json", makeSharedPodiumPicks(["Alpha"])],
+      ["selected.json", makeSharedPodiumPicks(["Gamma", "Delta"])],
+    ]);
+    const results: PoolResults = {
+      groups: {
+        A: {
+          status: "final",
+          currentOrder: ["Alpha", "Beta", "Gamma", "Delta"],
+        },
+      },
+      finals: {},
+    };
+
+    const projection = findEntryScenarioProjection({
+      entriesConfig,
+      picksByPath,
+      results,
+      entryId: "selected",
+    });
+
+    expect(projection?.canFinishFirst).toBe(false);
+    expect(projection?.projectedRank).toBe(3);
+    expect(projection?.events.map((event) => event.title)).toEqual([
+      "England finish as Runner-up",
+    ]);
+    expect(projection?.events[0]?.scorerNames).toEqual([
+      "Blocker One",
+      "Blocker Two",
+      "Selected",
+    ]);
+    expect(projection?.blockers.map((row) => row.name)).toEqual([
+      "Blocker One",
+      "Blocker Two",
+    ]);
   });
 });

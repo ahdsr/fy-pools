@@ -15,6 +15,13 @@ import type {
 } from "@/lib/world-cup-pool/types";
 
 type EventCategory = "Group" | "Knockout" | "Final" | "Bonus";
+type FinalPositionKey = "champion" | "runnerUp" | "thirdPlace";
+type ScenarioResultKind =
+  | "groupAdvancer"
+  | "groupOrder"
+  | "knockoutStage"
+  | "finalPosition"
+  | "bonus";
 
 export type OpponentPathEvent = {
   id: string;
@@ -24,6 +31,8 @@ export type OpponentPathEvent = {
   points: number;
   teams: string[];
   groupId?: string;
+  resultKind?: ScenarioResultKind;
+  resultKey?: string;
 };
 
 export type OpponentPathGroup = {
@@ -75,6 +84,37 @@ export type OpponentPathsReport = {
   };
   defaultOpponentIds: string[];
   opponents: OpponentPathOpponent[];
+};
+
+export type ScenarioEventScore = OpponentPathEvent & {
+  selectedPoints: number;
+  scorerIds: string[];
+  scorerNames: string[];
+};
+
+export type ScenarioStanding = {
+  id: string;
+  name: string;
+  currentTotal: number;
+  projectedTotal: number;
+  delta: number;
+  rank: number;
+};
+
+export type EntryScenarioProjection = {
+  entryId: string;
+  entryName: string;
+  currentRank: number;
+  currentTotal: number;
+  projectedRank: number;
+  projectedTotal: number;
+  routeCovered: number;
+  eventCount: number;
+  canFinishFirst: boolean;
+  tiedForFirst: boolean;
+  events: ScenarioEventScore[];
+  standings: ScenarioStanding[];
+  blockers: ScenarioStanding[];
 };
 
 const KNOCKOUT_STAGES = [
@@ -166,6 +206,24 @@ function buildRoute(events: OpponentPathEvent[], neededSwing: number) {
   return route;
 }
 
+function eventSortKey(event: OpponentPathEvent) {
+  return `${event.resultKind ?? event.category}:${event.resultKey ?? ""}:${event.teams
+    .map(normalizeKey)
+    .join("|")}:${event.groupId ?? ""}`;
+}
+
+function uniqueEvents(events: OpponentPathEvent[]) {
+  const byKey = new Map<string, OpponentPathEvent>();
+  for (const event of events) {
+    const key = eventSortKey(event);
+    const current = byKey.get(key);
+    if (!current || event.points > current.points) {
+      byKey.set(key, event);
+    }
+  }
+  return rankEvents([...byKey.values()]);
+}
+
 function findGroupIdForTeam(picks: EntryPicks, team: string) {
   for (const [groupId, group] of Object.entries(picks.groups)) {
     if (group.teams.some((item) => sameTeam(item.name, team))) return groupId;
@@ -232,6 +290,8 @@ function buildGroupEvents({
         points: playerPicks.scoringRules.groupAdvancement,
         teams: [team],
         groupId,
+        resultKind: "groupAdvancer",
+        resultKey: groupId,
       });
     }
 
@@ -244,6 +304,8 @@ function buildGroupEvents({
         points: opponentPicks.scoringRules.groupAdvancement,
         teams: [team],
         groupId,
+        resultKind: "groupAdvancer",
+        resultKey: groupId,
       });
     }
 
@@ -261,6 +323,8 @@ function buildGroupEvents({
         points: playerPicks.scoringRules.exactTopFourBonus,
         teams,
         groupId,
+        resultKind: "groupOrder",
+        resultKey: groupId,
       });
     }
   }
@@ -319,6 +383,8 @@ function buildKnockoutEvents({
         detail: `${playerPoints} points for this entry and none for the opponent.`,
         points: playerPoints,
         teams: [team],
+        resultKind: "knockoutStage",
+        resultKey: stage.key,
       });
     }
 
@@ -330,6 +396,8 @@ function buildKnockoutEvents({
         detail: `${opponentPoints} points for the opponent and none for this entry.`,
         points: opponentPoints,
         teams: [team],
+        resultKind: "knockoutStage",
+        resultKey: stage.key,
       });
     }
   }
@@ -374,6 +442,8 @@ function buildFinalEvents({
         detail: `${playerPoints} points for this entry and none for the opponent.`,
         points: playerPoints,
         teams: [playerTeam],
+        resultKind: "finalPosition",
+        resultKey: stage.key,
       });
     }
 
@@ -394,6 +464,8 @@ function buildFinalEvents({
         detail: `${opponentPoints} points for the opponent and none for this entry.`,
         points: opponentPoints,
         teams: [opponentTeam],
+        resultKind: "finalPosition",
+        resultKey: stage.key,
       });
     }
   }
@@ -404,14 +476,18 @@ function buildFinalEvents({
 function buildBonusEvents({
   playerPicks,
   opponentPicks,
+  results,
 }: {
   playerPicks: EntryPicks;
   opponentPicks: EntryPicks;
+  results: PoolResults;
 }) {
   const gainEvents: OpponentPathEvent[] = [];
   const threatEvents: OpponentPathEvent[] = [];
 
   for (const bonus of playerPicks.bonus) {
+    if ((results.bonus?.[bonus.id]?.length ?? 0) > 0) continue;
+
     const opponentBonus = opponentPicks.bonus.find((item) => item.id === bonus.id);
     if (!opponentBonus || sameTeam(bonus.pick, opponentBonus.pick)) continue;
 
@@ -422,6 +498,8 @@ function buildBonusEvents({
       detail: `${playerPicks.scoringRules.bonus} bonus points for this entry and none for the opponent.`,
       points: playerPicks.scoringRules.bonus,
       teams: [bonus.pick],
+      resultKind: "bonus",
+      resultKey: bonus.id,
     });
     threatEvents.push({
       id: `bonus-threat-${bonus.id}-${normalizeKey(opponentBonus.pick)}`,
@@ -430,6 +508,8 @@ function buildBonusEvents({
       detail: `${opponentPicks.scoringRules.bonus} bonus points for the opponent and none for this entry.`,
       points: opponentPicks.scoringRules.bonus,
       teams: [opponentBonus.pick],
+      resultKind: "bonus",
+      resultKey: bonus.id,
     });
   }
 
@@ -534,7 +614,7 @@ function buildOpponentReport({
   const group = buildGroupEvents({ playerPicks, opponentPicks, results });
   const knockout = buildKnockoutEvents({ playerPicks, opponentPicks, results });
   const finals = buildFinalEvents({ playerPicks, opponentPicks, results });
-  const bonus = buildBonusEvents({ playerPicks, opponentPicks });
+  const bonus = buildBonusEvents({ playerPicks, opponentPicks, results });
   const gainEvents = rankEvents([
     ...group.gainEvents,
     ...knockout.gainEvents,
@@ -576,6 +656,420 @@ function buildOpponentReport({
       threatEvents,
     }),
   };
+}
+
+function buildEntryRemainingGroupEvents({
+  picks,
+  results,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+}) {
+  const events: OpponentPathEvent[] = [];
+
+  for (const [groupId, group] of Object.entries(picks.groups)) {
+    if (!groupIsOpen(results, groupId)) continue;
+
+    const actualAdvancers = actualAdvancersForGroup(results, groupId);
+    for (const team of group.predictedAdvancers) {
+      if (actualAdvancers.some((actual) => sameTeam(actual, team))) continue;
+
+      events.push({
+        id: `group-${groupId}-${normalizeKey(team)}`,
+        category: "Group",
+        title: `${team} advance from Group ${groupId}`,
+        detail: `${picks.scoringRules.groupAdvancement} points if this group result lands.`,
+        points: picks.scoringRules.groupAdvancement,
+        teams: [team],
+        groupId,
+        resultKind: "groupAdvancer",
+        resultKey: groupId,
+      });
+    }
+
+    const topFour = uniqueTeams(group.predictedOrder.slice(0, 4));
+    if (topFour.length === 4) {
+      events.push({
+        id: `group-order-${groupId}`,
+        category: "Group",
+        title: `Group ${groupId} order hits exactly`,
+        detail: `${picks.scoringRules.exactTopFourBonus} point order bonus is still open.`,
+        points: picks.scoringRules.exactTopFourBonus,
+        teams: topFour,
+        groupId,
+        resultKind: "groupOrder",
+        resultKey: groupId,
+      });
+    }
+  }
+
+  return events;
+}
+
+function buildEntryRemainingKnockoutEvents({
+  picks,
+  results,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+}) {
+  const events: OpponentPathEvent[] = [];
+
+  for (const stage of KNOCKOUT_STAGES) {
+    const predictedTeams = picks.advancement[stage.key];
+    for (const team of predictedTeams) {
+      if (
+        !teamCanStillEarnKnockoutStage({
+          results,
+          picks,
+          stageKey: stage.key,
+          team,
+          predictedCount: predictedTeams.length,
+        })
+      ) {
+        continue;
+      }
+
+      events.push({
+        id: `${stage.key}-${normalizeKey(team)}`,
+        category: "Knockout",
+        title: `${team} reach ${stage.label}`,
+        detail: `${picks.scoringRules[stage.key]} points if this knockout result lands.`,
+        points: picks.scoringRules[stage.key],
+        teams: [team],
+        resultKind: "knockoutStage",
+        resultKey: stage.key,
+      });
+    }
+  }
+
+  return events;
+}
+
+function buildEntryRemainingFinalEvents({
+  picks,
+  results,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+}) {
+  const events: OpponentPathEvent[] = [];
+
+  for (const stage of FINAL_STAGES) {
+    const team = picks.podium[stage.key];
+    if (
+      !teamCanStillEarnFinalPosition({
+        results,
+        picks,
+        positionKey: stage.key,
+        team,
+      })
+    ) {
+      continue;
+    }
+
+    events.push({
+      id: `final-${stage.key}-${normalizeKey(team)}`,
+      category: "Final",
+      title: `${team} finish as ${stage.label}`,
+      detail: `${picks.scoringRules[stage.key]} points if this podium pick lands.`,
+      points: picks.scoringRules[stage.key],
+      teams: [team],
+      resultKind: "finalPosition",
+      resultKey: stage.key,
+    });
+  }
+
+  return events;
+}
+
+function buildEntryRemainingBonusEvents({
+  picks,
+  results,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+}) {
+  return picks.bonus
+    .filter((bonus) => (results.bonus?.[bonus.id]?.length ?? 0) === 0)
+    .map<OpponentPathEvent>((bonus) => ({
+      id: `bonus-${bonus.id}-${normalizeKey(bonus.pick)}`,
+      category: "Bonus",
+      title: `${bonus.pick}: ${bonus.label}`,
+      detail: `${picks.scoringRules.bonus} bonus points if this answer lands.`,
+      points: picks.scoringRules.bonus,
+      teams: [bonus.pick],
+      resultKind: "bonus",
+      resultKey: bonus.id,
+    }));
+}
+
+export function buildEntryRemainingEvents({
+  picks,
+  results,
+}: {
+  picks: EntryPicks;
+  results: PoolResults;
+}) {
+  return uniqueEvents([
+    ...buildEntryRemainingGroupEvents({ picks, results }),
+    ...buildEntryRemainingKnockoutEvents({ picks, results }),
+    ...buildEntryRemainingFinalEvents({ picks, results }),
+    ...buildEntryRemainingBonusEvents({ picks, results }),
+  ]);
+}
+
+function eventPointsForPicks(event: OpponentPathEvent, picks: EntryPicks) {
+  const [team] = event.teams;
+
+  if (event.resultKind === "groupAdvancer" && event.groupId) {
+    return picks.groups[event.groupId]?.predictedAdvancers.some((item) =>
+      sameTeam(item, team),
+    )
+      ? picks.scoringRules.groupAdvancement
+      : 0;
+  }
+
+  if (event.resultKind === "groupOrder" && event.groupId) {
+    const predictedTopFour = picks.groups[event.groupId]?.predictedOrder.slice(0, 4) ?? [];
+    return predictedTopFour.length === event.teams.length &&
+      event.teams.every((item, index) => sameTeam(item, predictedTopFour[index]))
+      ? picks.scoringRules.exactTopFourBonus
+      : 0;
+  }
+
+  if (event.resultKind === "knockoutStage") {
+    const stageKey = event.resultKey as StageScore["stageKey"] | undefined;
+    if (!stageKey) return 0;
+
+    return picks.advancement[stageKey]?.some((item) => sameTeam(item, team))
+      ? picks.scoringRules[stageKey]
+      : 0;
+  }
+
+  if (event.resultKind === "finalPosition") {
+    const positionKey = event.resultKey as FinalPositionKey | undefined;
+    if (!positionKey) return 0;
+
+    return sameTeam(picks.podium[positionKey], team)
+      ? picks.scoringRules[positionKey]
+      : 0;
+  }
+
+  if (event.resultKind === "bonus") {
+    return picks.bonus.some(
+      (bonus) => bonus.id === event.resultKey && sameTeam(bonus.pick, team),
+    )
+      ? picks.scoringRules.bonus
+      : 0;
+  }
+
+  return 0;
+}
+
+function rankScenarioStandings(rows: ScenarioStanding[]) {
+  let lastScore: number | null = null;
+  let lastRank = 0;
+
+  return rows
+    .slice()
+    .sort((a, b) => {
+      if (b.projectedTotal !== a.projectedTotal) {
+        return b.projectedTotal - a.projectedTotal;
+      }
+      return a.name.localeCompare(b.name);
+    })
+    .map((row, index) => {
+      const rank = row.projectedTotal === lastScore ? lastRank : index + 1;
+      lastScore = row.projectedTotal;
+      lastRank = rank;
+      return { ...row, rank };
+    });
+}
+
+export function projectEntryScenario({
+  entriesConfig,
+  picksByPath,
+  results,
+  entryId,
+  events,
+}: {
+  entriesConfig: EntriesConfig;
+  picksByPath: Map<string, EntryPicks>;
+  results: PoolResults;
+  entryId: string;
+  events: OpponentPathEvent[];
+}): EntryScenarioProjection | null {
+  const currentRows = buildLeaderboardRows(entriesConfig, picksByPath, results);
+  const selectedRow = currentRows.find((row) => row.id === entryId);
+  if (!selectedRow) return null;
+
+  const deltaByEntryId = new Map<string, number>();
+  const scoredEvents = events.map<ScenarioEventScore>((event) => {
+    const scorerIds: string[] = [];
+    const scorerNames: string[] = [];
+    let selectedPoints = 0;
+
+    for (const row of currentRows) {
+      const picks = row.picksPath ? picksByPath.get(row.picksPath) : undefined;
+      if (!picks) continue;
+
+      const points = eventPointsForPicks(event, picks);
+      if (points <= 0) continue;
+
+      deltaByEntryId.set(row.id, (deltaByEntryId.get(row.id) ?? 0) + points);
+      scorerIds.push(row.id);
+      scorerNames.push(row.name);
+
+      if (row.id === entryId) {
+        selectedPoints = points;
+      }
+    }
+
+    return {
+      ...event,
+      selectedPoints,
+      scorerIds,
+      scorerNames,
+    };
+  });
+
+  const standings = rankScenarioStandings(
+    currentRows.map((row) => {
+      const delta = deltaByEntryId.get(row.id) ?? 0;
+      return {
+        id: row.id,
+        name: row.name,
+        currentTotal: row.score.total,
+        projectedTotal: row.score.total + delta,
+        delta,
+        rank: row.rank,
+      };
+    }),
+  );
+  const selectedStanding = standings.find((row) => row.id === entryId);
+  if (!selectedStanding) return null;
+
+  const firstPlaceEntries = standings.filter((row) => row.rank === 1);
+  const blockers = standings.filter(
+    (row) =>
+      row.id !== entryId &&
+      row.projectedTotal >= selectedStanding.projectedTotal,
+  );
+
+  return {
+    entryId,
+    entryName: selectedRow.name,
+    currentRank: selectedRow.rank,
+    currentTotal: selectedRow.score.total,
+    projectedRank: selectedStanding.rank,
+    projectedTotal: selectedStanding.projectedTotal,
+    routeCovered: selectedStanding.delta,
+    eventCount: events.length,
+    canFinishFirst: selectedStanding.rank === 1,
+    tiedForFirst: selectedStanding.rank === 1 && firstPlaceEntries.length > 1,
+    events: scoredEvents,
+    standings,
+    blockers,
+  };
+}
+
+function scenarioIsBetter(
+  candidate: EntryScenarioProjection | null,
+  current: EntryScenarioProjection | null,
+) {
+  if (!candidate) return false;
+  if (!current) return true;
+  if (candidate.canFinishFirst !== current.canFinishFirst) {
+    return candidate.canFinishFirst;
+  }
+  if (candidate.canFinishFirst && candidate.tiedForFirst !== current.tiedForFirst) {
+    return !candidate.tiedForFirst;
+  }
+  if (candidate.projectedRank !== current.projectedRank) {
+    return candidate.projectedRank < current.projectedRank;
+  }
+  if (candidate.projectedTotal !== current.projectedTotal) {
+    return candidate.projectedTotal > current.projectedTotal;
+  }
+  return candidate.eventCount < current.eventCount;
+}
+
+function hasScenarioConflict(events: OpponentPathEvent[], next: OpponentPathEvent) {
+  if (next.resultKind !== "finalPosition") return false;
+
+  return events.some(
+    (event) =>
+      event.resultKind === "finalPosition" &&
+      event.resultKey === next.resultKey &&
+      !sameTeam(event.teams[0], next.teams[0]),
+  );
+}
+
+export function findEntryScenarioProjection({
+  entriesConfig,
+  picksByPath,
+  results,
+  entryId,
+  maxEvents = 3,
+  candidateLimit = 10,
+}: {
+  entriesConfig: EntriesConfig;
+  picksByPath: Map<string, EntryPicks>;
+  results: PoolResults;
+  entryId: string;
+  maxEvents?: number;
+  candidateLimit?: number;
+}): EntryScenarioProjection | null {
+  const currentRows = buildLeaderboardRows(entriesConfig, picksByPath, results);
+  const selectedRow = currentRows.find((row) => row.id === entryId);
+  const selectedPicks = selectedRow?.picksPath
+    ? picksByPath.get(selectedRow.picksPath)
+    : undefined;
+  if (!selectedRow || !selectedPicks) return null;
+
+  let best = projectEntryScenario({
+    entriesConfig,
+    picksByPath,
+    results,
+    entryId,
+    events: [],
+  });
+  if (best?.canFinishFirst) return best;
+
+  const candidates = buildEntryRemainingEvents({
+    picks: selectedPicks,
+    results,
+  }).slice(0, candidateLimit);
+
+  function visit(startIndex: number, selectedEvents: OpponentPathEvent[]) {
+    if (selectedEvents.length > 0) {
+      const projection = projectEntryScenario({
+        entriesConfig,
+        picksByPath,
+        results,
+        entryId,
+        events: selectedEvents,
+      });
+
+      if (scenarioIsBetter(projection, best)) {
+        best = projection;
+      }
+
+      if (projection?.canFinishFirst && !projection.tiedForFirst) return;
+    }
+
+    if (selectedEvents.length >= maxEvents) return;
+
+    for (let index = startIndex; index < candidates.length; index += 1) {
+      const next = candidates[index];
+      if (hasScenarioConflict(selectedEvents, next)) continue;
+      visit(index + 1, [...selectedEvents, next]);
+    }
+  }
+
+  visit(0, []);
+  return best;
 }
 
 export function buildOpponentPathsReport({
