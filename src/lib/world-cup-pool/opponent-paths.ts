@@ -1,5 +1,9 @@
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { actualAdvancersForGroup, scorePool } from "@/lib/world-cup-pool/scoring";
+import {
+  teamCanStillEarnFinalPosition,
+  teamCanStillEarnKnockoutStage,
+} from "@/lib/world-cup-pool/team-eligibility";
 import { buildTeamIndexes, normalizeKey } from "@/lib/world-cup-pool/results-updater";
 import type {
   EntriesConfig,
@@ -279,10 +283,31 @@ function buildKnockoutEvents({
   for (const stage of KNOCKOUT_STAGES) {
     const playerTeams = playerPicks.advancement[stage.key];
     const opponentTeams = opponentPicks.advancement[stage.key];
-    if (!stageIsOpen(results, stage.key, playerTeams.length)) continue;
+    if (
+      !stageIsOpen(results, stage.key, playerTeams.length) &&
+      !stageIsOpen(results, stage.key, opponentTeams.length)
+    ) {
+      continue;
+    }
 
-    const playerOnly = difference(playerTeams, opponentTeams);
-    const opponentOnly = difference(opponentTeams, playerTeams);
+    const playerOnly = difference(playerTeams, opponentTeams).filter((team) =>
+      teamCanStillEarnKnockoutStage({
+        results,
+        picks: playerPicks,
+        stageKey: stage.key,
+        team,
+        predictedCount: playerTeams.length,
+      }),
+    );
+    const opponentOnly = difference(opponentTeams, playerTeams).filter((team) =>
+      teamCanStillEarnKnockoutStage({
+        results,
+        picks: opponentPicks,
+        stageKey: stage.key,
+        team,
+        predictedCount: opponentTeams.length,
+      }),
+    );
     const playerPoints = playerPicks.scoringRules[stage.key];
     const opponentPoints = opponentPicks.scoringRules[stage.key];
 
@@ -332,7 +357,16 @@ function buildFinalEvents({
     const playerPoints = playerPicks.scoringRules[stage.key];
     const opponentPoints = opponentPicks.scoringRules[stage.key];
 
-    if (playerTeam && !sameTeam(playerTeam, opponentTeam)) {
+    if (
+      playerTeam &&
+      !sameTeam(playerTeam, opponentTeam) &&
+      teamCanStillEarnFinalPosition({
+        results,
+        picks: playerPicks,
+        positionKey: stage.key,
+        team: playerTeam,
+      })
+    ) {
       gainEvents.push({
         id: `final-${stage.key}-${normalizeKey(playerTeam)}`,
         category: "Final",
@@ -343,7 +377,16 @@ function buildFinalEvents({
       });
     }
 
-    if (opponentTeam && !sameTeam(playerTeam, opponentTeam)) {
+    if (
+      opponentTeam &&
+      !sameTeam(playerTeam, opponentTeam) &&
+      teamCanStillEarnFinalPosition({
+        results,
+        picks: opponentPicks,
+        positionKey: stage.key,
+        team: opponentTeam,
+      })
+    ) {
       threatEvents.push({
         id: `final-threat-${stage.key}-${normalizeKey(opponentTeam)}`,
         category: "Final",

@@ -1,4 +1,8 @@
 import { scorePool } from "@/lib/world-cup-pool/scoring";
+import {
+  teamCanStillEarnFinalPosition,
+  teamCanStillEarnKnockoutStage,
+} from "@/lib/world-cup-pool/team-eligibility";
 import type {
   EntriesConfig,
   EntryPicks,
@@ -148,29 +152,41 @@ function groupRemaining(
 
 function knockoutRemaining(
   picks: EntryPicks,
-  score: PoolScore,
   results: PoolResults,
   rules: EntryPicks["scoringRules"],
 ) {
   return KNOCKOUT_CEILING_STAGES.reduce((sum, stage) => {
-    const predictedCount = picks.advancement[stage.key].length;
-    const actualCount = results[stage.key]?.length ?? 0;
-    const stageScore = score.knockout.find((item) => item.stageKey === stage.key);
-    const maxPoints = predictedCount * rules[stage.key];
-    const settled = predictedCount > 0 && actualCount >= predictedCount;
-    return sum + stageRemaining(maxPoints, stageScore?.points ?? 0, settled);
+    const predictedTeams = picks.advancement[stage.key];
+    const predictedCount = predictedTeams.length;
+    const remainingHits = predictedTeams.filter((team) =>
+      teamCanStillEarnKnockoutStage({
+        results,
+        picks,
+        stageKey: stage.key,
+        team,
+        predictedCount,
+      }),
+    ).length;
+
+    return sum + remainingHits * rules[stage.key];
   }, 0);
 }
 
 function finalsRemaining(
-  score: PoolScore,
+  picks: EntryPicks,
   results: PoolResults,
   rules: EntryPicks["scoringRules"],
 ) {
   return FINAL_CEILING_STAGES.reduce((sum, stage) => {
-    const finalScore = score.finals.find((item) => item.label === stage.label);
-    const settled = Boolean(results.finals?.[stage.key]);
-    return sum + stageRemaining(rules[stage.key], finalScore?.points ?? 0, settled);
+    const team = picks.podium[stage.key];
+    const canStillEarn = teamCanStillEarnFinalPosition({
+      results,
+      picks,
+      positionKey: stage.key,
+      team,
+    });
+
+    return sum + (canStillEarn ? rules[stage.key] : 0);
   }, 0);
 }
 
@@ -191,8 +207,8 @@ function remainingBreakdown(
     const groupScore = score.groups.find((item) => item.groupId === groupId);
     return sum + groupRemaining(groupPick, groupScore, results.groups?.[groupId], rules);
   }, 0);
-  const knockout = knockoutRemaining(picks, score, results, rules);
-  const finals = finalsRemaining(score, results, rules);
+  const knockout = knockoutRemaining(picks, results, rules);
+  const finals = finalsRemaining(picks, results, rules);
   const bonus = bonusRemaining(picks, score, rules);
 
   return {
