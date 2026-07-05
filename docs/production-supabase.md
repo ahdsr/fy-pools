@@ -25,6 +25,19 @@ Set `NEXT_PUBLIC_SITE_URL` to the canonical production origin, for example
 Set `FY_POOLS_SCORING_API_KEY` to a high-entropy secret used by trusted scoring
 jobs when calling the Round of 16 scoring refresh API.
 
+Optional runtime variables:
+
+```bash
+NEXT_PUBLIC_BASE_PATH=
+FY_POOLS_LOCAL_RESULTS_JOB=
+FY_POOLS_LOCAL_RESULTS_REFRESH_MS=
+```
+
+`NEXT_PUBLIC_BASE_PATH` is only needed when the app is served from a path
+prefix. `FY_POOLS_LOCAL_RESULTS_JOB=1` enables the local fixture refresh loop
+for development, and `FY_POOLS_LOCAL_RESULTS_REFRESH_MS` controls that local
+loop interval. Do not enable the local fixture job in production.
+
 The Stripe and Resend variables in `.env.example` are reserved for later launch
 work. They are not required for the Round of 16 MVP flow unless payments or
 automated email sending are explicitly added back to the launch scope.
@@ -122,6 +135,6 @@ Before marking the Supabase setup blocker complete:
 5. Open a generated `/join/<invite-code>` link in a signed-out session.
 6. Create or sign into the participant account, submit picks, and verify the
    commissioner inbox receives the submission notification.
-
-The public `/pools/<pool-slug>` route is still a separate P0 blocker because it
-currently reads demo fixture data rather than newly published Supabase pools.
+7. Open `/pools/<pool-slug>` and verify the published Round of 16 pool renders
+   from Supabase data with public stats, bracket state, entrants, and viewer
+   entry context when available.

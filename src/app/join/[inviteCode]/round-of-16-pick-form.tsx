@@ -239,11 +239,21 @@ function RoundOf16BracketPicker({
 }) {
   const leftMatchups = matchups.slice(0, 4);
   const rightMatchups = matchups.slice(4);
+  const pickedCount = matchups.filter((matchup) => winners[matchup.id]).length;
 
   return (
-    <div className="overflow-x-auto">
-      <div className="grid min-w-[58rem] gap-5 p-1 lg:grid-cols-[minmax(0,1fr)_17rem_minmax(0,1fr)] lg:items-center">
-        <div className="grid gap-4">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-2 rounded-lg border bg-surface-ledger/60 px-3 py-2 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm font-semibold text-brand-ink">
+          {pickedCount} of {matchups.length} winners picked
+        </p>
+        <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+          Tap a team to change your pick
+        </p>
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_17rem_minmax(0,1fr)] lg:items-center">
+        <div className="grid min-w-0 gap-4">
           {leftMatchups.map((matchup, index) => (
             <BracketMatchCard
               key={matchup.id}
@@ -254,8 +264,10 @@ function RoundOf16BracketPicker({
             />
           ))}
         </div>
-        <WinnerColumn matchups={matchups} winners={winners} />
-        <div className="grid gap-4">
+        <div className="order-last lg:order-none">
+          <WinnerColumn matchups={matchups} winners={winners} />
+        </div>
+        <div className="grid min-w-0 gap-4">
           {rightMatchups.map((matchup, index) => {
             const matchIndex = index + 4;
 

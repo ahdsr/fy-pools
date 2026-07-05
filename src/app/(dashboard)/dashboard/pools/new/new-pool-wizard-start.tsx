@@ -365,32 +365,50 @@ function AutomaticMatchupsList({
 }: {
   matchups: RoundOf16WizardState["matchups"];
 }) {
-  return (
-    <div className="overflow-hidden rounded-lg border bg-background">
-      <div className="grid divide-y">
-        {matchups.map((matchup, index) => (
-          <div
-            key={matchup.id}
-            className="grid gap-3 px-4 py-3 sm:grid-cols-[5rem_minmax(0,1fr)] sm:items-center"
-          >
-            <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-              Match {index + 1}
-            </p>
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
-              <TeamPill
-                team={matchup.teamOne}
-                className="max-w-full border-0 bg-transparent p-0 shadow-none"
-              />
-              <span className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-                vs
-              </span>
-              <TeamPill
-                team={matchup.teamTwo}
-                className="max-w-full border-0 bg-transparent p-0 shadow-none"
-              />
-            </div>
+  const leftSide = matchups.slice(0, 4);
+  const rightSide = matchups.slice(4);
+
+  function renderMatchupCard(
+    matchup: RoundOf16WizardState["matchups"][number],
+    index: number,
+  ) {
+    return (
+      <article key={matchup.id} className="rounded-lg border bg-background p-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          Match {index + 1}
+        </p>
+        <div className="mt-3 grid gap-2">
+          <TeamPill team={matchup.teamOne} className="max-w-full" />
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            <span className="h-px flex-1 bg-brand-rule" />
+            vs
+            <span className="h-px flex-1 bg-brand-rule" />
           </div>
-        ))}
+          <TeamPill team={matchup.teamTwo} className="max-w-full" />
+        </div>
+      </article>
+    );
+  }
+
+  return (
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          Bracket side A
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {leftSide.map((matchup, index) => renderMatchupCard(matchup, index))}
+        </div>
+      </div>
+      <div className="space-y-3">
+        <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+          Bracket side B
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {rightSide.map((matchup, index) =>
+            renderMatchupCard(matchup, index + 4),
+          )}
+        </div>
       </div>
     </div>
   );

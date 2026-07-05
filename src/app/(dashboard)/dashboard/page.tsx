@@ -1,8 +1,10 @@
 import Link from "next/link";
 import {
+  AlertCircle,
   ArrowRight,
   Bell,
   CalendarClock,
+  CheckCircle2,
   ClipboardList,
   Edit,
   ExternalLink,
@@ -53,11 +55,72 @@ function formatAuditEventType(value: string) {
     .join(" ");
 }
 
+function pluralize(count: number, singular: string, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+
+function getPoolParticipantStatus(pool: CommissionerPoolSummary) {
+  const submittedEntries = pool.entryCounts.submitted + pool.entryCounts.locked;
+  const missingEntries = pool.entryCounts.missing;
+  const pendingInvites = pool.inviteCounts.pending;
+  const acceptedInvites = pool.inviteCounts.accepted;
+  const deadlinePassed = pool.deadlineStatus === "Locked";
+
+  if (deadlinePassed && missingEntries > 0) {
+    return {
+      tone: "warning" as const,
+      title: `${pluralize(missingEntries, "entry", "entries")} missing after deadline`,
+      body: "Review late participants before scoring or lock the pool as-is.",
+    };
+  }
+
+  if (missingEntries > 0 && pendingInvites > 0) {
+    return {
+      tone: "warning" as const,
+      title: `${pluralize(missingEntries, "entry", "entries")} still missing`,
+      body: `${pluralize(pendingInvites, "direct invite")} unclaimed. Copy the share link or follow up outside the app.`,
+    };
+  }
+
+  if (missingEntries > 0) {
+    return {
+      tone: "warning" as const,
+      title: `${pluralize(missingEntries, "entry", "entries")} still missing`,
+      body: `${pluralize(acceptedInvites, "direct invite")} claimed. Follow up with players who have not submitted picks.`,
+    };
+  }
+
+  if (pendingInvites > 0) {
+    return {
+      tone: "neutral" as const,
+      title: `${pluralize(pendingInvites, "direct invite")} unclaimed`,
+      body: `${pluralize(submittedEntries, "entry", "entries")} submitted. The general signup link can still cover extra players.`,
+    };
+  }
+
+  if (submittedEntries > 0) {
+    return {
+      tone: "complete" as const,
+      title: "Expected entries are in",
+      body: `${pluralize(submittedEntries, "entry", "entries")} submitted. Refresh scoring when results are ready.`,
+    };
+  }
+
+  return {
+    tone: "neutral" as const,
+    title: "Waiting on first picks",
+    body: "Share the pool link with participants and watch submissions land in the inbox.",
+  };
+}
+
 function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
   const submittedEntries = pool.entryCounts.submitted + pool.entryCounts.locked;
   const expectedEntriesLabel = pool.expectedEntries
     ? `${submittedEntries}/${pool.expectedEntries} expected`
     : `${submittedEntries} submitted`;
+  const participantStatus = getPoolParticipantStatus(pool);
+  const ParticipantStatusIcon =
+    participantStatus.tone === "complete" ? CheckCircle2 : AlertCircle;
 
   return (
     <article className="flex min-h-[16rem] flex-col justify-between gap-5 rounded-lg border bg-surface-paper p-4">
@@ -111,6 +174,35 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
             </div>
             <p className="mt-1 text-sm font-semibold text-brand-ink">
               {formatDateTime(pool.pickDeadline)}
+            </p>
+          </div>
+        </div>
+        <div
+          className={[
+            "flex gap-3 rounded-lg border px-3 py-2",
+            participantStatus.tone === "warning"
+              ? "border-destructive/20 bg-destructive/5"
+              : participantStatus.tone === "complete"
+                ? "border-brand-success/25 bg-cta-green-soft"
+                : "bg-background",
+          ].join(" ")}
+        >
+          <ParticipantStatusIcon
+            className={[
+              "mt-0.5 size-4 shrink-0",
+              participantStatus.tone === "warning"
+                ? "text-destructive"
+                : participantStatus.tone === "complete"
+                  ? "text-brand-success"
+                  : "text-brand-mark",
+            ].join(" ")}
+          />
+          <div>
+            <p className="text-sm font-semibold text-brand-ink">
+              {participantStatus.title}
+            </p>
+            <p className="mt-0.5 text-xs font-normal leading-5 text-muted-foreground">
+              {participantStatus.body}
             </p>
           </div>
         </div>
