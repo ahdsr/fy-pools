@@ -8,6 +8,8 @@ import { unstable_rethrow } from "next/navigation";
 import {
   buildResultsFromEvents,
   ESPN_SCOREBOARD_URL,
+  createTeamResolver,
+  fetchFifaBonusResults,
 } from "@/lib/world-cup-pool/results-updater";
 import type {
   EntriesConfig,
@@ -105,14 +107,15 @@ async function fetchLiveResults({
       throw new Error("ESPN scoreboard response did not include events");
     }
 
-    return buildResultsFromEvents(
-      scoreboard.events as Parameters<typeof buildResultsFromEvents>[0],
-      {
-        picks: referencePicks,
-        aliases,
-        manualOverrides,
-      },
-    );
+    const resolveTeam = createTeamResolver(referencePicks, aliases);
+    const fifaBonusResults = await fetchFifaBonusResults(resolveTeam);
+
+    return buildResultsFromEvents(scoreboard.events as Parameters<typeof buildResultsFromEvents>[0], {
+      picks: referencePicks,
+      aliases,
+      manualOverrides,
+      fifaBonusResults,
+    });
   } catch (error) {
     unstable_rethrow(error);
     console.error("[fy-pools] Live results fetch failed; using fixture fallback", error);

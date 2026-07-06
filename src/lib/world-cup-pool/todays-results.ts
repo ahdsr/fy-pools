@@ -193,7 +193,7 @@ export function scenarioResults(
       runnerUp: knockout.finals.runnerUp || results.finals?.runnerUp,
       thirdPlace: knockout.finals.thirdPlace || results.finals?.thirdPlace,
     },
-    bonus: computeBonusResults(groups, picks),
+    bonus: computeBonusResults(groups, picks, results.bonus),
   };
 }
 

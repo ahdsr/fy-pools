@@ -5,7 +5,9 @@ import path from "node:path";
 
 import {
   buildResultsFromEvents,
+  createTeamResolver,
   ESPN_SCOREBOARD_URL,
+  fetchFifaBonusResults,
 } from "@/lib/world-cup-pool/results-updater";
 import type { EntryPicks, PoolResults } from "@/lib/world-cup-pool/types";
 
@@ -98,10 +100,13 @@ export async function updateLocalWorldCupResults() {
     fetchEspnEvents(),
   ]);
 
+  const resolveTeam = createTeamResolver(picks, aliases);
+  const fifaBonusResults = await fetchFifaBonusResults(resolveTeam);
   const results = buildResultsFromEvents(events, {
     picks,
     aliases,
     manualOverrides,
+    fifaBonusResults,
   });
 
   await writeFile(

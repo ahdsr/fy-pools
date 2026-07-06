@@ -6,6 +6,10 @@ import { describe, expect, it } from "vitest";
 import entriesJson from "@/data/marcins-world-cup-2026/entries.json";
 import resultsJson from "@/data/marcins-world-cup-2026/results.json";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
+import {
+  computeBestPassCompletionFromFifaTeamStats,
+  computeFarthestGoalFromFifaTimelines,
+} from "@/lib/world-cup-pool/results-updater";
 import type {
   EntriesConfig,
   EntryPicks,
@@ -44,6 +48,10 @@ function countMatchingPicks(
   team: string,
 ) {
   return rows.filter(({ picks }) => picker(picks) === team).length;
+}
+
+function bonusPick(picks: EntryPicks, bonusId: string) {
+  return picks.bonus.find((bonus) => bonus.id === bonusId)?.pick ?? "";
 }
 
 describe("World Cup scoring data", () => {
@@ -139,5 +147,57 @@ describe("World Cup scoring data", () => {
     }
 
     expect(issues).toEqual([]);
+  });
+
+  it("parses FIFA automatic bonus feeds for farthest goal and passing accuracy", () => {
+    const farthestGoal = computeFarthestGoalFromFifaTimelines(
+      [
+        {
+          Event: [
+            { Type: 0, IdTeam: "43850", PositionX: 29.29916, PositionY: 53.839553 },
+            { Type: 0, IdTeam: "43924", PositionX: 90, PositionY: 50 },
+          ],
+        },
+      ],
+      new Map([
+        ["43850", "Cape Verde"],
+        ["43924", "Brazil"],
+      ]),
+    );
+    const bestPassCompletion = computeBestPassCompletionFromFifaTeamStats([
+      { team: "Spain", stats: [["Passes", 100], ["PassesCompleted", 93]] },
+      { team: "Portugal", stats: [["Passes", 100], ["PassesCompleted", 92]] },
+      { team: "Brazil", stats: [["Passes", 100], ["PassesCompleted", 88]] },
+    ]);
+
+    expect(farthestGoal).toEqual(["Cape Verde"]);
+    expect(bestPassCompletion).toEqual(["Spain"]);
+  });
+
+  it("awards current automatic bonus winners from result answers", () => {
+    const rows = loadPicks();
+    const results = resultsJson as PoolResults;
+    const firstRules = rows[0]?.picks.scoringRules;
+
+    expect(firstRules).toBeDefined();
+    expect(results.bonus?.farthestGoal).toEqual(["Cape Verde"]);
+    expect(results.bonus?.bestPassCompletion).toEqual(["Spain"]);
+
+    const expectedAggregate =
+      countMatchingPicks(rows, (picks) => bonusPick(picks, "farthestGoal"), "Cape Verde") *
+        (firstRules?.bonus ?? 0) +
+      countMatchingPicks(rows, (picks) => bonusPick(picks, "bestPassCompletion"), "Spain") *
+        (firstRules?.bonus ?? 0);
+    const actualAggregate = rows.reduce((sum, { picks }) => {
+      const score = scorePool(picks, results);
+      return (
+        sum +
+        score.bonus
+          .filter((bonus) => bonus.id === "farthestGoal" || bonus.id === "bestPassCompletion")
+          .reduce((bonusSum, bonus) => bonusSum + bonus.points, 0)
+      );
+    }, 0);
+
+    expect(actualAggregate).toBe(expectedAggregate);
   });
 });
