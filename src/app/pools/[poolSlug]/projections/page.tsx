@@ -1,9 +1,11 @@
 import Link from "next/link";
+import Form from "next/form";
 import { notFound } from "next/navigation";
-import { ArrowRight, Trophy } from "lucide-react";
+import { Trophy } from "lucide-react";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import { StatGrid } from "@/components/app/pool-public-widgets";
+import { ProjectionPathSubmit } from "@/components/app/projection-path-submit";
 import {
   PublicPoolMetaCard,
   PublicPoolShell,
@@ -25,6 +27,7 @@ import type {
   EntryScenarioProjection,
   ScenarioEventScore,
 } from "@/lib/world-cup-pool/opponent-paths";
+import { preferredSelectedEntryId } from "@/lib/world-cup-pool/projection-selection";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
 import type { LeaderboardRow } from "@/lib/world-cup-pool/types";
 
@@ -136,27 +139,6 @@ function leaderNote({ leaderTotal }: { leaderTotal: number }) {
   return `${leaderTotal} pts now`;
 }
 
-function preferredSelectedEntryId({
-  requestedEntry,
-  rows,
-  leaderId,
-  defaultEntryId,
-}: {
-  requestedEntry?: string | string[];
-  rows: PoolAnalyticsRow[];
-  leaderId?: string;
-  defaultEntryId?: string;
-}) {
-  const requested = Array.isArray(requestedEntry)
-    ? requestedEntry[0]
-    : requestedEntry;
-  if (requested && rows.some((row) => row.id === requested)) return requested;
-
-  if (defaultEntryId && defaultEntryId !== leaderId) return defaultEntryId;
-
-  return rows.find((row) => row.id !== leaderId)?.id ?? rows[0]?.id ?? "";
-}
-
 function alsoHelpsLabel(event: ScenarioEventScore, selectedId: string) {
   const names = event.scorerNames.filter(
     (_, scorerIndex) => event.scorerIds[scorerIndex] !== selectedId,
@@ -266,9 +248,9 @@ function FocusedWinPath({
       }
     >
       <div className="space-y-5 p-5">
-        <form
+        <Form
           action={`/pools/${publicSlug}/projections`}
-          className="flex flex-col gap-3 rounded-lg border bg-background px-3 py-3 sm:flex-row sm:items-end"
+          className="relative flex flex-col gap-3 rounded-lg border bg-background px-3 py-3 sm:flex-row sm:items-end"
         >
           <div className="min-w-0 flex-1 space-y-2">
             <label
@@ -290,10 +272,8 @@ function FocusedWinPath({
               ))}
             </select>
           </div>
-          <Button type="submit" variant="secondaryGreen">
-            Show path <ArrowRight />
-          </Button>
-        </form>
+          <ProjectionPathSubmit />
+        </Form>
 
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border bg-background px-4 py-3">
