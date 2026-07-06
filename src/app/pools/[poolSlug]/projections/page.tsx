@@ -44,33 +44,6 @@ function projectionRows(rows: PoolAnalyticsRow[]) {
   });
 }
 
-function buildScenarioRoutes({
-  analyticsRows,
-  pool,
-  selectedId,
-}: {
-  analyticsRows: PoolAnalyticsRow[];
-  pool: NonNullable<Awaited<ReturnType<typeof getPublicPoolStandings>>>["pool"];
-  selectedId: string;
-}) {
-  const routes = new Map<string, EntryScenarioProjection>();
-
-  for (const row of analyticsRows) {
-    const focused = row.id === selectedId;
-    const projection = findEntryScenarioProjection({
-      entriesConfig: pool.entriesConfig,
-      picksByPath: pool.picksByPath,
-      results: pool.results,
-      entryId: row.id,
-      maxEvents: focused ? 5 : 3,
-      candidateLimit: focused ? 18 : 10,
-    });
-    if (projection) routes.set(row.id, projection);
-  }
-
-  return routes;
-}
-
 function routeLabel(projection?: EntryScenarioProjection) {
   if (!projection) return "No projection";
   if (projection.eventCount === 0 && projection.projectedRank === 1) {
@@ -97,13 +70,15 @@ function statusBadge(label: string, active: boolean) {
 function ProjectionRow({
   row,
   publicSlug,
+  selected,
   projection,
 }: {
   row: PoolAnalyticsRow;
   publicSlug: string;
+  selected: boolean;
   projection?: EntryScenarioProjection;
 }) {
-  const canFinishFirst = Boolean(projection?.canFinishFirst);
+  const canFinishFirst = Boolean(selected && projection?.canFinishFirst);
 
   return (
     <TableRow>
@@ -124,14 +99,22 @@ function ProjectionRow({
       <TableCell>
         <div className="min-w-28">
           {statusBadge(
-            canFinishFirst ? "Can finish #1" : "Capped",
+            selected
+              ? canFinishFirst
+                ? "Can finish #1"
+                : "Capped"
+              : "Select",
             canFinishFirst,
           )}
-          {projection ? (
+          {selected && projection ? (
             <p className="mt-1 text-xs leading-4 text-muted-foreground">
               {routeLabel(projection)}
             </p>
-          ) : null}
+          ) : (
+            <p className="mt-1 text-xs leading-4 text-muted-foreground">
+              Choose this entry above to calculate the full path.
+            </p>
+          )}
         </div>
       </TableCell>
       <TableCell>
@@ -423,87 +406,6 @@ function FocusedWinPath({
   );
 }
 
-function WinPathCards({
-  rows,
-  publicSlug,
-  routes,
-}: {
-  rows: PoolAnalyticsRow[];
-  publicSlug: string;
-  routes: Map<string, EntryScenarioProjection>;
-}) {
-  const contenders = rows
-    .filter((row) => routes.get(row.id)?.canFinishFirst)
-    .sort((a, b) => {
-      const left = routes.get(a.id);
-      const right = routes.get(b.id);
-      if ((left?.eventCount ?? 0) !== (right?.eventCount ?? 0)) {
-        return (left?.eventCount ?? 0) - (right?.eventCount ?? 0);
-      }
-      return a.rank - b.rank;
-    })
-    .slice(0, 8);
-
-  if (!contenders.length) return null;
-
-  return (
-    <LedgerPanel
-      title="Other live paths"
-      description="A scan of other entries whose best current scenario reaches #1 after all matching picks are scored."
-    >
-      <div className="grid gap-4 p-4 lg:grid-cols-2">
-        {contenders.map((row) => {
-          const route = routes.get(row.id);
-          const events = route?.events ?? [];
-
-          return (
-            <div key={row.id} className="rounded-lg border bg-background/60 p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <Link
-                    href={`/pools/${publicSlug}/entry/${row.id}`}
-                    className="font-semibold text-brand-ink hover:text-brand-hot"
-                  >
-                    {row.name}
-                  </Link>
-                  <p className="mt-1 text-xs text-muted-foreground">
-                    {row.currentTotal} pts now · {routeLabel(route)}
-                  </p>
-                </div>
-                {statusBadge(route?.tiedForFirst ? "Can tie" : "Can win", true)}
-              </div>
-              {events.length ? (
-                <div className="mt-4 grid gap-3 border-l pl-4">
-                  {events.slice(0, 4).map((event, index) => (
-                    <div key={event.id} className="relative">
-                      <span
-                        aria-hidden="true"
-                        className="absolute -left-[1.48rem] top-0 grid size-5 place-items-center rounded-full border bg-surface-paper text-[0.65rem] font-bold text-brand-ink"
-                      >
-                        {index + 1}
-                      </span>
-                      <p className="text-sm font-semibold leading-5 text-brand-ink">
-                        {event.title}
-                      </p>
-                      <p className="text-xs leading-4 text-muted-foreground">
-                        {event.category} · +{event.selectedPoints} route pts
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="mt-4 rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground">
-                  Current leader path.
-                </p>
-              )}
-            </div>
-          );
-        })}
-      </div>
-    </LedgerPanel>
-  );
-}
-
 export default async function ProjectionsPage({
   params,
   searchParams,
@@ -522,14 +424,16 @@ export default async function ProjectionsPage({
     leaderId: leader?.id,
     defaultEntryId: pool.entriesConfig.defaultEntryId,
   });
-  const scenarioRoutes = buildScenarioRoutes({
-    analyticsRows: analytics.rows,
-    pool,
-    selectedId,
+  const selectedProjection = findEntryScenarioProjection({
+    entriesConfig: pool.entriesConfig,
+    picksByPath: pool.picksByPath,
+    results: pool.results,
+    entryId: selectedId,
+    maxEvents: 5,
+    candidateLimit: 10,
   });
-  const leaderPassCount = analytics.rows.filter(
-    (row) => scenarioRoutes.get(row.id)?.canFinishFirst,
-  ).length;
+  const scenarioRoutes = new Map<string, EntryScenarioProjection>();
+  if (selectedProjection) scenarioRoutes.set(selectedId, selectedProjection);
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
@@ -555,9 +459,9 @@ export default async function ProjectionsPage({
               note: leaderNote(analytics),
             },
             {
-              label: "Can pass leader",
-              value: `${leaderPassCount}/${analytics.rows.length}`,
-              note: "Full-pool path reaches #1",
+              label: "Still alive",
+              value: `${analytics.aliveCount}/${analytics.rows.length}`,
+              note: "Max possible can reach #1",
             },
             {
               label: "Best selected finish",
@@ -583,15 +487,9 @@ export default async function ProjectionsPage({
         routes={scenarioRoutes}
       />
 
-      <WinPathCards
-        rows={rows}
-        publicSlug={publicSlug}
-        routes={scenarioRoutes}
-      />
-
       <LedgerPanel
         title="Pool projections"
-        description="Projection rank is calculated after applying the same route events to every matching entry."
+        description="Select an entry to calculate its full-pool path. The selected path is scored against every matching entry."
         action={
           <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
             {statusBadge("Live projection", true)}
@@ -618,7 +516,10 @@ export default async function ProjectionsPage({
                   key={row.id}
                   row={row}
                   publicSlug={publicSlug}
-                  projection={scenarioRoutes.get(row.id)}
+                  selected={row.id === selectedId}
+                  projection={
+                    row.id === selectedId ? scenarioRoutes.get(row.id) : undefined
+                  }
                 />
               ))}
             </TableBody>
