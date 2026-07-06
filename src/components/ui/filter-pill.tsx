@@ -5,7 +5,7 @@ import { Slot } from "radix-ui"
 import { cn } from "@/lib/utils"
 
 const filterPillVariants = cva(
-  "inline-flex h-[39px] shrink-0 items-center justify-center rounded-full border px-4 text-sm font-medium tracking-normal whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex h-[39px] shrink-0 items-center justify-center rounded-full border px-4 text-sm font-medium tracking-[-0.02em] whitespace-nowrap transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/25 focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
@@ -18,7 +18,7 @@ const filterPillVariants = cva(
         coral:
           "border-filter-coral/70 bg-filter-coral text-filter-foreground hover:bg-[color-mix(in_oklch,var(--filter-coral),white_18%)]",
         neutral:
-          "border-border bg-surface-paper/72 text-foreground hover:bg-surface-paper",
+          "border-border bg-white/72 text-foreground hover:bg-white",
       },
     },
     defaultVariants: {

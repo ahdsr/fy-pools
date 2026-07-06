@@ -9,10 +9,8 @@
   "knockout": {},
   "finals": {},
   "bonus": {
-    "mostGoalsScored": [],
-    "mostYellowCards": [],
-    "mostRedCards": [],
-    "mostFoulsCommitted": [],
-    "mostCornerKicks": []
+    "farthestGoal": [],
+    "bestPassCompletion": [],
+    "mostCards": []
   }
 }

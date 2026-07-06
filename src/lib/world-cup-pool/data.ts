@@ -7,11 +7,7 @@ import { unstable_rethrow } from "next/navigation";
 
 import {
   buildResultsFromEvents,
-  espnSummaryUrl,
   ESPN_SCOREBOARD_URL,
-  shouldFetchEspnSummary,
-  type EspnEvent,
-  type EspnSummary,
 } from "@/lib/world-cup-pool/results-updater";
 import type {
   EntriesConfig,
@@ -38,8 +34,6 @@ const DATA_DIR = path.join(
   "data",
   "marcins-world-cup-2026",
 );
-const LIVE_RESULTS_REVALIDATE_SECONDS = 60;
-const NEXT_PRODUCTION_BUILD_PHASE = "phase-production-build";
 
 async function readFixtureJson<T>(fileName: string): Promise<T> {
   const json = await readFile(path.join(DATA_DIR, fileName), "utf8");
@@ -48,13 +42,6 @@ async function readFixtureJson<T>(fileName: string): Promise<T> {
 
 function fixtureFileFromPicksPath(picksPath: string) {
   return path.basename(picksPath);
-}
-
-function liveResultsEnabled() {
-  if (process.env.FY_POOLS_LIVE_RESULTS === "0") return false;
-  if (process.env.FY_POOLS_LIVE_RESULTS === "1") return true;
-
-  return process.env.NEXT_PHASE !== NEXT_PRODUCTION_BUILD_PHASE;
 }
 
 type StaticPoolFixture = Omit<PoolFixture, "results"> & {
@@ -102,7 +89,7 @@ async function fetchLiveResults({
   manualOverrides: Partial<PoolResults>;
   fallbackResults: PoolResults;
 }) {
-  if (!referencePicks || !liveResultsEnabled()) return fallbackResults;
+  if (!referencePicks) return fallbackResults;
 
   try {
     const response = await fetch(ESPN_SCOREBOARD_URL, {
@@ -117,16 +104,13 @@ async function fetchLiveResults({
     if (!Array.isArray(scoreboard.events)) {
       throw new Error("ESPN scoreboard response did not include events");
     }
-    const events = scoreboard.events as EspnEvent[];
-    const summaries = await fetchEspnSummaries(events);
 
     return buildResultsFromEvents(
-      events,
+      scoreboard.events as Parameters<typeof buildResultsFromEvents>[0],
       {
         picks: referencePicks,
         aliases,
         manualOverrides,
-        summaries,
       },
     );
   } catch (error) {
@@ -136,29 +120,7 @@ async function fetchLiveResults({
   }
 }
 
-async function fetchEspnSummaries(events: EspnEvent[]) {
-  const summaryEventIds = Array.from(
-    new Set(events.filter(shouldFetchEspnSummary).map((event) => event.id).filter(Boolean)),
-  ) as string[];
-
-  const entries = await Promise.all(
-    summaryEventIds.map(async (eventId) => {
-      try {
-        const response = await fetch(espnSummaryUrl(eventId), {
-          next: { revalidate: LIVE_RESULTS_REVALIDATE_SECONDS },
-        });
-        if (!response.ok) return null;
-        return [eventId, (await response.json()) as EspnSummary] as const;
-      } catch {
-        return null;
-      }
-    }),
-  );
-
-  return Object.fromEntries(entries.filter((entry): entry is [string, EspnSummary] => Boolean(entry)));
-}
-
-export const getMarcinsWorldCupPool = cache(async (): Promise<PoolFixture> => {
+export async function getMarcinsWorldCupPool(): Promise<PoolFixture> {
   const staticPool = await getMarcinsWorldCupStaticPool();
   const referencePicksPath = staticPool.entriesConfig.entries.find(
     (entry) => entry.picksPath,
@@ -179,7 +141,7 @@ export const getMarcinsWorldCupPool = cache(async (): Promise<PoolFixture> => {
     picksByPath: staticPool.picksByPath,
     results,
   };
-});
+}
 
 export async function getPublicPool(poolSlug: string) {
   if (!POOL_ALIASES.has(poolSlug)) return null;

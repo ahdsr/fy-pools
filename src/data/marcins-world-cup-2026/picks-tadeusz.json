@@ -17,32 +17,32 @@
     "thirdPlace": 10,
     "runnerUp": 15,
     "champion": 25,
-    "bonus": 3
+    "bonus": 5
   },
   "bonus": [
     {
       "id": "mostGoalsScored",
-      "label": "Team with most Round of 16 goals",
+      "label": "Most goals scored",
       "pick": "Spain"
     },
     {
-      "id": "mostYellowCards",
-      "label": "Team with most Round of 16 yellow cards",
+      "id": "mostGoalsConceded",
+      "label": "Most goals conceded",
       "pick": "DR Congo"
     },
     {
-      "id": "mostRedCards",
-      "label": "Team with most Round of 16 red cards",
+      "id": "farthestGoal",
+      "label": "Goal from farthest distance",
       "pick": "Argentina"
     },
     {
-      "id": "mostFoulsCommitted",
-      "label": "Team with most Round of 16 fouls",
+      "id": "bestPassCompletion",
+      "label": "Best pass completion %",
       "pick": "Brazil"
     },
     {
-      "id": "mostCornerKicks",
-      "label": "Team with most Round of 16 corner kicks",
+      "id": "mostCards",
+      "label": "Most red & yellow cards",
       "pick": "Uzbekistan"
     }
   ],

@@ -125,7 +125,6 @@ export type GroupResult = {
 export type MatchResult = {
   id: string;
   date: string;
-  stage?: string;
   state: string;
   completed: boolean;
   detail: string;

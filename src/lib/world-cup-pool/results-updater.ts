@@ -3,12 +3,10 @@ import { sortRoundOf32ByOfficialSlot } from "@/lib/world-cup-pool/knockout-slots
 
 export const ESPN_SCOREBOARD_URL =
   "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/scoreboard?limit=200&dates=20260611-20260719";
-export const ESPN_SUMMARY_URL =
-  "https://site.api.espn.com/apis/site/v2/sports/soccer/fifa.world/summary";
 
 export const WORLD_CUP_GROUP_IDS = "ABCDEFGHIJKL".split("");
 
-export type EspnCompetitor = {
+type EspnCompetitor = {
   homeAway?: string;
   score?: string | number;
   winner?: boolean;
@@ -20,14 +18,11 @@ export type EspnCompetitor = {
   };
 };
 
-export type EspnEvent = {
+type EspnEvent = {
   id?: string;
   name?: string;
   shortName?: string;
   date?: string;
-  season?: {
-    slug?: string;
-  };
   status?: {
     type?: {
       state?: string;
@@ -41,20 +36,7 @@ export type EspnEvent = {
     date?: string;
     status?: EspnEvent["status"];
     competitors?: EspnCompetitor[];
-    altGameNote?: string;
   }[];
-};
-
-export type EspnSummary = {
-  boxscore?: {
-    teams?: {
-      team?: EspnCompetitor["team"];
-      statistics?: {
-        name?: string;
-        displayValue?: string | number;
-      }[];
-    }[];
-  };
 };
 
 type TeamStat = {
@@ -64,12 +46,6 @@ type TeamStat = {
   goalsFor: number;
   goalsAgainst: number;
   goalDifference: number;
-};
-
-type BonusStatKey = "goalsFor" | "yellowCards" | "redCards" | "foulsCommitted" | "cornerKicks";
-
-export type BonusTeamStat = Record<BonusStatKey, number> & {
-  team: string;
 };
 
 type ParsedCompetitor = {
@@ -92,35 +68,6 @@ export function normalizeKey(value: unknown) {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
-}
-
-export function espnSummaryUrl(eventId: string) {
-  return `${ESPN_SUMMARY_URL}?event=${encodeURIComponent(eventId)}`;
-}
-
-function competitionForEvent(event: EspnEvent) {
-  return event.competitions?.[0] ?? {};
-}
-
-function eventStage(event: EspnEvent) {
-  const competition = competitionForEvent(event);
-  return event.season?.slug ?? competition.altGameNote ?? "";
-}
-
-function isRoundOf16Stage(stage: string | undefined) {
-  if (!stage) return false;
-  return stage === "round-of-16" || /round of 16/i.test(stage);
-}
-
-export function isRoundOf16Event(event: EspnEvent) {
-  return isRoundOf16Stage(eventStage(event));
-}
-
-export function shouldFetchEspnSummary(event: EspnEvent) {
-  const competition = competitionForEvent(event);
-  const status = competition.status?.type ?? event.status?.type ?? {};
-  const state = status.state ?? "pre";
-  return isRoundOf16Event(event) && (Boolean(status.completed) || state === "post");
 }
 
 function numberValue(value: unknown) {
@@ -182,7 +129,7 @@ export function parseEspnEvent(
   event: EspnEvent,
   resolveTeam: (value: unknown) => string = (value) => String(value ?? ""),
 ) {
-  const competition = competitionForEvent(event);
+  const competition = event.competitions?.[0] ?? {};
   const status = competition.status?.type ?? event.status?.type ?? {};
   const competitors = competition.competitors ?? [];
   const parsedCompetitors: ParsedCompetitor[] = competitors.map((competitor) => ({
@@ -231,7 +178,6 @@ export function parseEspnEvent(
     name: event.name ?? "",
     shortName: event.shortName ?? "",
     date: event.date ?? competition.date ?? "",
-    stage: eventStage(event),
     state,
     completed,
     detail: status.detail ?? status.description ?? "",
@@ -242,35 +188,6 @@ export function parseEspnEvent(
     winner,
     loser,
   };
-}
-
-function summaryStatValue(
-  stats: NonNullable<NonNullable<EspnSummary["boxscore"]>["teams"]>[number]["statistics"] = [],
-  key: string,
-) {
-  const item = stats.find((stat) => stat.name === key);
-  return numberValue(item?.displayValue) ?? 0;
-}
-
-export function parseEspnSummaryTeamStats(
-  summary: EspnSummary | undefined,
-  resolveTeam: (value: unknown) => string = (value) => String(value ?? ""),
-) {
-  return (summary?.boxscore?.teams ?? [])
-    .map<BonusTeamStat | null>((team) => {
-      const name = resolveTeam(competitorName({ team: team.team }));
-      if (!name) return null;
-      const stats = team.statistics ?? [];
-      return {
-        team: name,
-        goalsFor: 0,
-        yellowCards: summaryStatValue(stats, "yellowCards"),
-        redCards: summaryStatValue(stats, "redCards"),
-        foulsCommitted: summaryStatValue(stats, "foulsCommitted"),
-        cornerKicks: summaryStatValue(stats, "wonCorners"),
-      };
-    })
-    .filter((item): item is BonusTeamStat => Boolean(item));
 }
 
 function isCountedMatch(match: MatchResult) {
@@ -483,119 +400,29 @@ export function buildKnockoutResults(matches: MatchResult[], picks: EntryPicks) 
   };
 }
 
-function emptyBonusStat(team: string): BonusTeamStat {
-  return {
-    team,
-    goalsFor: 0,
-    yellowCards: 0,
-    redCards: 0,
-    foulsCommitted: 0,
-    cornerKicks: 0,
-  };
+function allTeamStats(groups: NonNullable<PoolResults["groups"]>) {
+  return Object.values(groups)
+    .flatMap((group) => group.stats ?? [])
+    .filter((item) => item.played > 0);
 }
 
-function addBonusStat(
-  totals: Map<string, BonusTeamStat>,
-  team: string,
-  key: BonusStatKey,
-  value: number,
-) {
-  if (!team) return;
-  const current = totals.get(team) ?? emptyBonusStat(team);
-  current[key] += value;
-  totals.set(team, current);
-}
-
-function roundOf16Matches(matches: MatchResult[]) {
-  return matches.filter((match) => isRoundOf16Stage(match.stage));
-}
-
-function bonusLeaders(
-  stats: BonusTeamStat[],
-  key: BonusStatKey,
-  options: {
-    roundComplete: boolean;
-    settleOnlyWhenRoundComplete?: boolean;
-    settleZeroOnlyWhenRoundComplete?: boolean;
-  },
-) {
+function leadersBy(stats: TeamStat[], key: "goalsFor" | "goalsAgainst") {
   if (stats.length === 0) return [];
-  if (options.settleOnlyWhenRoundComplete && !options.roundComplete) return [];
-
   const max = Math.max(...stats.map((item) => item[key]));
-  if (max <= 0 && (!options.roundComplete || options.settleZeroOnlyWhenRoundComplete)) {
-    return options.roundComplete
-      ? stats.map((item) => item.team).sort((a, b) => a.localeCompare(b))
-      : [];
-  }
-
+  if (max <= 0) return [];
   return stats
     .filter((item) => item[key] === max)
     .map((item) => item.team)
     .sort((a, b) => a.localeCompare(b));
 }
 
-function aggregateRoundOf16BonusStats(
-  matches: MatchResult[],
-  summaryStatsByEventId: Record<string, BonusTeamStat[]> = {},
-) {
-  const roundMatches = roundOf16Matches(matches);
-  const completedMatches = roundMatches.filter((match) => match.completed);
-  const totals = new Map<string, BonusTeamStat>();
-  const coveredStats = new Set<BonusStatKey>();
-
-  for (const match of completedMatches) {
-    addBonusStat(totals, match.homeTeam, "goalsFor", match.homeScore ?? 0);
-    addBonusStat(totals, match.awayTeam, "goalsFor", match.awayScore ?? 0);
-
-    for (const stat of summaryStatsByEventId[match.id] ?? []) {
-      for (const key of ["yellowCards", "redCards", "foulsCommitted", "cornerKicks"] as const) {
-        addBonusStat(totals, stat.team, key, stat[key]);
-        coveredStats.add(key);
-      }
-    }
-  }
-
-  return {
-    roundComplete: roundMatches.length >= 8 && completedMatches.length === roundMatches.length,
-    stats: [...totals.values()],
-    coveredStats,
-  };
-}
-
-export function computeBonusResults(
-  picks: EntryPicks,
-  matches: MatchResult[] = [],
-  summaryStatsByEventId: Record<string, BonusTeamStat[]> = {},
-) {
+export function computeBonusResults(groups: NonNullable<PoolResults["groups"]>, picks: EntryPicks) {
   const base = Object.fromEntries(picks.bonus.map((item) => [item.id, [] as string[]]));
-  const roundOf16Stats = aggregateRoundOf16BonusStats(matches, summaryStatsByEventId);
-  const stats = roundOf16Stats.stats;
-  const statLeaders = (
-    key: BonusStatKey,
-    options: {
-      settleOnlyWhenRoundComplete?: boolean;
-      settleZeroOnlyWhenRoundComplete?: boolean;
-    } = {},
-  ) =>
-    roundOf16Stats.coveredStats.has(key) || key === "goalsFor"
-      ? bonusLeaders(stats, key, {
-          roundComplete: roundOf16Stats.roundComplete,
-          settleOnlyWhenRoundComplete: options.settleOnlyWhenRoundComplete,
-          settleZeroOnlyWhenRoundComplete: options.settleZeroOnlyWhenRoundComplete,
-        })
-      : [];
-
+  const stats = allTeamStats(groups);
   return {
     ...base,
-    mostGoalsScored: statLeaders("goalsFor"),
-    mostYellowCards: statLeaders("yellowCards"),
-    mostRedCards: statLeaders("redCards", {
-      settleOnlyWhenRoundComplete: true,
-      settleZeroOnlyWhenRoundComplete: true,
-    }),
-    mostFoulsCommitted: statLeaders("foulsCommitted"),
-    mostCornerKicks: statLeaders("cornerKicks"),
+    mostGoalsScored: leadersBy(stats, "goalsFor"),
+    mostGoalsConceded: leadersBy(stats, "goalsAgainst"),
   };
 }
 
@@ -665,7 +492,6 @@ export function buildResultsFromEvents(
     manualOverrides?: ManualOverrides;
     now?: string;
     sourceUrl?: string;
-    summaries?: Record<string, EspnSummary>;
   },
 ): PoolResults {
   const {
@@ -674,18 +500,11 @@ export function buildResultsFromEvents(
     manualOverrides = {},
     now = new Date().toISOString(),
     sourceUrl = ESPN_SCOREBOARD_URL,
-    summaries = {},
   } = options;
   const resolveTeam = createTeamResolver(picks, aliases);
   const matches = events.map((event) => parseEspnEvent(event, resolveTeam));
   const groups = buildGroupResults(matches, picks);
   const knockout = buildKnockoutResults(matches, picks);
-  const summaryStatsByEventId = Object.fromEntries(
-    Object.entries(summaries).map(([eventId, summary]) => [
-      eventId,
-      parseEspnSummaryTeamStats(summary, resolveTeam),
-    ]),
-  );
   const topThirdGroups = isGroupStageFinal(groups) ? selectTopThirdGroups(groups) : [];
   const countedMatches = matches.filter(isCountedMatch).length;
   const liveMatches = matches.filter((match) => match.state === "in").length;
@@ -711,7 +530,6 @@ export function buildResultsFromEvents(
         .map((match) => ({
           id: match.id,
           date: match.date,
-          stage: match.stage,
           state: match.state,
           completed: match.completed,
           detail: match.detail,
@@ -731,7 +549,7 @@ export function buildResultsFromEvents(
       thirdPlaceMatch: knockout.thirdPlaceMatch,
       finalists: knockout.finalists,
       finals: knockout.finals,
-      bonus: computeBonusResults(picks, matches, summaryStatsByEventId),
+      bonus: computeBonusResults(groups, picks),
     },
     manualOverrides,
   );

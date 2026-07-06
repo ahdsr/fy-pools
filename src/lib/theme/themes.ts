@@ -1,10 +1,5 @@
 export const APP_THEMES = [
   {
-    id: "premium-pools",
-    name: "PoolWaffle Premium",
-    description: "High-contrast premium surfaces with bright action accents.",
-  },
-  {
     id: "paper-ledger",
     name: "FY Paper Ledger",
     description: "Ink-blue, paper surfaces, bracket-grid rules.",
