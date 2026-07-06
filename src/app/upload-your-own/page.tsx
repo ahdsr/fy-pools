@@ -88,7 +88,7 @@ export default function UploadYourOwnPage() {
                   {String(index + 1).padStart(2, "0")}
                 </Badge>
                 <div className="space-y-2">
-                  <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
+                  <h2 className="text-xl font-bold tracking-normal text-brand-ink">
                     {step.title}
                   </h2>
                   <p className="text-sm font-normal leading-6 text-muted-foreground">
@@ -101,14 +101,14 @@ export default function UploadYourOwnPage() {
         </LedgerPanel>
       </section>
 
-      <LedgerPanel className="bg-accent text-accent-foreground">
+        <LedgerPanel className="bg-surface-inverse text-surface-inverse-foreground">
         <LedgerRow className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
             <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-normal text-cta-green">
               <CheckCircle2 className="size-4" />
               Built for custom commissioner spreadsheets
             </div>
-            <h2 className="max-w-[720px] text-2xl font-bold tracking-[0.005em] text-white">
+            <h2 className="max-w-[720px] text-2xl font-bold tracking-normal text-surface-inverse-foreground">
               Bring your existing pool format instead of rebuilding it from a
               blank template.
             </h2>
@@ -122,7 +122,7 @@ export default function UploadYourOwnPage() {
             <Button
               asChild
               variant="ghost"
-              className="text-white hover:bg-white/10 hover:text-white"
+              className="text-surface-inverse-foreground hover:bg-surface-inverse-foreground/10 hover:text-surface-inverse-foreground"
             >
               <Link href="/dashboard/templates">Browse templates</Link>
             </Button>

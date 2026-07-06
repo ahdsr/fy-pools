@@ -1904,17 +1904,10 @@
     "thirdPlace": ""
   },
   "bonus": {
-    "mostGoalsScored": [
-      "France",
-      "Germany",
-      "Netherlands"
-    ],
-    "mostGoalsConceded": [
-      "Iraq",
-      "Tunisia"
-    ],
-    "farthestGoal": [],
-    "bestPassCompletion": [],
-    "mostCards": []
+    "mostGoalsScored": [],
+    "mostYellowCards": [],
+    "mostRedCards": [],
+    "mostFoulsCommitted": [],
+    "mostCornerKicks": []
   }
 }

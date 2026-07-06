@@ -5,7 +5,11 @@ import path from "node:path";
 
 import {
   buildResultsFromEvents,
+  espnSummaryUrl,
   ESPN_SCOREBOARD_URL,
+  shouldFetchEspnSummary,
+  type EspnEvent,
+  type EspnSummary,
 } from "@/lib/world-cup-pool/results-updater";
 import type { EntryPicks, PoolResults } from "@/lib/world-cup-pool/types";
 
@@ -86,7 +90,27 @@ async function fetchEspnEvents() {
     throw new Error("ESPN scoreboard response did not include events");
   }
 
-  return scoreboard.events as Parameters<typeof buildResultsFromEvents>[0];
+  return scoreboard.events as EspnEvent[];
+}
+
+async function fetchEspnSummaries(events: EspnEvent[]) {
+  const summaryEventIds = Array.from(
+    new Set(events.filter(shouldFetchEspnSummary).map((event) => event.id).filter(Boolean)),
+  ) as string[];
+
+  const entries = await Promise.all(
+    summaryEventIds.map(async (eventId) => {
+      try {
+        const response = await fetch(espnSummaryUrl(eventId), { cache: "no-store" });
+        if (!response.ok) return null;
+        return [eventId, (await response.json()) as EspnSummary] as const;
+      } catch {
+        return null;
+      }
+    }),
+  );
+
+  return Object.fromEntries(entries.filter((entry): entry is [string, EspnSummary] => Boolean(entry)));
 }
 
 export async function updateLocalWorldCupResults() {
@@ -97,11 +121,13 @@ export async function updateLocalWorldCupResults() {
     readJson<Partial<PoolResults>>("manual-overrides.json"),
     fetchEspnEvents(),
   ]);
+  const summaries = await fetchEspnSummaries(events);
 
   const results = buildResultsFromEvents(events, {
     picks,
     aliases,
     manualOverrides,
+    summaries,
   });
 
   await writeFile(

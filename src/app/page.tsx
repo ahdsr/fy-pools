@@ -1,14 +1,14 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import { ArrowRight } from "lucide-react";
 
 import {
-  HeaderBrandWordmark,
-  HeaderAccountControls,
-  SiteHeaderNav,
-} from "@/components/app/mock-auth";
+  MarketingActionGroup,
+  MarketingFormatList,
+  MarketingHeader,
+  MarketingHeroVisual,
+  MarketingInfoGrid,
+} from "@/components/app/marketing";
 import { SiteFooter } from "@/components/app/site-footer";
-import { Button } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: {
@@ -102,20 +102,14 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-accent text-accent-foreground">
-        <nav className="relative flex h-14 w-full items-center justify-between px-5 md:h-16 md:px-8 lg:px-[43px]">
-          <HeaderBrandWordmark />
-          <SiteHeaderNav />
-          <HeaderAccountControls />
-        </nav>
-      </header>
+      <MarketingHeader />
 
       <section className="mx-auto flex w-full max-w-[1268px] flex-col gap-10 px-4 py-5 sm:px-5 md:gap-12 md:px-6 md:py-8">
         <section className="py-8 md:py-12">
           <div className="grid gap-8 lg:grid-cols-[0.93fr_1.07fr] lg:items-start">
             <div className="space-y-6 pt-1 lg:pt-0">
               <div className="space-y-5">
-                <h1 className="max-w-[650px] text-[clamp(2.125rem,10vw,4.7rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04]">
+                <h1 className="max-w-[650px] text-4xl font-normal leading-[1.08] text-brand-ink sm:text-5xl sm:leading-[1.04] lg:text-6xl">
                   Private sports pool hosting for serious commissioners.
                 </h1>
                 <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">
@@ -125,46 +119,32 @@ export default function Home() {
                   audit.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild variant="primaryGreen" size="lg">
-                  <Link href="/dashboard/pools">
-                    Create pool <ArrowRight />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link href="/upload-your-own">Upload your own</Link>
-                </Button>
-              </div>
+              <MarketingActionGroup
+                actions={[
+                  {
+                    href: "/dashboard/pools",
+                    label: "Create pool",
+                    icon: ArrowRight,
+                    variant: "primaryGreen",
+                  },
+                  {
+                    href: "/upload-your-own",
+                    label: "Upload your own",
+                    variant: "outline",
+                  },
+                ]}
+              />
             </div>
 
-            <figure
-              aria-label="Generic sports field"
-              className="min-h-[360px] overflow-hidden rounded-lg border bg-cover bg-center ring-1 ring-white/5 lg:min-h-[470px]"
-              style={{
-                backgroundImage:
-                  "linear-gradient(180deg, rgb(0 0 0 / 0.02), rgb(0 0 0 / 0.18)), url(https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1400&q=80)",
-              }}
+            <MarketingHeroVisual
+              label="Generic sports field"
+              image="https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1400&q=80"
             />
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
-          {steps.map((step) => (
-            <div
-              key={step.title}
-              className="border-t pt-5"
-            >
-              <p className="text-xs font-semibold text-brand-mark sm:text-sm">
-                {step.label}
-              </p>
-              <h2 className="mt-3 text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
-                {step.title}
-              </h2>
-              <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
-                {step.body}
-              </p>
-            </div>
-          ))}
+        <section>
+          <MarketingInfoGrid items={steps} />
         </section>
 
         <section className="grid gap-8 border-t py-10 lg:grid-cols-[0.82fr_1.18fr]">
@@ -180,18 +160,7 @@ export default function Home() {
               scoring.
             </p>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {features.map((feature) => (
-              <article key={feature.title} className="border-t pt-5">
-                <h3 className="text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
-                  {feature.title}
-                </h3>
-                <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
-                  {feature.body}
-                </p>
-              </article>
-            ))}
-          </div>
+          <MarketingInfoGrid items={features} columns={2} headingLevel={3} />
         </section>
 
         <section className="grid gap-6 border-t py-10 md:grid-cols-[0.55fr_1fr] md:items-start">
@@ -205,16 +174,7 @@ export default function Home() {
               custom formats.
             </p>
           </div>
-          <ul className="grid gap-x-4 gap-y-3 sm:grid-cols-2">
-            {formats.map((format) => (
-              <li
-                key={format}
-                className="border-t border-brand-rule/70 pt-3 text-[0.9375rem] font-semibold leading-6 text-brand-ink sm:text-sm sm:leading-normal"
-              >
-                {format}
-              </li>
-            ))}
-          </ul>
+          <MarketingFormatList formats={formats} />
         </section>
       </section>
       <SiteFooter />

@@ -32,7 +32,7 @@ export function TemplateCategoryCard({
   return (
     <article className="space-y-4">
       <div className="space-y-3">
-        <h3 className="text-[2.125rem] font-normal leading-[2.75rem] tracking-[-0.02em] text-brand-ink">
+        <h3 className="text-3xl font-normal leading-tight tracking-normal text-brand-ink">
           {visual.label}
         </h3>
 
@@ -44,7 +44,7 @@ export function TemplateCategoryCard({
           <div
             className="aspect-[4/3] bg-cover bg-center transition-transform duration-300 group-hover:scale-[1.03]"
             style={{
-              backgroundImage: `linear-gradient(180deg, transparent 45%, rgb(0 0 0 / 0.34)), url(${visual.image})`,
+              backgroundImage: `var(--category-image-overlay), url(${visual.image})`,
             }}
           />
         </Link>

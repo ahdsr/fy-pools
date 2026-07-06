@@ -17,32 +17,32 @@
     "thirdPlace": 10,
     "runnerUp": 15,
     "champion": 25,
-    "bonus": 5
+    "bonus": 3
   },
   "bonus": [
     {
       "id": "mostGoalsScored",
-      "label": "Most goals scored",
+      "label": "Team with most Round of 16 goals",
       "pick": "France"
     },
     {
-      "id": "mostGoalsConceded",
-      "label": "Most goals conceded",
+      "id": "mostYellowCards",
+      "label": "Team with most Round of 16 yellow cards",
       "pick": "Haiti"
     },
     {
-      "id": "farthestGoal",
-      "label": "Goal from farthest distance",
+      "id": "mostRedCards",
+      "label": "Team with most Round of 16 red cards",
       "pick": "Portugal"
     },
     {
-      "id": "bestPassCompletion",
-      "label": "Best pass completion %",
+      "id": "mostFoulsCommitted",
+      "label": "Team with most Round of 16 fouls",
       "pick": "Spain"
     },
     {
-      "id": "mostCards",
-      "label": "Most red & yellow cards",
+      "id": "mostCornerKicks",
+      "label": "Team with most Round of 16 corner kicks",
       "pick": "Morocco"
     }
   ],

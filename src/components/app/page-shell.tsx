@@ -1,6 +1,10 @@
+import Link from "next/link";
+import { ArrowLeft } from "lucide-react";
+
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
 import { DashboardHeader } from "@/components/app/mock-auth";
 import { SiteFooter } from "@/components/app/site-footer";
+import { Badge } from "@/components/ui/badge";
 
 type PageShellProps = {
   eyebrow?: string;
@@ -21,6 +25,8 @@ export function PageShell({
   children,
   heroAction,
   topContent,
+  backHref,
+  status,
   showHeader = true,
 }: PageShellProps) {
   return (
@@ -34,7 +40,21 @@ export function PageShell({
           {topContent ? <div>{topContent}</div> : null}
           <section className="py-9 md:py-16">
             <div className="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between lg:gap-8">
-              <div className="prose flex max-w-[625px] flex-col prose-h1:my-0 prose-h1:text-[clamp(2.125rem,10vw,3.5rem)] prose-h1:font-normal prose-h1:leading-[1.1] prose-h1:tracking-normal prose-h1:text-brand-ink prose-p:mb-0 prose-p:mt-5 prose-p:max-w-[625px] prose-p:text-[0.9375rem] prose-p:font-normal prose-p:leading-6 prose-p:text-foreground/80 sm:prose-p:mt-7 sm:prose-p:text-base md:prose-h1:leading-[1.14]">
+              <div className="prose flex max-w-[625px] flex-col prose-h1:my-0 prose-h1:text-4xl prose-h1:font-normal prose-h1:leading-[1.1] prose-h1:tracking-normal prose-h1:text-brand-ink prose-p:mb-0 prose-p:mt-5 prose-p:max-w-[625px] prose-p:text-[0.9375rem] prose-p:font-normal prose-p:leading-6 prose-p:text-foreground/80 sm:prose-h1:text-5xl sm:prose-p:mt-7 sm:prose-p:text-base md:prose-h1:leading-[1.14]">
+                {backHref || status ? (
+                  <div className="not-prose mb-4 flex flex-wrap items-center gap-2">
+                    {backHref ? (
+                      <Link
+                        href={backHref}
+                        className="inline-flex items-center gap-1.5 text-sm font-medium text-muted-foreground transition-colors hover:text-brand-ink"
+                      >
+                        <ArrowLeft className="size-4" />
+                        Back
+                      </Link>
+                    ) : null}
+                    {status ? <Badge variant="secondary">{status}</Badge> : null}
+                  </div>
+                ) : null}
                 {eyebrow ? (
                   <p className="not-prose mb-3 text-xs font-bold uppercase tracking-normal text-brand-hot sm:mb-4 sm:text-sm">
                     {eyebrow}

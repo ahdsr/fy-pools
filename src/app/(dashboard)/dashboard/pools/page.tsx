@@ -65,8 +65,8 @@ export default async function DashboardPoolsPage() {
         <div className="space-y-5">
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-4">
-              <h2 className="text-[2.875rem] font-normal leading-none tracking-[-0.02em] text-brand-hot">
-                Start a new pool
+              <h2 className="text-4xl font-normal leading-none tracking-normal text-brand-hot sm:text-5xl">
+                Hot right now
               </h2>
               <div className="flex flex-wrap gap-2.5">
                 {poolFilters.map((filter) => (

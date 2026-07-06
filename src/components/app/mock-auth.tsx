@@ -260,8 +260,8 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
       className={cn(
         "sticky top-0 z-50 w-full border-b",
         signedIn
-          ? "border-white/10 bg-accent text-accent-foreground"
-          : "border-border/70 bg-white text-foreground",
+          ? "border-surface-inverse-foreground/10 bg-accent text-accent-foreground"
+          : "border-border/70 bg-surface-paper text-foreground",
         )}
     >
       <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-5 md:grid md:h-auto md:min-h-16 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-3 md:px-[43px] md:py-3">
@@ -321,7 +321,7 @@ function PublicPoolNavLinks({
         className={cn(
           "inline-flex min-w-max rounded-full border p-1 shadow-sm",
           signedIn
-            ? "border-white/12 bg-white/8"
+            ? "border-surface-inverse-foreground/12 bg-surface-inverse-foreground/8"
             : "border-border/80 bg-surface-paper/95",
         )}
       >
@@ -333,11 +333,11 @@ function PublicPoolNavLinks({
             className={cn(
               "rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
               signedIn
-                ? "text-white/72 hover:bg-white/10 hover:text-white"
+                ? "text-surface-inverse-foreground/72 hover:bg-surface-inverse-foreground/10 hover:text-surface-inverse-foreground"
                 : "text-muted-foreground hover:bg-muted hover:text-foreground",
               active === item.key &&
                 (signedIn
-                  ? "bg-white text-accent shadow-sm hover:bg-white hover:text-accent"
+                  ? "bg-surface-inverse-foreground text-accent shadow-sm hover:bg-surface-inverse-foreground hover:text-accent"
                   : "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"),
             )}
           >
@@ -369,7 +369,7 @@ function MobilePublicPoolNav({
           className={cn(
             "md:hidden",
             signedIn
-              ? "text-white hover:bg-white/10 hover:text-white"
+              ? "text-surface-inverse-foreground hover:bg-surface-inverse-foreground/10 hover:text-surface-inverse-foreground"
               : "text-foreground hover:bg-muted hover:text-foreground",
           )}
         >
@@ -623,7 +623,7 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   return (
     <div
       className={cn(
-        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 rounded-full border border-white/12 bg-white/9 p-0.5 md:flex",
+        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 rounded-full border border-surface-inverse-foreground/12 bg-surface-inverse-foreground/9 p-0.5 md:flex",
         className,
       )}
     >
@@ -636,8 +636,9 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "rounded-full px-3 py-1.5 text-[0.8125rem] font-medium leading-none text-white/78 transition-colors hover:bg-white/12 hover:text-white",
-              isActive && "bg-white text-accent shadow-sm hover:bg-white hover:text-accent",
+              "rounded-full px-3 py-1.5 text-[0.8125rem] font-medium leading-none text-surface-inverse-foreground/78 transition-colors hover:bg-surface-inverse-foreground/12 hover:text-surface-inverse-foreground",
+              isActive &&
+                "bg-surface-inverse-foreground text-accent shadow-sm hover:bg-surface-inverse-foreground hover:text-accent",
             )}
           >
             {item.label}
@@ -661,7 +662,7 @@ function MobileSiteHeaderNav() {
           variant="ghost"
           size="icon-lg"
           aria-label="Open navigation menu"
-          className="text-white hover:bg-white/10 hover:text-white md:hidden"
+          className="text-surface-inverse-foreground hover:bg-surface-inverse-foreground/10 hover:text-surface-inverse-foreground md:hidden"
         >
           <Menu />
         </Button>
@@ -701,7 +702,7 @@ export function HeaderAccountControls({
         <Button
           asChild
           variant="ghost"
-          className="text-white hover:bg-white/10 hover:text-white"
+          className="text-surface-inverse-foreground hover:bg-surface-inverse-foreground/10 hover:text-surface-inverse-foreground"
         >
           <Link href={signInPathFor(DEFAULT_AUTH_REDIRECT)}>Sign in</Link>
         </Button>
@@ -727,7 +728,7 @@ export function HeaderAccountControls({
           <button
             type="button"
             aria-label="Open profile menu"
-            className="grid size-9 place-items-center rounded-full border border-white/18 bg-white text-sm font-semibold text-accent shadow-sm transition-transform hover:scale-[1.03] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-white/25"
+            className="grid size-9 place-items-center rounded-full border border-surface-inverse-foreground/18 bg-surface-inverse-foreground text-sm font-semibold text-accent shadow-sm transition-transform hover:scale-[1.03] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-surface-inverse-foreground/25"
           >
             {getInitials(user.name)}
           </button>
