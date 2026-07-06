@@ -158,6 +158,12 @@ export function PodiumBonusContent({
             <TeamPill team={item.predicted} picks={picks} />
             <PointsBadge points={item.points} active={item.hit} />
           </div>
+          <p className="mt-3 text-sm leading-5 text-muted-foreground">
+            Result:{" "}
+            <span className="font-medium text-brand-ink">
+              {item.actual || "Pending"}
+            </span>
+          </p>
         </LedgerRow>
       ))}
       {score.bonus.map((item) => (
@@ -169,10 +175,24 @@ export function PodiumBonusContent({
             <TeamPill team={item.pick} picks={picks} />
             <PointsBadge points={item.points} active={item.hit} />
           </div>
+          <p className="mt-3 text-sm leading-5 text-muted-foreground">
+            Current answer:{" "}
+            <span className="font-medium text-brand-ink">
+              {formatAuditAnswers(item.answers)}
+            </span>
+          </p>
         </LedgerRow>
       ))}
     </LedgerRows>
   );
+}
+
+function formatAuditAnswers(answers: string[]) {
+  const values = answers.filter(Boolean);
+  if (values.length === 0) return "Pending";
+  if (values.length === 1) return values[0];
+  if (values.length === 2) return `${values[0]} and ${values[1]}`;
+  return `${values.slice(0, -1).join(", ")}, and ${values.at(-1)}`;
 }
 
 const advancementStages = [

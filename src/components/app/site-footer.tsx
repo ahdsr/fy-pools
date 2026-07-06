@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { BrandWordmark } from "@/components/app/brand";
 import { cn } from "@/lib/utils";
+import { WORLD_CUP_REFERENCE_LINKS } from "@/lib/world-cup-pool/reference-urls";
 
 type SiteFooterProps = React.ComponentProps<"footer">;
 
@@ -27,6 +28,10 @@ const footerGroups = [
         href: "/pools/marcins-2026-world-cup-pool#leaderboard",
       },
     ],
+  },
+  {
+    title: "References",
+    links: WORLD_CUP_REFERENCE_LINKS,
   },
 ] as const;
 
@@ -63,12 +68,23 @@ export function SiteFooter({ className, ...props }: SiteFooterProps) {
               <ul className="space-y-2">
                 {group.links.map((link) => (
                   <li key={link.href}>
-                    <Link
-                      href={link.href}
-                      className="text-sm font-normal text-muted-foreground transition-colors hover:text-brand-hot"
-                    >
-                      {link.label}
-                    </Link>
+                    {link.href.startsWith("http") ? (
+                      <a
+                        href={link.href}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-sm font-normal text-muted-foreground transition-colors hover:text-brand-hot"
+                      >
+                        {link.label}
+                      </a>
+                    ) : (
+                      <Link
+                        href={link.href}
+                        className="text-sm font-normal text-muted-foreground transition-colors hover:text-brand-hot"
+                      >
+                        {link.label}
+                      </Link>
+                    )}
                   </li>
                 ))}
               </ul>

@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 
 import entriesJson from "@/data/marcins-world-cup-2026/entries.json";
 import resultsJson from "@/data/marcins-world-cup-2026/results.json";
+import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
 import {
   computeBestPassCompletionFromFifaTeamStats,
@@ -55,6 +56,55 @@ function bonusPick(picks: EntryPicks, bonusId: string) {
 }
 
 describe("World Cup scoring data", () => {
+  it("loads every roster entry pick sheet into scored standings", () => {
+    const entriesConfig = entriesJson as EntriesConfig;
+    const rows = loadPicks();
+    const picksByPath = new Map(
+      rows.map(({ entry, picks }) => [entry.picksPath ?? "", picks] as const),
+    );
+    const leaderboardRows = buildLeaderboardRows(
+      entriesConfig,
+      picksByPath,
+      resultsJson as PoolResults,
+    );
+
+    expect(rows).toHaveLength(entriesConfig.entries.length);
+    expect(picksByPath.size).toBe(entriesConfig.entries.length);
+    expect(leaderboardRows).toHaveLength(entriesConfig.entries.length);
+    expect(leaderboardRows.map((row) => row.id).sort()).toEqual(
+      entriesConfig.entries.map((entry) => entry.id).sort(),
+    );
+  });
+
+  it("uses one complete scoring rule and bonus-question set for every entry", () => {
+    const rows = loadPicks();
+    const results = resultsJson as PoolResults;
+    const expectedRules = rows[0]?.picks.scoringRules;
+    const expectedBonusIds = Object.keys(results.bonus ?? {}).sort();
+    const issues: string[] = [];
+
+    for (const { entry, picks } of rows) {
+      if (JSON.stringify(picks.scoringRules) !== JSON.stringify(expectedRules)) {
+        issues.push(`${entry.name}: scoring rules differ`);
+      }
+
+      const bonusIds = picks.bonus.map((bonus) => bonus.id).sort();
+      if (JSON.stringify(bonusIds) !== JSON.stringify(expectedBonusIds)) {
+        issues.push(`${entry.name}: bonus question set differs`);
+      }
+    }
+
+    expect(expectedRules).toBeDefined();
+    expect(expectedBonusIds).toEqual([
+      "bestPassCompletion",
+      "farthestGoal",
+      "mostCards",
+      "mostGoalsConceded",
+      "mostGoalsScored",
+    ]);
+    expect(issues).toEqual([]);
+  });
+
   it("has complete, internally consistent podium picks for every entry", () => {
     const rows = loadPicks();
     const issues: string[] = [];
