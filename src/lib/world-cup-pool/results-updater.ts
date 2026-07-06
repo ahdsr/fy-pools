@@ -13,6 +13,7 @@ export const FIFA_FDH_TEAM_STATS_URL_TEMPLATE = `https://fdh-api.fifa.com/v1/sta
 export const WORLD_CUP_GROUP_IDS = "ABCDEFGHIJKL".split("");
 const FIELD_LENGTH_METERS = 105;
 const FIELD_WIDTH_METERS = 68;
+const PASS_COMPLETION_PERCENT_DECIMALS = 1;
 
 type EspnCompetitor = {
   homeAway?: string;
@@ -667,11 +668,16 @@ function statEntriesToMap(stats: FifaTeamStats | undefined) {
   );
 }
 
+function roundedPassCompletionPercent(completed: number, passes: number) {
+  const scale = 10 ** PASS_COMPLETION_PERCENT_DECIMALS;
+  return Math.round((completed / passes) * 100 * scale) / scale;
+}
+
 export function computeBestPassCompletionFromFifaTeamStats(
   teamStats: { team: string; stats: FifaTeamStats }[],
 ) {
   const leaders: string[] = [];
-  let bestRate = 0;
+  let bestPercent = 0;
 
   for (const item of asArray(teamStats)) {
     const stats = statEntriesToMap(item.stats);
@@ -681,12 +687,12 @@ export function computeBestPassCompletionFromFifaTeamStats(
       continue;
     }
 
-    const rate = completed / passes;
-    if (rate > bestRate + Number.EPSILON) {
+    const percent = roundedPassCompletionPercent(completed, passes);
+    if (percent > bestPercent) {
       leaders.length = 0;
       leaders.push(item.team);
-      bestRate = rate;
-    } else if (Math.abs(rate - bestRate) <= Number.EPSILON) {
+      bestPercent = percent;
+    } else if (percent === bestPercent) {
       leaders.push(item.team);
     }
   }

@@ -165,28 +165,34 @@ describe("World Cup scoring data", () => {
       ]),
     );
     const bestPassCompletion = computeBestPassCompletionFromFifaTeamStats([
-      { team: "Spain", stats: [["Passes", 100], ["PassesCompleted", 93]] },
-      { team: "Portugal", stats: [["Passes", 100], ["PassesCompleted", 92]] },
-      { team: "Brazil", stats: [["Passes", 100], ["PassesCompleted", 88]] },
+      { team: "Spain", stats: [["Passes", 1000], ["PassesCompleted", 911]] },
+      { team: "Portugal", stats: [["Passes", 1001], ["PassesCompleted", 912]] },
+      { team: "Brazil", stats: [["Passes", 1000], ["PassesCompleted", 910]] },
     ]);
 
     expect(farthestGoal).toEqual(["Cape Verde"]);
-    expect(bestPassCompletion).toEqual(["Spain"]);
+    expect(bestPassCompletion).toEqual(["Portugal", "Spain"]);
   });
 
   it("awards current automatic bonus winners from result answers", () => {
     const rows = loadPicks();
     const results = resultsJson as PoolResults;
     const firstRules = rows[0]?.picks.scoringRules;
+    const farthestGoalAnswers = results.bonus?.farthestGoal ?? [];
+    const bestPassCompletionAnswers = results.bonus?.bestPassCompletion ?? [];
 
     expect(firstRules).toBeDefined();
-    expect(results.bonus?.farthestGoal).toEqual(["Cape Verde"]);
-    expect(results.bonus?.bestPassCompletion).toEqual(["Spain"]);
+    expect(farthestGoalAnswers).toEqual(["Cape Verde"]);
+    expect(bestPassCompletionAnswers).toEqual(["Argentina", "Spain"]);
 
     const expectedAggregate =
-      countMatchingPicks(rows, (picks) => bonusPick(picks, "farthestGoal"), "Cape Verde") *
+      rows.filter(({ picks }) =>
+        farthestGoalAnswers.includes(bonusPick(picks, "farthestGoal")),
+      ).length *
         (firstRules?.bonus ?? 0) +
-      countMatchingPicks(rows, (picks) => bonusPick(picks, "bestPassCompletion"), "Spain") *
+      rows.filter(({ picks }) =>
+        bestPassCompletionAnswers.includes(bonusPick(picks, "bestPassCompletion")),
+      ).length *
         (firstRules?.bonus ?? 0);
     const actualAggregate = rows.reduce((sum, { picks }) => {
       const score = scorePool(picks, results);
