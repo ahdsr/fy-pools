@@ -429,7 +429,7 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
         />
       </div>
       {state.message ? (
-        <p className="text-sm font-medium leading-5 text-destructive">
+        <p className="text-sm font-medium leading-5 text-destructive" role="alert">
           {state.message}
         </p>
       ) : null}
@@ -471,7 +471,11 @@ export function MockForgotPasswordForm({ nextPath }: MockAuthFormProps) {
         />
       </div>
       {state.message ? (
-        <p className="text-sm font-medium leading-5 text-muted-foreground">
+        <p
+          className="text-sm font-medium leading-5 text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
           {state.message}
         </p>
       ) : null}
@@ -516,7 +520,7 @@ export function MockResetPasswordForm({ nextPath }: MockAuthFormProps) {
         />
       </div>
       {state.message ? (
-        <p className="text-sm font-medium leading-5 text-destructive">
+        <p className="text-sm font-medium leading-5 text-destructive" role="alert">
           {state.message}
         </p>
       ) : null}
@@ -585,7 +589,11 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
         />
       </div>
       {state.message ? (
-        <p className="text-sm font-medium leading-5 text-muted-foreground">
+        <p
+          className="text-sm font-medium leading-5 text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
           {state.message}
         </p>
       ) : null}

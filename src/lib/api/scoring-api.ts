@@ -15,6 +15,9 @@ export type RateLimitResult =
 
 export const SCORING_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 export const SCORING_RATE_LIMIT_MAX_REQUESTS = 20;
+export const SCORING_RESULT_MAX_FIELDS = 64;
+export const SCORING_RESULT_MAX_VALUE_LENGTH = 120;
+export const SCORING_REQUEST_MAX_BYTES = 64 * 1024;
 
 type RateLimitBucket = {
   count: number;
@@ -40,11 +43,25 @@ export function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value && typeof value === "object" && !Array.isArray(value));
 }
 
-export function stringRecord(value: unknown) {
+export function stringRecord(
+  value: unknown,
+  {
+    maxFields = SCORING_RESULT_MAX_FIELDS,
+    maxValueLength = SCORING_RESULT_MAX_VALUE_LENGTH,
+  }: { maxFields?: number; maxValueLength?: number } = {},
+) {
   if (!isRecord(value)) return null;
 
   const entries = Object.entries(value);
-  if (entries.some(([, entryValue]) => typeof entryValue !== "string")) {
+  if (
+    entries.length > maxFields ||
+    entries.some(
+      ([entryKey, entryValue]) =>
+        typeof entryValue !== "string" ||
+        entryKey.length > maxValueLength ||
+        entryValue.length > maxValueLength,
+    )
+  ) {
     return null;
   }
 

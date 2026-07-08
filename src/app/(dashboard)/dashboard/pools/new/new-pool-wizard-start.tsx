@@ -229,7 +229,9 @@ function FieldError({ children }: { children?: React.ReactNode }) {
   if (!children) return null;
 
   return (
-    <p className="text-xs font-medium leading-5 text-destructive">{children}</p>
+    <p className="text-xs font-medium leading-5 text-destructive" role="alert">
+      {children}
+    </p>
   );
 }
 
@@ -1600,7 +1602,10 @@ export function NewPoolWizardStart({
             ) : null}
 
             {actionMessage ? (
-              <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+              <p
+                className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+                role="alert"
+              >
                 {actionMessage}
               </p>
             ) : null}

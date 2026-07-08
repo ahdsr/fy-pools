@@ -5,6 +5,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   SCORING_RATE_LIMIT_MAX_REQUESTS,
+  SCORING_RESULT_MAX_FIELDS,
+  SCORING_RESULT_MAX_VALUE_LENGTH,
   authorizeScoringRequest,
   checkScoringMemoryRateLimit,
   rateLimitKeyForRequest,
@@ -84,6 +86,27 @@ describe("scoring API security helpers", () => {
     ).toEqual({ winners: { match1: "Canada" }, bonusAnswers: {} });
 
     expect(resultPayloadFromBody({ winners: { match1: 1 } })).toBeNull();
+  });
+
+  it("rejects scoring payloads with excessive fields or values", () => {
+    expect(
+      resultPayloadFromBody({
+        winners: Object.fromEntries(
+          Array.from({ length: SCORING_RESULT_MAX_FIELDS + 1 }, (_, index) => [
+            `match-${index}`,
+            "Canada",
+          ]),
+        ),
+      }),
+    ).toBeNull();
+
+    expect(
+      resultPayloadFromBody({
+        winners: {
+          match1: "A".repeat(SCORING_RESULT_MAX_VALUE_LENGTH + 1),
+        },
+      }),
+    ).toBeNull();
   });
 
   it("ships the durable database limiter migration", () => {

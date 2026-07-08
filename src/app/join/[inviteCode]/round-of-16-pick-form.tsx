@@ -461,7 +461,7 @@ export function RoundOf16PickForm({
               </div>
             </LedgerRow>
             {duplicateEmailActive ? (
-              <LedgerRow className="border-t bg-destructive/5">
+              <LedgerRow className="border-t bg-destructive/5" role="alert">
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div>
                     <p className="font-semibold text-destructive">
@@ -564,7 +564,10 @@ export function RoundOf16PickForm({
         </LedgerPanel>
 
         {state.message && !duplicateEmailActive ? (
-          <p className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive">
+          <p
+            className="rounded-lg border border-destructive/20 bg-destructive/10 px-3 py-2 text-sm font-medium text-destructive"
+            role="alert"
+          >
             {state.message}
           </p>
         ) : null}

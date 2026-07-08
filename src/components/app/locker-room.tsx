@@ -656,11 +656,17 @@ function LockerRoomScene({
   cheerSide: LockerRoomSide | null;
 }) {
   const mountRef = useRef<HTMLDivElement | null>(null);
+  const cheerGlowRef = useRef<THREE.Mesh<
+    THREE.PlaneGeometry,
+    THREE.MeshBasicMaterial
+  > | null>(null);
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
     const mountElement = mount;
+    const prefersReducedMotion =
+      window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
 
     const scene = new THREE.Scene();
     scene.background = new THREE.Color("#07140f");
@@ -674,9 +680,9 @@ function LockerRoomScene({
       antialias: true,
       alpha: false,
       powerPreference: "high-performance",
-      preserveDrawingBuffer: true,
+      preserveDrawingBuffer: false,
     });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setPixelRatio(prefersReducedMotion ? 1 : Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.domElement.setAttribute("data-locker-room-canvas", "true");
@@ -738,14 +744,15 @@ function LockerRoomScene({
     const cheerGlow = new THREE.Mesh(
       new THREE.PlaneGeometry(FIELD_LENGTH / 2, FIELD_WIDTH),
       new THREE.MeshBasicMaterial({
-        color: cheerSide ? SIDE_STYLES[cheerSide].color : "#ffffff",
+        color: "#ffffff",
         transparent: true,
-        opacity: cheerSide ? 0.2 : 0,
+        opacity: 0,
         blending: THREE.AdditiveBlending,
       }),
     );
     cheerGlow.rotation.x = -Math.PI / 2;
-    cheerGlow.position.set(cheerSide === "away" ? FIELD_LENGTH / 4 : -FIELD_LENGTH / 4, 0.04, 0);
+    cheerGlow.position.set(-FIELD_LENGTH / 4, 0.04, 0);
+    cheerGlowRef.current = cheerGlow;
     pitchGroup.add(cheerGlow);
     scene.add(pitchGroup);
 
@@ -782,10 +789,15 @@ function LockerRoomScene({
       renderer.render(scene, camera);
       animationId = window.requestAnimationFrame(animate);
     }
-    animate();
+    if (prefersReducedMotion) {
+      renderer.render(scene, camera);
+    } else {
+      animate();
+    }
 
     return () => {
       window.cancelAnimationFrame(animationId);
+      cheerGlowRef.current = null;
       resizeObserver.disconnect();
       fieldTexture?.dispose();
       const geometries = new Set<THREE.BufferGeometry>();
@@ -810,7 +822,19 @@ function LockerRoomScene({
       renderer.dispose();
       renderer.domElement.remove();
     };
-  }, [pitchPlayers, sidelinePlayers, cheerSide]);
+  }, [pitchPlayers, sidelinePlayers]);
+
+  useEffect(() => {
+    const cheerGlow = cheerGlowRef.current;
+    if (!cheerGlow) return;
+
+    cheerGlow.material.color.set(
+      cheerSide ? SIDE_STYLES[cheerSide].color : "#ffffff",
+    );
+    cheerGlow.material.opacity = cheerSide ? 0.2 : 0;
+    cheerGlow.position.x =
+      cheerSide === "away" ? FIELD_LENGTH / 4 : -FIELD_LENGTH / 4;
+  }, [cheerSide]);
 
   return <div ref={mountRef} className="absolute inset-0" />;
 }
@@ -828,6 +852,14 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [cheerSide, setCheerSide] = useState<LockerRoomSide | null>(null);
   const [cheerCount, setCheerCount] = useState({ home: 18, away: 14 });
+  const timeoutIds = useRef<number[]>([]);
+
+  useEffect(() => {
+    return () => {
+      timeoutIds.current.forEach((timeoutId) => window.clearTimeout(timeoutId));
+      timeoutIds.current = [];
+    };
+  }, []);
 
   const { pitchPlayers, sidelinePlayers } = useMemo(() => {
     const userPlayer: LockerRoomParticipant = {
@@ -897,7 +929,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
   function cheer(side: "home" | "away") {
     setCheerCount((current) => ({ ...current, [side]: current[side] + 1 }));
     setCheerSide(side);
-    window.setTimeout(() => setCheerSide(null), 950);
+    timeoutIds.current.push(window.setTimeout(() => setCheerSide(null), 950));
   }
 
   function sendChatMessage(event: FormEvent<HTMLFormElement>) {
@@ -934,11 +966,13 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
     setActiveBubbles((current) => [...current, bubble].slice(-2));
     setMessage(body);
     setDraftMessage("");
-    window.setTimeout(() => {
-      setActiveBubbles((current) =>
-        current.filter((item) => item.id !== bubble.id),
-      );
-    }, 4800);
+    timeoutIds.current.push(
+      window.setTimeout(() => {
+        setActiveBubbles((current) =>
+          current.filter((item) => item.id !== bubble.id),
+        );
+      }, 4800),
+    );
   }
 
   return (

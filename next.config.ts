@@ -2,6 +2,7 @@ import type { NextConfig } from "next";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || undefined;
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const isDevelopment = process.env.NODE_ENV === "development";
 
 const connectSources = ["'self'"];
 if (supabaseUrl) {
@@ -20,7 +21,7 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob: https://images.unsplash.com https://*.supabase.co",
   "font-src 'self' data:",
   "style-src 'self' 'unsafe-inline'",
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
   `connect-src ${connectSources.join(" ")}`,
   "form-action 'self'",
 ].join("; ");

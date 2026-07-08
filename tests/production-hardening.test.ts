@@ -35,7 +35,9 @@ describe("production hardening", () => {
       headers?.[0]?.headers.map((header) => [header.key, header.value]),
     );
 
-    expect(values.get("Content-Security-Policy")).toContain("frame-ancestors 'none'");
+    const csp = values.get("Content-Security-Policy");
+    expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).not.toContain("'unsafe-eval'");
     expect(values.get("X-Frame-Options")).toBe("DENY");
     expect(values.get("X-Content-Type-Options")).toBe("nosniff");
     expect(values.get("Permissions-Policy")).toContain("camera=()");

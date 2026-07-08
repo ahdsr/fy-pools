@@ -5,6 +5,7 @@ import {
   authorizeScoringRequest,
   checkScoringRateLimit,
   resultPayloadFromBody,
+  SCORING_REQUEST_MAX_BYTES,
 } from "@/lib/api/scoring-api";
 
 type ScoreRouteContext = {
@@ -37,6 +38,14 @@ export async function POST(request: NextRequest, { params }: ScoreRouteContext) 
   const { poolId } = await params;
   if (!poolId) {
     return Response.json({ error: "Pool id is required." }, { status: 400 });
+  }
+
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > SCORING_REQUEST_MAX_BYTES) {
+    return Response.json(
+      { error: "Request body is too large." },
+      { status: 413 },
+    );
   }
 
   const body = await request.json().catch(() => null);
