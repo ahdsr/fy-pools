@@ -4,7 +4,7 @@ export default function Loading() {
   return (
     <RouteLoadingScreen
       eyebrow="Entry detail"
-      title="Preparing page"
+      title="Entry detail"
       description="Preparing score details, picks, and movement paths."
     />
   );

@@ -19,9 +19,9 @@ function SkeletonBlock({ className }: { className: string }) {
 }
 
 export function RouteLoadingScreen({
-  eyebrow = "Loading",
-  title = "Getting the page ready",
-  description = "Pulling the latest pool data and preparing the page.",
+  eyebrow = "PoolWaffle",
+  title = "Private sports pool hosting for serious commissioners.",
+  description = "PoolWaffle helps you launch polished office pools and private sports contests without rebuilding spreadsheets every season.",
 }: RouteLoadingScreenProps) {
   return (
     <main

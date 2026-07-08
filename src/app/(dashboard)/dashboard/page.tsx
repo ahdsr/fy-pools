@@ -32,20 +32,10 @@ import {
   type CommissionerAuditEvent,
   type CommissionerPoolSummary,
 } from "@/lib/round-of-16/persistence";
+import { formatDateTime } from "@/lib/date-time";
 import { DraftPoolRows } from "./draft-pool-rows";
 import { DeletePoolButton } from "./pools/delete-pool-button";
 import { ShareLinkButton } from "./share-link-button";
-
-export const dynamic = "force-dynamic";
-
-function formatDateTime(value: string) {
-  if (!value) return "Not set";
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-
-  return parsed.toLocaleString();
-}
 
 function formatAuditEventType(value: string) {
   return value

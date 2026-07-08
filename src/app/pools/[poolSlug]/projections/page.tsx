@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Form from "next/form";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Trophy } from "lucide-react";
 
@@ -37,6 +38,16 @@ const projectionNote =
 type ProjectionsPageProps = {
   params: Promise<{ poolSlug: string }>;
   searchParams: Promise<{ entry?: string | string[] }>;
+};
+
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [
+    {
+      params: { poolSlug: "marcins-2026-world-cup-pool" },
+      searchParams: { entry: null },
+    },
+  ],
 };
 
 function projectionRows(rows: PoolAnalyticsRow[]) {
@@ -82,6 +93,13 @@ function ProjectionRow({
   projection?: EntryScenarioProjection;
 }) {
   const canFinishFirst = Boolean(selected && projection?.canFinishFirst);
+  const statusLabel = selected
+    ? projection
+      ? canFinishFirst
+        ? "Can finish #1"
+        : "Capped"
+      : "Calculating"
+    : "Select";
 
   return (
     <TableRow>
@@ -91,9 +109,9 @@ function ProjectionRow({
       <TableCell>
         <Link
           href={`/pools/${publicSlug}/entry/${row.id}`}
-          className="font-medium text-brand-ink hover:text-brand-hot"
+          className="inline-flex items-center font-medium text-brand-ink hover:text-brand-hot"
         >
-          {row.name}
+          <span>{row.name}</span>
         </Link>
       </TableCell>
       <TableCell className="font-semibold">
@@ -102,16 +120,16 @@ function ProjectionRow({
       <TableCell>
         <div className="min-w-28">
           {statusBadge(
-            selected
-              ? canFinishFirst
-                ? "Can finish #1"
-                : "Capped"
-              : "Select",
+            statusLabel,
             canFinishFirst,
           )}
           {selected && projection ? (
             <p className="mt-1 text-xs leading-4 text-muted-foreground">
               {routeLabel(projection)}
+            </p>
+          ) : selected ? (
+            <p className="mt-1 text-xs leading-4 text-muted-foreground">
+              The full path is calculating above.
             </p>
           ) : (
             <p className="mt-1 text-xs leading-4 text-muted-foreground">
@@ -404,16 +422,7 @@ export default async function ProjectionsPage({
     leaderId: leader?.id,
     defaultEntryId: pool.entriesConfig.defaultEntryId,
   });
-  const selectedProjection = findEntryScenarioProjection({
-    entriesConfig: pool.entriesConfig,
-    picksByPath: pool.picksByPath,
-    results: pool.results,
-    entryId: selectedId,
-    maxEvents: 5,
-    candidateLimit: 10,
-  });
   const scenarioRoutes = new Map<string, EntryScenarioProjection>();
-  if (selectedProjection) scenarioRoutes.set(selectedId, selectedProjection);
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
@@ -445,10 +454,8 @@ export default async function ProjectionsPage({
             },
             {
               label: "Best selected finish",
-              value: `#${scenarioRoutes.get(selectedId)?.projectedRank ?? "-"}`,
-              note: scenarioRoutes.get(selectedId)?.canFinishFirst
-                ? "Selected entry can reach #1"
-                : "Selected entry is currently capped",
+              value: "-",
+              note: "Selected path is calculating",
             },
             {
               label: `Top ${analytics.payoutPlaces} race`,
@@ -459,13 +466,15 @@ export default async function ProjectionsPage({
         />
       </LedgerPanel>
 
-      <FocusedWinPath
-        rows={rows}
-        publicSlug={publicSlug}
-        selectedId={selectedId}
-        leader={leader}
-        routes={scenarioRoutes}
-      />
+      <Suspense fallback={<FocusedWinPathFallback rows={rows} selectedId={selectedId} />}>
+        <FocusedWinPathStream
+          rows={rows}
+          publicSlug={publicSlug}
+          selectedId={selectedId}
+          leader={leader}
+          poolSlug={poolSlug}
+        />
+      </Suspense>
 
       <LedgerPanel
         title="Pool projections"
@@ -510,5 +519,73 @@ export default async function ProjectionsPage({
         </div>
       </LedgerPanel>
     </PublicPoolShell>
+  );
+}
+
+async function FocusedWinPathStream({
+  rows,
+  publicSlug,
+  selectedId,
+  leader,
+  poolSlug,
+}: {
+  rows: PoolAnalyticsRow[];
+  publicSlug: string;
+  selectedId: string;
+  leader?: LeaderboardRow;
+  poolSlug: string;
+}) {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  const standings = await getPublicPoolStandings(poolSlug);
+  if (!standings) return null;
+
+  const selectedProjection = findEntryScenarioProjection({
+    entriesConfig: standings.pool.entriesConfig,
+    picksByPath: standings.pool.picksByPath,
+    results: standings.pool.results,
+    entryId: selectedId,
+    maxEvents: 5,
+    candidateLimit: 10,
+  });
+  const scenarioRoutes = new Map<string, EntryScenarioProjection>();
+  if (selectedProjection) scenarioRoutes.set(selectedId, selectedProjection);
+
+  return (
+    <FocusedWinPath
+      rows={rows}
+      publicSlug={publicSlug}
+      selectedId={selectedId}
+      leader={leader}
+      routes={scenarioRoutes}
+    />
+  );
+}
+
+function FocusedWinPathFallback({
+  rows,
+  selectedId,
+}: {
+  rows: PoolAnalyticsRow[];
+  selectedId: string;
+}) {
+  const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
+
+  return (
+    <LedgerPanel
+      title={`Path for ${selected?.name ?? "selected entry"}`}
+      description="Finding the best current route after scoring matching entries."
+      action={<Badge variant="outline">Calculating</Badge>}
+    >
+      <div className="grid gap-4 p-5">
+        <div className="h-16 animate-pulse rounded-md bg-muted/80" />
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        </div>
+        <div className="h-28 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
   );
 }

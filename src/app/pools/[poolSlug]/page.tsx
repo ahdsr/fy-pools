@@ -1,4 +1,5 @@
 import { Info, Trophy, Users } from "lucide-react";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
 import { LedgerPanel } from "@/components/app/ledger";
@@ -28,12 +29,19 @@ type PoolPageProps = {
   params: Promise<{ poolSlug: string }>;
 };
 
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [{ params: { poolSlug: "marcins-2026-world-cup-pool" } }],
+};
+
 const currentStandingsInfo =
   "These standings are not final. Current scores are based on results entered so far: group picks use the current group order, third-place qualifiers count only once entered or final, and knockout/finals/bonus points use completed or entered outcomes. That means the table can be skewed by today's partial results until every result is final.";
 
 export default async function PoolPage({ params }: PoolPageProps) {
   const { poolSlug } = await params;
-  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
+    includeViewer: false,
+  });
 
   if (roundOf16Pool) {
     return (
@@ -47,12 +55,9 @@ export default async function PoolPage({ params }: PoolPageProps) {
       >
         <RoundOf16PublicStats pool={roundOf16Pool} />
 
-        {roundOf16Pool.viewerEntry ? (
-          <RoundOf16ViewerEntryPanel
-            entry={roundOf16Pool.viewerEntry}
-            settings={roundOf16Pool.settings}
-          />
-        ) : null}
+        <Suspense fallback={null}>
+          <RoundOf16ViewerEntryStream poolSlug={poolSlug} />
+        </Suspense>
 
         <section className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_24rem] xl:items-start">
           <RoundOf16BracketPanel
@@ -165,5 +170,21 @@ export default async function PoolPage({ params }: PoolPageProps) {
         </aside>
       </section>
     </PublicPoolShell>
+  );
+}
+
+async function RoundOf16ViewerEntryStream({
+  poolSlug,
+}: {
+  poolSlug: string;
+}) {
+  const pool = await getPublicRoundOf16Pool(poolSlug);
+  if (!pool?.viewerEntry) return null;
+
+  return (
+    <RoundOf16ViewerEntryPanel
+      entry={pool.viewerEntry}
+      settings={pool.settings}
+    />
   );
 }

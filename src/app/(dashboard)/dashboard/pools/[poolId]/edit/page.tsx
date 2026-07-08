@@ -9,8 +9,6 @@ type EditPoolPageProps = {
   params: Promise<{ poolId: string }>;
 };
 
-export const dynamic = "force-dynamic";
-
 export default async function EditPoolPage({ params }: EditPoolPageProps) {
   const { poolId } = await params;
   const pool = await getCommissionerRoundOf16AdminPool(poolId);

@@ -52,9 +52,9 @@ export function LeaderboardTable({
               <TableCell>
                 <Link
                   href={`/pools/${poolSlug}/entry/${row.id}`}
-                  className="font-medium text-brand-ink hover:text-brand-hot"
+                  className="inline-flex items-center font-medium text-brand-ink hover:text-brand-hot"
                 >
-                  {row.name}
+                  <span>{row.name}</span>
                 </Link>
               </TableCell>
               <TableCell>{row.score.subtotals.group}</TableCell>

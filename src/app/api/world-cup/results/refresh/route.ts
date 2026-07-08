@@ -2,8 +2,6 @@ import type { NextRequest } from "next/server";
 
 import { warmMarcinsWorldCupResults } from "@/lib/world-cup-pool/data";
 
-export const dynamic = "force-dynamic";
-
 function authorized(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
   if (!cronSecret) return process.env.NODE_ENV !== "production";

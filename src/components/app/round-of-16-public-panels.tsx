@@ -23,15 +23,7 @@ import {
   getEnabledRoundOf16BonusProps,
   type RoundOf16PoolSettings,
 } from "@/lib/templates/round-of-16-draft";
-
-function formatDateTime(value: string) {
-  if (!value) return "Not set";
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) return value;
-
-  return parsed.toLocaleString();
-}
+import { formatDateTime } from "@/lib/date-time";
 
 function latestResultByLineKey(rows: RoundOf16StoredLeaderboardRow[]) {
   const firstScoredRow = rows[0];

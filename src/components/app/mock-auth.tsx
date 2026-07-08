@@ -125,7 +125,6 @@ function useMockUser() {
 }
 
 export function MockAuthProvider({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
   const [supabase] = React.useState<ReturnType<
     typeof createSupabaseBrowserClient
   > | null>(() => {
@@ -151,7 +150,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     void refreshUser();
-  }, [pathname, refreshUser]);
+  }, [refreshUser]);
 
   React.useEffect(() => {
     if (!supabase) {
@@ -341,7 +340,7 @@ function PublicPoolNavLinks({
                   : "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"),
             )}
           >
-            {item.label}
+            <span>{item.label}</span>
           </Link>
         ))}
       </div>
@@ -388,7 +387,7 @@ function MobilePublicPoolNav({
                 active === item.key && "bg-accent text-accent-foreground",
               )}
             >
-              {item.label}
+              <span>{item.label}</span>
             </Link>
           </DropdownMenuItem>
         ))}

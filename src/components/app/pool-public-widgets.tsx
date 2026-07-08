@@ -161,7 +161,9 @@ export function PublicToolsPanel({ tools }: { tools: PublicToolLink[] }) {
                 </p>
               </div>
               <Button asChild variant="outline">
-                <Link href={item.href}>Open</Link>
+                <Link href={item.href}>
+                  <span>Open</span>
+                </Link>
               </Button>
             </LedgerRow>
           );

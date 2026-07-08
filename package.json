@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "perf:public-pages": "node scripts/check-public-page-performance.mjs",
     "test:smoke": "vitest run tests/round-of-16.smoke.test.ts",
     "audit:prod": "npm audit --omit=dev --audit-level=moderate",
     "supabase:login": "supabase login",
@@ -42,7 +43,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
     "playwright": "^1.61.0",
-    "supabase": "^2.109.0",
+    "supabase": "^2.109.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4.1.9"

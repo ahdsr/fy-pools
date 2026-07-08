@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 
 import { publishRoundOf16Pool } from "@/lib/round-of-16/persistence";
+import { parseJsonFormValue } from "@/lib/form-json";
 import type {
   RoundOf16InviteInput,
   RoundOf16PoolSettings,
@@ -18,12 +19,16 @@ export async function publishRoundOf16PoolAction(
   formData: FormData,
 ): Promise<PublishRoundOf16State> {
   try {
-    const settings = JSON.parse(
-      String(formData.get("settings") ?? "{}"),
-    ) as RoundOf16PoolSettings;
-    const participants = JSON.parse(
-      String(formData.get("participants") ?? "[]"),
-    ) as RoundOf16InviteInput[];
+    const settings = parseJsonFormValue<RoundOf16PoolSettings>(
+      formData.get("settings"),
+      {} as RoundOf16PoolSettings,
+      "Pool settings",
+    );
+    const participants = parseJsonFormValue<RoundOf16InviteInput[]>(
+      formData.get("participants"),
+      [],
+      "Participant",
+    );
     const published = await publishRoundOf16Pool({ settings, participants });
 
     return { published };

@@ -10,6 +10,7 @@ import {
   createSupabaseAdminClient,
   getSupabaseUser,
 } from "@/lib/supabase/server";
+import { pickDeadlineHasPassed } from "@/lib/round-of-16/deadlines";
 import type {
   RoundOf16PickPayload,
   RoundOf16PoolSettings,
@@ -45,23 +46,26 @@ export type RoundOf16PublicPool = {
   viewerEntry?: RoundOf16ViewerEntry;
 };
 
+type GetPublicRoundOf16PoolOptions = {
+  includeViewer?: boolean;
+};
+
+type PublicEntryPickRecord = {
+  status?: unknown;
+  submitted_at?: unknown;
+  entry_pick_items?: unknown;
+};
+
 function entryMetadata(value: unknown) {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as Record<string, unknown>)
     : {};
 }
 
-function pickDeadlineHasPassed(settings: RoundOf16PoolSettings) {
-  const deadline = settings.basics.picksLockAt;
-  if (!deadline) return false;
-
-  const parsed = new Date(deadline);
-  if (Number.isNaN(parsed.getTime())) return false;
-
-  return Date.now() >= parsed.getTime();
-}
-
-export async function getPublicRoundOf16Pool(poolSlug: string) {
+export async function getPublicRoundOf16Pool(
+  poolSlug: string,
+  { includeViewer = true }: GetPublicRoundOf16PoolOptions = {},
+) {
   if ((PUBLIC_POOL_SLUGS as readonly string[]).includes(poolSlug)) return null;
   if (!isSupabaseConfigured()) return null;
 
@@ -82,18 +86,20 @@ export async function getPublicRoundOf16Pool(poolSlug: string) {
   const picksArePublic =
     pickDeadlineHasPassed(settings) ||
     ["locked", "completed", "archived"].includes(status);
+  const shouldLoadPickItems = picksArePublic || includeViewer;
+  const entrySelect = shouldLoadPickItems
+    ? "id,user_id,display_name,metadata,entry_picks(id,status,submitted_at,entry_pick_items(id,value))"
+    : "id,user_id,display_name,metadata,entry_picks(id,status,submitted_at)";
 
   const { data: entries, error: entriesError } = await admin
     .from("entries")
-    .select(
-      "id,user_id,display_name,metadata,entry_picks(id,status,submitted_at,entry_pick_items(id,value))",
-    )
+    .select(entrySelect)
     .eq("pool_id", pool.id)
     .order("created_at", { ascending: true });
 
   if (entriesError) throw new Error(entriesError.message);
 
-  const user = await getSupabaseUser();
+  const user = includeViewer ? await getSupabaseUser() : null;
   const viewerEntryRecord = user
     ? (entries ?? []).find((entry) => String(entry.user_id ?? "") === user.id)
     : undefined;
@@ -111,9 +117,9 @@ export async function getPublicRoundOf16Pool(poolSlug: string) {
 
   let viewerEntry: RoundOf16ViewerEntry | undefined;
   const publicEntries = (entries ?? []).flatMap((entry) => {
-    const entryPick = Array.isArray(entry.entry_picks)
+    const entryPick = (Array.isArray(entry.entry_picks)
       ? entry.entry_picks[0]
-      : entry.entry_picks;
+      : entry.entry_picks) as PublicEntryPickRecord | undefined;
 
     if (
       entryPick?.status !== "submitted" &&
@@ -125,15 +131,17 @@ export async function getPublicRoundOf16Pool(poolSlug: string) {
     const items = Array.isArray(entryPick.entry_pick_items)
       ? entryPick.entry_pick_items
       : [];
-    const { payload } = pickPayloadAndItemIdsFromItems({ settings, items });
     const isViewerEntry = String(entry.id) === String(viewerEntryRecord?.id ?? "");
     const entryCanRevealPicks = picksArePublic || isViewerEntry;
+    const { payload } = entryCanRevealPicks
+      ? pickPayloadAndItemIdsFromItems({ settings, items })
+      : { payload: undefined };
     const publicEntry = {
       entryId: String(entry.id),
       entryName: String(entry.display_name),
       submittedAt: String(entryPick.submitted_at ?? ""),
       status: String(entryPick.status ?? "submitted"),
-      picks: entryCanRevealPicks ? payload : undefined,
+      picks: payload,
       picksVisible: entryCanRevealPicks,
     } satisfies RoundOf16PublicEntry;
 
@@ -145,7 +153,7 @@ export async function getPublicRoundOf16Pool(poolSlug: string) {
       if (editInviteCode) {
         viewerEntry = {
           ...publicEntry,
-          picks: payload,
+          picks: payload ?? { winners: {}, bonusAnswers: {} },
           editHref: `/join/${editInviteCode}`,
           canEdit: !pickDeadlineHasPassed(settings),
         };

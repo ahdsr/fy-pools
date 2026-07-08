@@ -1,7 +1,4 @@
-import { LoaderCircle } from "lucide-react";
-
 import { LedgerPanel } from "@/components/app/ledger";
-import { PublicPoolMetaCard } from "@/components/app/public-pool-shell";
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
 
 function SkeletonBlock({ className }: { className: string }) {
@@ -19,28 +16,16 @@ export function ProjectionLoadingScreen() {
       <AbstractShapeBackground />
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-7 px-4 py-5 sm:px-5 md:gap-9 md:px-6 md:py-8">
-        <section className="grid gap-5 py-3 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end md:gap-6 md:py-8">
+        <section className="py-3 md:py-8">
           <div className="max-w-3xl">
             <p className="mb-3 text-xs font-bold uppercase tracking-normal text-brand-mark sm:mb-4 sm:text-sm">
               Projections
             </p>
-            <h1 className="display-heading-xl">Calculating path</h1>
+            <h1 className="display-heading-xl">Who can still pass #1?</h1>
             <p className="mt-4 max-w-2xl text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:mt-5 sm:text-base">
-              Scoring this route across every entry. The standings will update
-              as soon as the path is ready.
+              Best current finish scenarios based on everyone&apos;s remaining picks.
             </p>
           </div>
-          <aside className="grid gap-3">
-            <PublicPoolMetaCard label="Status">
-              <div className="mt-3 flex items-center gap-2 text-sm font-semibold text-brand-ink">
-                <LoaderCircle
-                  className="size-4 animate-spin text-brand-mark"
-                  aria-hidden="true"
-                />
-                Working through scenarios
-              </div>
-            </PublicPoolMetaCard>
-          </aside>
         </section>
 
         <LedgerPanel

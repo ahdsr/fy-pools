@@ -46,8 +46,6 @@ const categoryVisuals: Record<string, { label: string; image: string }> = {
   },
 };
 
-export const dynamic = "force-dynamic";
-
 export default async function DashboardPoolsPage() {
   return (
     <PageShell

@@ -1,6 +1,9 @@
 import type { FutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import type { PoolAnalytics } from "@/lib/world-cup-pool/leaderboard";
-import type { OpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
+import type {
+  EntryScenarioProjection,
+  OpponentPathsReport,
+} from "@/lib/world-cup-pool/opponent-paths";
 import type { TodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
 import type { LeaderboardRow } from "@/lib/world-cup-pool/types";
 
@@ -123,6 +126,7 @@ type BuildDigestInput = {
   todaysResults: TodaysResultsReport | null;
   futureLeverage: FutureLeverageReport | null;
   opponentPaths: OpponentPathsReport | null;
+  scenarioProjection?: EntryScenarioProjection | null;
   analytics?: PoolAnalytics;
 };
 
@@ -257,6 +261,31 @@ function deciderSort(a: MovementDecider, b: MovementDecider) {
   const safeBTime = Number.isFinite(bTime) ? bTime : Number.MAX_SAFE_INTEGER;
 
   return safeATime - safeBTime;
+}
+
+function safeDateTime(value: string | undefined) {
+  if (!value) return Number.MAX_SAFE_INTEGER;
+  const time = new Date(value).getTime();
+  return Number.isFinite(time) ? time : Number.MAX_SAFE_INTEGER;
+}
+
+function matchDeciderImpactSort(a: MovementMatchDecider, b: MovementMatchDecider) {
+  if (b.sortRankChange !== a.sortRankChange) {
+    return b.sortRankChange - a.sortRankChange;
+  }
+  if (b.sortPointChange !== a.sortPointChange) {
+    return b.sortPointChange - a.sortPointChange;
+  }
+  if (b.proximityScore !== a.proximityScore) {
+    return b.proximityScore - a.proximityScore;
+  }
+  return safeDateTime(a.date) - safeDateTime(b.date);
+}
+
+function matchDeciderDateSort(a: MovementMatchDecider, b: MovementMatchDecider) {
+  const dateDelta = safeDateTime(a.date) - safeDateTime(b.date);
+  if (dateDelta !== 0) return dateDelta;
+  return matchDeciderImpactSort(a, b);
 }
 
 function impactCopy({
@@ -490,22 +519,9 @@ function groupMatchDeciders(deciders: MovementDecider[]) {
       };
     })
     .filter((item) => item.best || item.danger || item.neutral)
-    .sort((a, b) => {
-      if (b.sortRankChange !== a.sortRankChange) {
-        return b.sortRankChange - a.sortRankChange;
-      }
-      if (b.sortPointChange !== a.sortPointChange) {
-        return b.sortPointChange - a.sortPointChange;
-      }
-      if (b.proximityScore !== a.proximityScore) {
-        return b.proximityScore - a.proximityScore;
-      }
-      const aTime = a.date ? new Date(a.date).getTime() : Number.MAX_SAFE_INTEGER;
-      const bTime = b.date ? new Date(b.date).getTime() : Number.MAX_SAFE_INTEGER;
-      return (Number.isFinite(aTime) ? aTime : Number.MAX_SAFE_INTEGER) -
-        (Number.isFinite(bTime) ? bTime : Number.MAX_SAFE_INTEGER);
-    })
-    .slice(0, MAX_DECIDERS);
+    .sort(matchDeciderImpactSort)
+    .slice(0, MAX_DECIDERS)
+    .sort(matchDeciderDateSort);
 }
 
 function relationFor(row: LeaderboardRow, target: LeaderboardRow) {
@@ -579,11 +595,13 @@ function buildWinPath({
   target,
   leaderboardRows,
   opponentPaths,
+  scenarioProjection,
   analytics,
 }: {
   target: LeaderboardRow;
   leaderboardRows: LeaderboardRow[];
   opponentPaths: OpponentPathsReport | null;
+  scenarioProjection?: EntryScenarioProjection | null;
   analytics?: PoolAnalytics;
 }): EntryWinPath {
   const leaders = leaderboardRows.filter((row) => row.rank === 1);
@@ -607,6 +625,11 @@ function buildWinPath({
     category: event.category,
   }));
   const leaderLabel = sentenceList(leaderNames, "the leader");
+  const projectionEvents = scenarioProjection?.events.slice(0, 4).map((event) => ({
+    title: event.title,
+    points: event.points,
+    category: event.category,
+  }));
 
   if (target.rank === 1) {
     return {
@@ -637,6 +660,45 @@ function buildWinPath({
       routeComplete: false,
       summary: `Mathematically out: max possible is ${maxPossible}, while ${leaderLabel} already has ${leaderTotal}.`,
       events,
+    };
+  }
+
+  if (scenarioProjection?.canFinishFirst) {
+    return {
+      status: "canWin",
+      leaderNames,
+      leaderTotal,
+      entryTotal: points(target),
+      gap,
+      maxPossible,
+      neededSwing,
+      routeCovered: scenarioProjection.routeCovered,
+      routeComplete: true,
+      summary: `Can still win: needs a ${neededSwing} pt swing over ${leaderLabel}, after scoring matching entries.`,
+      events: projectionEvents ?? events,
+    };
+  }
+
+  if (scenarioProjection && !scenarioProjection.canFinishFirst) {
+    const blockerLabel = sentenceList(
+      scenarioProjection.blockers
+        .slice(0, 3)
+        .map((row) => displayPlayerName(row.name)),
+      "another entry",
+    );
+
+    return {
+      status: "noVisibleRoute",
+      leaderNames,
+      leaderTotal,
+      entryTotal: points(target),
+      gap,
+      maxPossible,
+      neededSwing,
+      routeCovered: scenarioProjection.routeCovered,
+      routeComplete: false,
+      summary: `No full-pool win route: best path currently projects #${scenarioProjection.projectedRank}, blocked by ${blockerLabel}.`,
+      events: projectionEvents ?? events,
     };
   }
 
@@ -732,6 +794,7 @@ export function buildEntryMovementDigest({
   todaysResults,
   futureLeverage,
   opponentPaths,
+  scenarioProjection,
   analytics,
 }: BuildDigestInput): EntryMovementDigest | null {
   const target = leaderboardRows.find((row) => row.id === entryId);
@@ -781,6 +844,7 @@ export function buildEntryMovementDigest({
       target,
       leaderboardRows,
       opponentPaths,
+      scenarioProjection,
       analytics,
     }),
     raceSnapshot: {

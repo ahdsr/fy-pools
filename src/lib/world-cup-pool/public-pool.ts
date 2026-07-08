@@ -1,12 +1,37 @@
 import "server-only";
 
+import { cache } from "react";
+
+import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { buildLeaderboardRows, buildPoolAnalytics } from "@/lib/world-cup-pool/leaderboard";
 import { getPublicPool } from "@/lib/world-cup-pool/data";
+import { scorePool } from "@/lib/world-cup-pool/scoring";
+import type { PoolFixture, PoolResults } from "@/lib/world-cup-pool/types";
 
-export async function getPublicPoolStandings(poolSlug: string) {
-  const pool = await getPublicPool(poolSlug);
-  if (!pool) return null;
+type StandingsSnapshot = NonNullable<
+  Awaited<ReturnType<typeof buildPublicPoolStandingsSnapshot>>
+>;
 
+type PublicPoolCacheState = {
+  standingsByResults: WeakMap<PoolResults, StandingsSnapshot>;
+};
+
+const globalScope = globalThis as typeof globalThis & {
+  __fyPoolsPublicPoolCache?: PublicPoolCacheState;
+};
+
+function publicPoolCache() {
+  globalScope.__fyPoolsPublicPoolCache ??= {
+    standingsByResults: new WeakMap(),
+  };
+  return globalScope.__fyPoolsPublicPoolCache;
+}
+
+export const getPublicPoolSnapshot = cache(async (poolSlug: string) => {
+  return getPublicPool(poolSlug);
+});
+
+async function buildPublicPoolStandingsSnapshot(pool: PoolFixture) {
   const rows = buildLeaderboardRows(
     pool.entriesConfig,
     pool.picksByPath,
@@ -26,3 +51,50 @@ export async function getPublicPoolStandings(poolSlug: string) {
     publicSlug: pool.slug,
   };
 }
+
+export const getPublicPoolStandingsSnapshot = cache(async (poolSlug: string) => {
+  const pool = await getPublicPoolSnapshot(poolSlug);
+  if (!pool) return null;
+
+  const cacheState = publicPoolCache();
+  const cached = cacheState.standingsByResults.get(pool.results);
+  if (cached) return cached;
+
+  const snapshot = await buildPublicPoolStandingsSnapshot(pool);
+  cacheState.standingsByResults.set(pool.results, snapshot);
+  return snapshot;
+});
+
+export async function getPublicPoolStandings(poolSlug: string) {
+  return getPublicPoolStandingsSnapshot(poolSlug);
+}
+
+export const getEntryAnalysisSnapshot = cache(
+  async (poolSlug: string, entryId: string) => {
+    const standings = await getPublicPoolStandingsSnapshot(poolSlug);
+    if (!standings) return null;
+
+    const { pool, rows: leaderboardRows, analytics } = standings;
+    const entry = pool.entriesConfig.entries.find((item) => item.id === entryId);
+    if (!entry?.picksPath) return null;
+
+    const picks = pool.picksByPath.get(entry.picksPath);
+    if (!picks) return null;
+
+    const entryRow = leaderboardRows.find((row) => row.id === entry.id);
+    const score = entryRow?.score ?? scorePool(picks, pool.results);
+    const submittedBracket = buildPickedBracketView(picks);
+
+    return {
+      pool,
+      entry,
+      picks,
+      leaderboardRows,
+      analytics,
+      entryRow,
+      score,
+      submittedBracket,
+      publicSlug: pool.slug,
+    };
+  },
+);

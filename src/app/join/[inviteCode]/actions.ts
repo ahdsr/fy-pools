@@ -7,6 +7,7 @@ import {
   submitRoundOf16Picks,
   submitRoundOf16TestPicks,
 } from "@/lib/round-of-16/persistence";
+import { parseJsonFormValue } from "@/lib/form-json";
 import type {
   RoundOf16PickPayload,
   RoundOf16SubmittedEntry,
@@ -26,9 +27,11 @@ export async function submitRoundOf16PicksAction(
   const inviteCode = String(formData.get("inviteCode") ?? "");
 
   try {
-    const payload = JSON.parse(
-      String(formData.get("payload") ?? "{}"),
-    ) as RoundOf16PickPayload;
+    const payload = parseJsonFormValue<RoundOf16PickPayload>(
+      formData.get("payload"),
+      { winners: {}, bonusAnswers: {} },
+      "Pick",
+    );
     const submitted = await submitRoundOf16Picks({ inviteCode, payload });
 
     return { submitted };
@@ -51,9 +54,11 @@ export async function submitRoundOf16TestPicksAction(
   const inviteCode = String(formData.get("inviteCode") ?? "");
 
   try {
-    const payload = JSON.parse(
-      String(formData.get("payload") ?? "{}"),
-    ) as RoundOf16PickPayload;
+    const payload = parseJsonFormValue<RoundOf16PickPayload>(
+      formData.get("payload"),
+      { winners: {}, bonusAnswers: {} },
+      "Pick",
+    );
     await submitRoundOf16TestPicks({
       inviteCode,
       displayName: String(formData.get("displayName") ?? ""),

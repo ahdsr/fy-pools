@@ -12,6 +12,13 @@ export async function updateSupabaseSession(request: NextRequest) {
   let response = NextResponse.next({
     request,
   });
+  const protectedDashboardPath = isProtectedDashboardPath(
+    request.nextUrl.pathname,
+  );
+
+  if (!protectedDashboardPath) {
+    return response;
+  }
 
   try {
     const { url, anonKey } = getSupabaseConfig();
@@ -38,7 +45,7 @@ export async function updateSupabaseSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user && isProtectedDashboardPath(request.nextUrl.pathname)) {
+    if (!user) {
       return NextResponse.redirect(
         new URL(
           signInPathFor(`${request.nextUrl.pathname}${request.nextUrl.search}`),
@@ -47,16 +54,12 @@ export async function updateSupabaseSession(request: NextRequest) {
       );
     }
   } catch {
-    if (isProtectedDashboardPath(request.nextUrl.pathname)) {
-      return NextResponse.redirect(
-        new URL(
-          signInPathFor(`${request.nextUrl.pathname}${request.nextUrl.search}`),
-          request.url,
-        ),
-      );
-    }
-
-    return response;
+    return NextResponse.redirect(
+      new URL(
+        signInPathFor(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+        request.url,
+      ),
+    );
   }
 
   return response;

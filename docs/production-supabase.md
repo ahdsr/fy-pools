@@ -88,10 +88,15 @@ After applying migrations, verify these schema facts before launch:
   `pick_status`, `lock_scope`, and `pick_type`.
 - Core tables exist: `profiles`, `pools`, `pool_members`, `pool_invites`,
   `entries`, `entry_picks`, `entry_pick_items`, `score_breakdowns`,
-  `standings_snapshots`, and `commissioner_notifications`.
-- RLS is enabled on the core app tables listed above.
+  `standings_snapshots`, `commissioner_notifications`, and
+  `api_rate_limit_buckets`.
+- RLS is enabled on every table in the `public` schema.
+- Direct `anon` and `authenticated` table privileges are revoked. Any future
+  browser-read surface must add both a narrow policy and the matching table
+  grant for that exact route.
 - `commissioner_notifications` has the recipient read policy from the
-  participant-flow migration.
+  participant-flow migration, but direct client access remains unavailable
+  until a future migration grants the required table privileges.
 
 ## MVP Security Model
 
@@ -102,9 +107,12 @@ The MVP app uses Supabase in two distinct ways:
   goes through server code and Server Actions.
 - Server mutations use `SUPABASE_SERVICE_ROLE_KEY`, guarded by app-level checks
   such as `getSupabaseUser()` and invite-code validation.
-- RLS remains enabled on core tables. Direct anon/authenticated table access
-  should remain denied unless a later task adds a narrow, reviewed policy for a
-  specific browser-read surface.
+- Trusted scoring refreshes use `FY_POOLS_SCORING_API_KEY` and the durable
+  `consume_api_rate_limit` database function to keep request limits consistent
+  across server instances.
+- RLS remains enabled on every `public` table. Direct anon/authenticated table
+  access remains denied unless a later task adds a narrow, reviewed policy and
+  matching table grant for a specific browser-read surface.
 
 Do not add broad `authenticated` policies for launch convenience. If a later P0
 requires direct client reads, add the minimum policy needed for that exact table

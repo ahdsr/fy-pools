@@ -18,7 +18,9 @@ type BracketPageProps = {
 
 export default async function BracketPage({ params }: BracketPageProps) {
   const { poolSlug } = await params;
-  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
+    includeViewer: false,
+  });
 
   if (roundOf16Pool) {
     return (

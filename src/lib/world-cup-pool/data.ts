@@ -17,6 +17,7 @@ import type {
   PoolFixture,
   PoolResults,
 } from "@/lib/world-cup-pool/types";
+export { formatDateTime } from "@/lib/date-time";
 
 export const MARCINS_POOL_SLUG = "marcins-2026-world-cup-pool";
 
@@ -37,15 +38,19 @@ const DATA_DIR = path.join(
   "marcins-world-cup-2026",
 );
 const DEFAULT_FIFA_BONUS_CACHE_MS = 60 * 1000;
-const DEFAULT_FIFA_BONUS_REQUEST_TIMEOUT_MS = 1800;
+const DEFAULT_LIVE_RESULTS_REFRESH_MS = 60 * 1000;
+const DEFAULT_FIFA_BONUS_REQUEST_TIMEOUT_MS = 600;
 const DEFAULT_FIFA_BONUS_WARM_TIMEOUT_MS = 15 * 1000;
-const DEFAULT_ESPN_REQUEST_TIMEOUT_MS = 8 * 1000;
+const DEFAULT_ESPN_REQUEST_TIMEOUT_MS = 1200;
 
 type FifaBonusResults = Record<string, string[]>;
 
 type LiveResultsCacheState = {
   lastResults?: PoolResults;
   lastResultsAt?: number;
+  lastEventSignature?: string;
+  resultsRefreshPromise?: Promise<PoolResults>;
+  resultsRefreshStartedAt?: number;
   bonusResults?: FifaBonusResults;
   bonusFetchedAt?: number;
   bonusPromise?: Promise<FifaBonusResults>;
@@ -78,6 +83,50 @@ function logRefreshWarning(message: string, error: unknown) {
   }
 
   console.warn(message, error);
+}
+
+function teamSignature(competitor: {
+  team?: {
+    displayName?: string;
+    shortDisplayName?: string;
+    name?: string;
+    abbreviation?: string;
+  };
+}) {
+  return (
+    competitor.team?.displayName ??
+    competitor.team?.shortDisplayName ??
+    competitor.team?.name ??
+    competitor.team?.abbreviation ??
+    ""
+  );
+}
+
+function scoreboardSignature(
+  events: Parameters<typeof buildResultsFromEvents>[0],
+  manualOverrides: Partial<PoolResults>,
+) {
+  return JSON.stringify({
+    events: events.map((event) => {
+      const competition = event.competitions?.[0] ?? {};
+      const status = competition.status?.type ?? event.status?.type ?? {};
+      const competitors = (competition.competitors ?? []).map((competitor) => ({
+        homeAway: competitor.homeAway ?? "",
+        score: competitor.score ?? null,
+        winner: Boolean(competitor.winner),
+        team: teamSignature(competitor),
+      }));
+
+      return {
+        id: event.id ?? competition.id ?? "",
+        date: event.date ?? competition.date ?? "",
+        state: status.state ?? "pre",
+        completed: Boolean(status.completed),
+        competitors,
+      };
+    }),
+    manualOverrides,
+  });
 }
 
 async function withTimeout<T>(
@@ -162,8 +211,106 @@ async function fetchLiveResults({
 }) {
   if (!referencePicks) return fallbackResults;
 
+  if (!forceBonusRefresh) {
+    const state = liveResultsCache();
+    startLiveResultsRefresh({
+      referencePicks,
+      aliases,
+      manualOverrides,
+      fallbackResults,
+      bonusTimeoutMs,
+    });
+    return state.lastResults ?? fallbackResults;
+  }
+
+  return refreshLiveResults({
+    referencePicks,
+    aliases,
+    manualOverrides,
+    fallbackResults,
+    forceBonusRefresh,
+    bonusTimeoutMs,
+  });
+}
+
+function startLiveResultsRefresh({
+  referencePicks,
+  aliases,
+  manualOverrides,
+  fallbackResults,
+  bonusTimeoutMs,
+}: {
+  referencePicks: EntryPicks;
+  aliases: { aliases?: Record<string, string> };
+  manualOverrides: Partial<PoolResults>;
+  fallbackResults: PoolResults;
+  bonusTimeoutMs: number;
+}) {
+  const state = liveResultsCache();
+  const now = Date.now();
+  const refreshMs = envMs(
+    "FY_POOLS_LIVE_RESULTS_REFRESH_MS",
+    DEFAULT_LIVE_RESULTS_REFRESH_MS,
+  );
+
+  if (
+    process.env.NODE_ENV === "test" ||
+    process.env.NEXT_PHASE === "phase-production-build"
+  ) {
+    return;
+  }
+  if (state.resultsRefreshPromise) return;
+  if (state.lastResultsAt && now - state.lastResultsAt < refreshMs) return;
+
+  const refreshStartedAt = now;
+  const pending = refreshLiveResults({
+    referencePicks,
+    aliases,
+    manualOverrides,
+    fallbackResults,
+    bonusTimeoutMs,
+  });
+  state.resultsRefreshStartedAt = refreshStartedAt;
+  const trackedPending = pending.finally(() => {
+    if (state.resultsRefreshPromise === trackedPending) {
+      state.resultsRefreshPromise = undefined;
+    }
+  });
+  state.resultsRefreshPromise = trackedPending;
+}
+
+async function refreshLiveResults({
+  referencePicks,
+  aliases,
+  manualOverrides,
+  fallbackResults,
+  forceBonusRefresh = false,
+  bonusTimeoutMs,
+}: {
+  referencePicks: EntryPicks;
+  aliases: { aliases?: Record<string, string> };
+  manualOverrides: Partial<PoolResults>;
+  fallbackResults: PoolResults;
+  forceBonusRefresh?: boolean;
+  bonusTimeoutMs: number;
+}) {
   try {
     const events = await fetchEspnEvents();
+    const eventSignature = scoreboardSignature(
+      events,
+      manualOverrides,
+    );
+    const state = liveResultsCache();
+
+    if (
+      !forceBonusRefresh &&
+      state.lastResults &&
+      state.lastEventSignature === eventSignature
+    ) {
+      state.lastResultsAt = Date.now();
+      return state.lastResults;
+    }
+
     const resolveTeam = createTeamResolver(referencePicks, aliases);
     const fifaBonusResults = await getFifaBonusResults(resolveTeam, {
       force: forceBonusRefresh,
@@ -177,9 +324,9 @@ async function fetchLiveResults({
       fifaBonusResults,
     });
 
-    const state = liveResultsCache();
     state.lastResults = results;
     state.lastResultsAt = Date.now();
+    state.lastEventSignature = eventSignature;
 
     return results;
   } catch (error) {
@@ -334,19 +481,6 @@ export async function warmMarcinsWorldCupResults() {
       1000,
     ),
   });
-}
-
-export function formatDateTime(value: string | undefined) {
-  if (!value) return "Not updated";
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-  return new Intl.DateTimeFormat("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-  }).format(date);
 }
 
 export function formatList(items: string[]) {

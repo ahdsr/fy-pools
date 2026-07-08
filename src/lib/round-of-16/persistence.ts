@@ -20,6 +20,11 @@ import {
   getSupabaseUser,
 } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { normalizeEmailAddress } from "@/lib/email";
+import {
+  getInviteExpiresAt,
+  pickDeadlineHasPassed,
+} from "@/lib/round-of-16/deadlines";
 
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -176,10 +181,6 @@ function assertSupabaseConfigured() {
   if (!isSupabaseConfigured()) {
     throw new Error("Supabase is not configured.");
   }
-}
-
-function normalizeEmailAddress(value: string) {
-  return value.trim().toLowerCase();
 }
 
 function normalizePickValue(value: unknown) {
@@ -473,26 +474,6 @@ async function buildPoolSlug(admin: SupabaseAdmin, poolName: string) {
 
 function buildInviteCode() {
   return `r16-${crypto.randomUUID()}`;
-}
-
-function pickDeadlineHasPassed(settings: RoundOf16PoolSettings) {
-  const deadline = settings.basics.picksLockAt;
-  if (!deadline) return false;
-
-  const parsed = new Date(deadline);
-  if (Number.isNaN(parsed.getTime())) return false;
-
-  return Date.now() >= parsed.getTime();
-}
-
-function getInviteExpiresAt(settings: RoundOf16PoolSettings) {
-  const deadline = settings.basics.picksLockAt;
-  if (!deadline) return null;
-
-  const parsed = new Date(deadline);
-  if (Number.isNaN(parsed.getTime())) return null;
-
-  return parsed.toISOString();
 }
 
 function effectiveInviteStatus({

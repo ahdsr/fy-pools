@@ -139,7 +139,7 @@ function BracketConnectors({
         <span
           aria-hidden="true"
           className={cn(
-            "pointer-events-none absolute right-full top-1/2 z-0 h-px w-5 -translate-y-px border-t",
+            "pointer-events-none absolute right-full top-1/2 z-0 h-px w-4 -translate-y-px border-t",
             lineClass,
           )}
         />
@@ -149,14 +149,14 @@ function BracketConnectors({
           <span
             aria-hidden="true"
             className={cn(
-              "pointer-events-none absolute left-full top-1/2 z-0 h-px w-5 -translate-y-px border-t",
+              "pointer-events-none absolute left-full top-1/2 z-0 h-px w-4 -translate-y-px border-t",
               lineClass,
             )}
           />
           <span
             aria-hidden="true"
             className={cn(
-              "pointer-events-none absolute left-[calc(100%+1.25rem)] z-0 h-full border-l",
+              "pointer-events-none absolute left-[calc(100%+1rem)] z-0 h-full border-l",
               isUpperBranch ? "top-1/2" : "bottom-1/2",
               lineClass,
             )}
@@ -225,7 +225,7 @@ function MatchCard({
           <div
             key={`${match.id}-${team.name}-${index}`}
             className={cn(
-              "flex min-h-10 items-center justify-between gap-3 px-3 py-2 text-sm",
+              "flex min-h-10 items-center justify-between gap-2 px-2.5 py-2 text-sm",
               team.winner && "bg-cta-green-soft/75",
             )}
           >
@@ -233,7 +233,7 @@ function MatchCard({
               team={team.name}
               picks={picks}
               className={cn(
-                "max-w-[11rem]",
+                "max-w-[8.75rem]",
                 team.winner ? "font-bold" : "text-muted-foreground",
               )}
             />
@@ -251,7 +251,7 @@ function MatchCard({
         ))}
       </div>
       {showPendingStatus || showChampion ? (
-        <div className="flex items-center justify-between gap-2 px-3 py-2">
+        <div className="flex items-center justify-between gap-2 px-2.5 py-2">
           {showPendingStatus ? (
             <StatusBadge
               label={match.detail ?? "TBD"}
@@ -281,9 +281,9 @@ export function WorldCupBracket({
 
   return (
     <div className="overflow-x-auto">
-      <div className="min-w-[106rem] p-8">
+      <div className="min-w-[72rem] p-5 sm:p-6">
         <div
-          className="grid grid-cols-5 gap-x-10"
+          className="grid grid-cols-[repeat(5,minmax(11.5rem,1fr))] gap-x-6"
           style={{ gridTemplateRows: "repeat(32, minmax(3.5rem, auto))" }}
         >
           {displayRounds.flatMap((round, roundIndex) =>

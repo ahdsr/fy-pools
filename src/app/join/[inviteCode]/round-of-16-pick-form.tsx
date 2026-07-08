@@ -26,6 +26,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { signInPathFor, signUpPathFor } from "@/lib/auth/paths";
+import { normalizeEmailAddress } from "@/lib/email";
 import { cn } from "@/lib/utils";
 import {
   getEnabledRoundOf16BonusProps,
@@ -80,34 +81,40 @@ function roundOf16Teams(settings: RoundOf16PoolSettings) {
   );
 }
 
-function normalizeEmail(value: string) {
-  return value.trim().toLowerCase();
-}
-
 function matchupSide(index: number) {
   return index < 4 ? "left" : "right";
 }
 
 function BracketTeamButton({
+  id,
+  name,
   team,
   selected,
   onSelect,
 }: {
+  id: string;
+  name: string;
   team: string;
   selected: boolean;
   onSelect: () => void;
 }) {
   return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={onSelect}
+    <label
+      htmlFor={id}
       className={cn(
-        "flex min-h-10 w-full items-center justify-between gap-3 border-t px-3 py-2 text-left text-sm font-semibold text-brand-ink transition first:border-t-0 hover:bg-cta-green-soft",
+        "flex min-h-10 w-full cursor-pointer items-center justify-between gap-3 border-t px-3 py-2 text-left text-sm font-semibold text-brand-ink transition first:border-t-0 hover:bg-cta-green-soft focus-within:outline-none focus-within:ring-3 focus-within:ring-ring/25",
         selected && "bg-cta-green-soft text-brand-ink",
       )}
     >
+      <input
+        id={id}
+        type="radio"
+        name={name}
+        value={team}
+        checked={selected}
+        onChange={onSelect}
+        className="sr-only"
+      />
       <span className="flex min-w-0 items-center gap-3">
         <span
           aria-hidden="true"
@@ -131,7 +138,7 @@ function BracketTeamButton({
       {selected ? (
         <CheckCircle2 className="size-4 shrink-0 text-brand-success" />
       ) : null}
-    </button>
+    </label>
   );
 }
 
@@ -175,11 +182,15 @@ function BracketMatchCard({
         </div>
         <div role="radiogroup" aria-label={`Match ${index + 1} winner`}>
           <BracketTeamButton
+            id={`${matchup.id}-team-one`}
+            name={`winner-${matchup.id}`}
             team={matchup.teamOne}
             selected={winner === matchup.teamOne}
             onSelect={() => onWinnerChange(matchup.teamOne)}
           />
           <BracketTeamButton
+            id={`${matchup.id}-team-two`}
+            name={`winner-${matchup.id}`}
             team={matchup.teamTwo}
             selected={winner === matchup.teamTwo}
             onSelect={() => onWinnerChange(matchup.teamTwo)}
@@ -322,7 +333,7 @@ export function RoundOf16PickForm({
   const duplicateEmailActive =
     testGuestMode &&
     duplicateEmail &&
-    normalizeEmail(email) === normalizeEmail(duplicateEmail);
+    normalizeEmailAddress(email) === normalizeEmailAddress(duplicateEmail);
   const payload: RoundOf16PickPayload = {
     winners,
     bonusAnswers,

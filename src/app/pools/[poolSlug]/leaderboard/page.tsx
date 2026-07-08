@@ -8,11 +8,11 @@ type LeaderboardPageProps = {
   params: Promise<{ poolSlug: string }>;
 };
 
-export const dynamic = "force-dynamic";
-
 export default async function LeaderboardPage({ params }: LeaderboardPageProps) {
   const { poolSlug } = await params;
-  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
+  const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
+    includeViewer: false,
+  });
 
   if (!roundOf16Pool) redirect(`/pools/${poolSlug}`);
 

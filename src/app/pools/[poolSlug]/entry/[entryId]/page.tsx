@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { CirclePlus } from "lucide-react";
 
@@ -13,23 +14,31 @@ import { RoundOf16EntryDetail } from "@/components/app/round-of-16-public-panels
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
-import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
 import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import {
-  buildLeaderboardRows,
-  buildPoolAnalytics,
-} from "@/lib/world-cup-pool/leaderboard";
-import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
-import { scorePool } from "@/lib/world-cup-pool/scoring";
+  buildOpponentPathsReport,
+  findEntryScenarioProjection,
+} from "@/lib/world-cup-pool/opponent-paths";
+import { getEntryAnalysisSnapshot } from "@/lib/world-cup-pool/public-pool";
 import { buildTodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
 
 type EntryPageProps = {
   params: Promise<{ poolSlug: string; entryId: string }>;
 };
 
-export const dynamicParams = true;
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [
+    {
+      params: {
+        poolSlug: "marcins-2026-world-cup-pool",
+        entryId: "lucas-czuchraj",
+      },
+    },
+  ],
+};
 
 function getEntryInitials(name: string) {
   return name
@@ -102,57 +111,19 @@ export default async function EntryPage({ params }: EntryPageProps) {
     );
   }
 
-  const pool = await getPublicPool(poolSlug);
-  if (!pool) notFound();
+  const snapshot = await getEntryAnalysisSnapshot(poolSlug, entryId);
+  if (!snapshot) notFound();
 
-  const entry = pool.entriesConfig.entries.find((item) => item.id === entryId);
-  if (!entry?.picksPath) notFound();
-
-  const picks = pool.picksByPath.get(entry.picksPath);
-  if (!picks) notFound();
-
-  const leaderboardRows = buildLeaderboardRows(
-    pool.entriesConfig,
-    pool.picksByPath,
-    pool.results,
-  );
-  const entryRow = leaderboardRows.find((row) => row.id === entry.id);
-  const score = entryRow?.score ?? scorePool(picks, pool.results);
-  const submittedBracket = buildPickedBracketView(picks);
-  const publicSlug = pool.slug;
-  const todaysResults = buildTodaysResultsReport({
-    entriesConfig: pool.entriesConfig,
-    picksByPath: pool.picksByPath,
-    results: pool.results,
-    entryId: entry.id,
-    referencePicks: picks,
-  });
-  const opponentPaths = buildOpponentPathsReport({
-    entriesConfig: pool.entriesConfig,
-    picksByPath: pool.picksByPath,
-    results: pool.results,
-    entryId: entry.id,
-  });
-  const futureLeverage = buildFutureLeverageReport({
-    entriesConfig: pool.entriesConfig,
-    picksByPath: pool.picksByPath,
-    results: pool.results,
-    entryId: entry.id,
-    referencePicks: picks,
-  });
-  const movementDigest = buildEntryMovementDigest({
-    entryId: entry.id,
+  const {
+    pool,
+    entry,
+    picks,
     leaderboardRows,
-    todaysResults,
-    futureLeverage,
-    opponentPaths,
-    analytics: buildPoolAnalytics(
-      pool.entriesConfig,
-      pool.picksByPath,
-      pool.results,
-      leaderboardRows,
-    ),
-  });
+    entryRow,
+    score,
+    submittedBracket,
+    publicSlug,
+  } = snapshot;
   const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
   return (
     <PublicPoolShell
@@ -200,8 +171,6 @@ export default async function EntryPage({ params }: EntryPageProps) {
         }
       />
 
-      <EntryMovementPanel digest={movementDigest} />
-
       <FullEntryAuditPanel
         picks={picks}
         results={pool.results}
@@ -216,7 +185,89 @@ export default async function EntryPage({ params }: EntryPageProps) {
           ) : undefined
         }
       />
+
+      <Suspense fallback={<EntryMovementFallback />}>
+        <EntryMovementStream
+          poolSlug={poolSlug}
+          entryId={entry.id}
+        />
+      </Suspense>
     </PublicPoolShell>
+  );
+}
+
+async function EntryMovementStream({
+  poolSlug,
+  entryId,
+}: {
+  poolSlug: string;
+  entryId: string;
+}) {
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  const snapshot = await getEntryAnalysisSnapshot(poolSlug, entryId);
+  if (!snapshot) return null;
+
+  const {
+    pool,
+    entry,
+    picks,
+    leaderboardRows,
+    analytics,
+  } = snapshot;
+  const todaysResults = buildTodaysResultsReport({
+    entriesConfig: pool.entriesConfig,
+    picksByPath: pool.picksByPath,
+    results: pool.results,
+    entryId: entry.id,
+    referencePicks: picks,
+  });
+  const opponentPaths = buildOpponentPathsReport({
+    entriesConfig: pool.entriesConfig,
+    picksByPath: pool.picksByPath,
+    results: pool.results,
+    entryId: entry.id,
+  });
+  const futureLeverage = buildFutureLeverageReport({
+    entriesConfig: pool.entriesConfig,
+    picksByPath: pool.picksByPath,
+    results: pool.results,
+    entryId: entry.id,
+    referencePicks: picks,
+  });
+  const scenarioProjection = findEntryScenarioProjection({
+    entriesConfig: pool.entriesConfig,
+    picksByPath: pool.picksByPath,
+    results: pool.results,
+    entryId: entry.id,
+    maxEvents: 5,
+    candidateLimit: 10,
+  });
+  const movementDigest = buildEntryMovementDigest({
+    entryId: entry.id,
+    leaderboardRows,
+    todaysResults,
+    futureLeverage,
+    opponentPaths,
+    scenarioProjection,
+    analytics,
+  });
+
+  return <EntryMovementPanel digest={movementDigest} />;
+}
+
+function EntryMovementFallback() {
+  return (
+    <LedgerPanel
+      title="Finding movement paths"
+      description="Checking upcoming matches, close rivals, and win scenarios."
+    >
+      <div className="grid gap-3 p-5">
+        <div className="h-16 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-16 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-16 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
   );
 }
 

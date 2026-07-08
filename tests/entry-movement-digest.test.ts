@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import type { FutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import type { PoolAnalytics } from "@/lib/world-cup-pool/leaderboard";
-import type { OpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
+import type {
+  EntryScenarioProjection,
+  OpponentPathsReport,
+} from "@/lib/world-cup-pool/opponent-paths";
 import type { TodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
 import type {
   LeaderboardRow,
@@ -334,6 +337,113 @@ describe("buildEntryMovementDigest", () => {
     ]);
   });
 
+  it("shows selected match deciders in date order", () => {
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("third", "Third", 3, 21),
+        row("target", "Player", 4, 20),
+      ],
+      todaysResults: null,
+      futureLeverage: futureReport([
+        {
+          id: "match-late",
+          date: "2026-07-13T19:00:00Z",
+          detail: "Scheduled",
+          homeTeam: "Brazil",
+          awayTeam: "France",
+          pathNotes: [],
+          bestOutcome: {
+            outcome: "home",
+            label: "Brazil win",
+            rank: 1,
+            total: 25,
+            pointChange: 5,
+            rankChange: 3,
+            entriesPassed: ["Third"],
+            chasersPassing: [],
+          },
+          worstOutcome: {
+            outcome: "away",
+            label: "France win",
+            rank: 4,
+            total: 20,
+            pointChange: 0,
+            rankChange: 0,
+            entriesPassed: [],
+            chasersPassing: [],
+          },
+          outcomes: [],
+        },
+        {
+          id: "match-early",
+          date: "2026-07-11T19:00:00Z",
+          detail: "Scheduled",
+          homeTeam: "Canada",
+          awayTeam: "Japan",
+          pathNotes: [],
+          bestOutcome: {
+            outcome: "home",
+            label: "Canada win",
+            rank: 3,
+            total: 21,
+            pointChange: 1,
+            rankChange: 1,
+            entriesPassed: ["Third"],
+            chasersPassing: [],
+          },
+          worstOutcome: {
+            outcome: "away",
+            label: "Japan win",
+            rank: 4,
+            total: 20,
+            pointChange: 0,
+            rankChange: 0,
+            entriesPassed: [],
+            chasersPassing: [],
+          },
+          outcomes: [],
+        },
+        {
+          id: "match-middle",
+          date: "2026-07-12T19:00:00Z",
+          detail: "Scheduled",
+          homeTeam: "Spain",
+          awayTeam: "Norway",
+          pathNotes: [],
+          bestOutcome: {
+            outcome: "home",
+            label: "Spain win",
+            rank: 2,
+            total: 23,
+            pointChange: 3,
+            rankChange: 2,
+            entriesPassed: ["Third"],
+            chasersPassing: [],
+          },
+          worstOutcome: {
+            outcome: "away",
+            label: "Norway win",
+            rank: 4,
+            total: 20,
+            pointChange: 0,
+            rankChange: 0,
+            entriesPassed: [],
+            chasersPassing: [],
+          },
+          outcomes: [],
+        },
+      ]),
+      opponentPaths: null,
+    });
+
+    expect(digest?.matchDeciders.map((decider) => decider.matchId)).toEqual([
+      "match-early",
+      "match-middle",
+      "match-late",
+    ]);
+  });
+
   it("handles tied ranks and equal scores predictably", () => {
     const opponentPaths: OpponentPathsReport = {
       target: {
@@ -496,6 +606,99 @@ describe("buildEntryMovementDigest", () => {
 
     expect(digest?.winPath.status).toBe("canWin");
     expect(digest?.winPath.events[0]?.title).toBe("Brazil win the quarter-final");
+  });
+
+  it("does not call a head-to-head route a win when shared picks still block first", () => {
+    const scenarioProjection: EntryScenarioProjection = {
+      entryId: "target",
+      entryName: "Player",
+      currentRank: 3,
+      currentTotal: 10,
+      projectedRank: 2,
+      projectedTotal: 25,
+      routeCovered: 15,
+      eventCount: 1,
+      canFinishFirst: false,
+      tiedForFirst: false,
+      events: [
+        {
+          id: "event-1",
+          category: "Final",
+          title: "England finish as Runner-up",
+          detail: "",
+          points: 15,
+          teams: ["England"],
+          resultKind: "finalPosition",
+          resultKey: "runnerUp",
+          selectedPoints: 15,
+          scorerIds: ["blocker", "target"],
+          scorerNames: ["Blocker", "Player"],
+        },
+      ],
+      standings: [
+        {
+          id: "blocker",
+          name: "Blocker",
+          currentTotal: 12,
+          projectedTotal: 27,
+          delta: 15,
+          rank: 1,
+        },
+        {
+          id: "target",
+          name: "Player",
+          currentTotal: 10,
+          projectedTotal: 25,
+          delta: 15,
+          rank: 2,
+        },
+      ],
+      blockers: [
+        {
+          id: "blocker",
+          name: "Blocker",
+          currentTotal: 12,
+          projectedTotal: 27,
+          delta: 15,
+          rank: 1,
+        },
+      ],
+    };
+    const digest = buildEntryMovementDigest({
+      entryId: "target",
+      leaderboardRows: [
+        row("leader", "Leader", 1, 12),
+        row("blocker", "Blocker", 2, 11),
+        row("target", "Player", 3, 10),
+      ],
+      todaysResults: null,
+      futureLeverage: null,
+      opponentPaths: opponentPaths({
+        neededSwing: 3,
+        routeCovered: 15,
+        routeComplete: true,
+        routeEvents: [
+          {
+            id: "event-1",
+            category: "Final",
+            title: "England finish as Runner-up",
+            detail: "",
+            points: 15,
+            teams: ["England"],
+          },
+        ],
+      }),
+      scenarioProjection,
+      analytics: analytics([
+        { id: "leader", rank: 1, total: 12, maxPossible: 20 },
+        { id: "blocker", rank: 2, total: 11, maxPossible: 30 },
+        { id: "target", rank: 3, total: 10, maxPossible: 30 },
+      ], 12),
+    });
+
+    expect(digest?.winPath.status).toBe("noVisibleRoute");
+    expect(digest?.winPath.summary).toContain("projects #2");
+    expect(digest?.winPath.summary).toContain("Blocker");
   });
 
   it("collapses multiple outcomes for one match into one match card with best and danger labels", () => {
