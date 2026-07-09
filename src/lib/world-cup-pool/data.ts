@@ -7,10 +7,14 @@ import { unstable_rethrow } from "next/navigation";
 
 import { formatDateTime } from "@/lib/date-time";
 import {
-  buildResultsFromEvents,
-  ESPN_SCOREBOARD_URL,
+  buildResultsFromFifaMatches,
   createTeamResolver,
+  fetchFifaCalendarMatches,
   fetchFifaBonusResults,
+  fetchFifaRankings,
+  fifaSourceSignature,
+  type FifaBonusResults,
+  type FifaMatch,
 } from "@/lib/world-cup-pool/results-updater";
 import type {
   EntriesConfig,
@@ -43,10 +47,8 @@ const DATA_DIR = path.join(
 );
 const DEFAULT_FIFA_BONUS_CACHE_MS = 60 * 1000;
 const DEFAULT_FIFA_BONUS_WARM_TIMEOUT_MS = 15 * 1000;
-const DEFAULT_ESPN_REQUEST_TIMEOUT_MS = 1200;
+const DEFAULT_FIFA_REQUEST_TIMEOUT_MS = 15 * 1000;
 const DEFAULT_RESULTS_STALE_MS = 5 * 60 * 1000;
-
-type FifaBonusResults = Record<string, string[]>;
 
 type LiveResultsCacheState = {
   bonusResults?: FifaBonusResults;
@@ -99,50 +101,6 @@ function isPrerenderFetchRejection(error: unknown) {
   return message.includes(
     "During prerendering, fetch() rejects when the prerender is complete",
   );
-}
-
-function teamSignature(competitor: {
-  team?: {
-    displayName?: string;
-    shortDisplayName?: string;
-    name?: string;
-    abbreviation?: string;
-  };
-}) {
-  return (
-    competitor.team?.displayName ??
-    competitor.team?.shortDisplayName ??
-    competitor.team?.name ??
-    competitor.team?.abbreviation ??
-    ""
-  );
-}
-
-function scoreboardSignature(
-  events: Parameters<typeof buildResultsFromEvents>[0],
-  manualOverrides: Partial<PoolResults>,
-) {
-  return JSON.stringify({
-    events: events.map((event) => {
-      const competition = event.competitions?.[0] ?? {};
-      const status = competition.status?.type ?? event.status?.type ?? {};
-      const competitors = (competition.competitors ?? []).map((competitor) => ({
-        homeAway: competitor.homeAway ?? "",
-        score: competitor.score ?? null,
-        winner: Boolean(competitor.winner),
-        team: teamSignature(competitor),
-      }));
-
-      return {
-        id: event.id ?? competition.id ?? "",
-        date: event.date ?? competition.date ?? "",
-        state: status.state ?? "pre",
-        completed: Boolean(status.completed),
-        competitors,
-      };
-    }),
-    manualOverrides,
-  });
 }
 
 async function withTimeout<T>(
@@ -314,7 +272,7 @@ async function writeWorldCupResultSnapshot({
     {
       pool_slug: poolSlug,
       results_payload: results,
-      source: results.meta?.source ?? "espn",
+      source: results.meta?.source ?? "fifa",
       source_signature: sourceSignature,
       fetched_at: fetchedAt,
       status: results.meta?.status ?? "ok",
@@ -364,46 +322,41 @@ async function buildFreshLiveResults({
   manualOverrides: Partial<PoolResults>;
   bonusTimeoutMs: number;
 }) {
-  const events = await fetchEspnEvents();
-  const sourceSignature = scoreboardSignature(events, manualOverrides);
+  const fifaMatches = await withTimeout(
+    fetchFifaCalendarMatches(),
+    envMs(
+      "FY_POOLS_FIFA_REQUEST_TIMEOUT_MS",
+      DEFAULT_FIFA_REQUEST_TIMEOUT_MS,
+      1000,
+    ),
+    "FIFA calendar request timed out",
+  );
+  const sourceSignature = fifaSourceSignature(
+    fifaMatches,
+    manualOverrides as Parameters<typeof fifaSourceSignature>[1],
+  );
   const resolveTeam = createTeamResolver(referencePicks, aliases);
-  const fifaBonusResults = await getFifaBonusResults(resolveTeam, {
-    force: true,
-    timeoutMs: bonusTimeoutMs,
-  });
-  const results = buildResultsFromEvents(events, {
+  const [fifaBonusResults, fifaRankingResults] = await Promise.all([
+    getFifaBonusResults(resolveTeam, {
+      force: true,
+      timeoutMs: bonusTimeoutMs,
+      calendarMatches: fifaMatches,
+    }),
+    withTimeout(
+      fetchFifaRankings(resolveTeam),
+      bonusTimeoutMs,
+      "FIFA ranking request timed out",
+    ),
+  ]);
+  const results = buildResultsFromFifaMatches(fifaMatches, {
     picks: referencePicks,
     aliases,
-    manualOverrides,
+    manualOverrides: manualOverrides as Parameters<typeof buildResultsFromFifaMatches>[1]["manualOverrides"],
     fifaBonusResults,
+    fifaRankingResults,
   });
 
   return { results, sourceSignature };
-}
-
-async function fetchEspnEvents() {
-  const response = await withTimeout(
-    fetch(ESPN_SCOREBOARD_URL, {
-      cache: "no-store",
-    }),
-    envMs(
-      "FY_POOLS_ESPN_REQUEST_TIMEOUT_MS",
-      DEFAULT_ESPN_REQUEST_TIMEOUT_MS,
-      1000,
-    ),
-    "ESPN scoreboard request timed out",
-  );
-
-  if (!response.ok) {
-    throw new Error(`ESPN scoreboard request failed with ${response.status}`);
-  }
-
-  const scoreboard = (await response.json()) as { events?: unknown };
-  if (!Array.isArray(scoreboard.events)) {
-    throw new Error("ESPN scoreboard response did not include events");
-  }
-
-  return scoreboard.events as Parameters<typeof buildResultsFromEvents>[0];
 }
 
 async function getFifaBonusResults(
@@ -411,9 +364,11 @@ async function getFifaBonusResults(
   {
     force = false,
     timeoutMs,
+    calendarMatches,
   }: {
     force?: boolean;
     timeoutMs: number;
+    calendarMatches?: FifaMatch[];
   },
 ): Promise<FifaBonusResults> {
   const state = liveResultsCache();
@@ -446,7 +401,7 @@ async function getFifaBonusResults(
     }
   }
 
-  const pending = fetchFifaBonusResults(resolveTeam).then((results) => {
+  const pending = fetchFifaBonusResults(resolveTeam, calendarMatches ?? null).then((results) => {
     state.bonusResults = results;
     state.bonusFetchedAt = Date.now();
     return results;
@@ -536,7 +491,7 @@ export async function warmMarcinsWorldCupResults() {
     results,
     resultsFreshness: freshnessFromSnapshot({
       fetchedAt: results.meta?.lastUpdated ?? new Date().toISOString(),
-      source: results.meta?.source ?? "espn",
+      source: results.meta?.source ?? "fifa",
       sourceSignature,
       status: results.meta?.status ?? "ok",
       lastError: null,
@@ -552,7 +507,7 @@ export function scoreRefreshLabel(pool: PoolFixture) {
 
 export function scoreRefreshSourceLabel(pool: PoolFixture) {
   if (pool.resultsFreshness.source === "fixture") return "fixture fallback";
-  if (pool.resultsFreshness.source === "espn") return "ESPN/FIFA";
+  if (pool.resultsFreshness.source === "fifa") return "FIFA";
   return pool.resultsFreshness.source;
 }
 

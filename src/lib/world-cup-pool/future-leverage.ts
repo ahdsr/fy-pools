@@ -140,8 +140,18 @@ function matchTime(match: MatchResult) {
   return Number.isFinite(time) ? time : 0;
 }
 
+function allResultMatches(results: PoolResults) {
+  const seen = new Set<string>();
+  return [...(results.matches ?? []), ...(results.fixtures ?? [])].filter((match) => {
+    const key = match.id || `${match.date}|${match.homeTeam}|${match.awayTeam}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function unfinishedMatches(results: PoolResults) {
-  return (results.matches ?? [])
+  return allResultMatches(results)
     .filter((match) => !match.completed && match.state !== "post")
     .sort((a, b) => matchTime(a) - matchTime(b));
 }

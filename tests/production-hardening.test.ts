@@ -37,6 +37,7 @@ describe("production hardening", () => {
 
     const csp = values.get("Content-Security-Policy");
     expect(csp).toContain("frame-ancestors 'none'");
+    expect(csp).toContain("https://flagcdn.com");
     expect(csp).not.toContain("'unsafe-eval'");
     expect(values.get("X-Frame-Options")).toBe("DENY");
     expect(values.get("X-Content-Type-Options")).toBe("nosniff");

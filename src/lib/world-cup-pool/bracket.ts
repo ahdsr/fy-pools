@@ -73,8 +73,15 @@ function sortedOfficialKnockoutMatches(
   referencePicks: EntryPicks | undefined,
 ) {
   const groupsByTeam = teamGroups(referencePicks);
+  const seen = new Set<string>();
 
-  return (results.matches ?? [])
+  return [...(results.matches ?? []), ...(results.fixtures ?? [])]
+    .filter((match) => {
+      const key = match.id || `${match.date}|${match.homeTeam}|${match.awayTeam}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .filter((match) => !isGroupStageMatch(match, groupsByTeam))
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 }

@@ -180,7 +180,7 @@ export function LatestUpdatesPanel({
   results: PoolResults;
   referencePicks?: EntryPicks;
 }) {
-  const matches = results.matches ?? [];
+  const matches = allResultMatches(results);
   const liveMatches = matches.filter(isLiveMatch).slice(0, 5);
   const upcomingMatches = matches
     .filter(isUpcomingMatch)
@@ -207,6 +207,16 @@ export function LatestUpdatesPanel({
       </div>
     </LedgerPanel>
   );
+}
+
+function allResultMatches(results: PoolResults) {
+  const seen = new Set<string>();
+  return [...(results.matches ?? []), ...(results.fixtures ?? [])].filter((match) => {
+    const key = match.id || `${match.date}|${match.homeTeam}|${match.awayTeam}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function MatchUpdatesSection({

@@ -18,6 +18,16 @@ function matchTime(match: MatchResult) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function allResultMatches(results: PoolResults) {
+  const seen = new Set<string>();
+  return [...(results.matches ?? []), ...(results.fixtures ?? [])].filter((match) => {
+    const key = match.id || `${match.date}|${match.homeTeam}|${match.awayTeam}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 export function getReferencePicks(
   picksByPath: Map<string, EntryPicks>,
 ): EntryPicks | undefined {
@@ -28,7 +38,7 @@ export function selectCurrentPoolMatch(
   results: PoolResults,
   now = new Date(),
 ): MatchResult | undefined {
-  const matches = (results.matches ?? []).filter(validMatch);
+  const matches = allResultMatches(results).filter(validMatch);
   const liveMatch = matches
     .filter((match) => match.state === "in")
     .sort((a, b) => matchTime(a) - matchTime(b))[0];

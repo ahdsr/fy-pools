@@ -94,6 +94,24 @@ function matchTime(match: MatchResult) {
   return Number.isFinite(time) ? time : 0;
 }
 
+function allResultMatches(results: PoolResults) {
+  const seen = new Set<string>();
+  return [...(results.matches ?? []), ...(results.fixtures ?? [])].filter((match) => {
+    const key = match.id || `${match.date}|${match.homeTeam}|${match.awayTeam}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+function isCountedMatch(match: MatchResult) {
+  return (
+    (match.state === "in" || match.state === "post" || match.completed) &&
+    match.homeScore !== null &&
+    match.awayScore !== null
+  );
+}
+
 function findGroupId(picks: EntryPicks, match: MatchResult) {
   for (const [groupId, group] of Object.entries(picks.groups)) {
     const teams = new Set(group.teams.map((team) => team.name));
@@ -169,16 +187,17 @@ export function scenarioResults(
   picks: EntryPicks,
   choices: Map<string, OutcomeKey>,
 ): PoolResults {
-  const matches = (results.matches ?? []).map((match) => {
+  const projectedMatches = allResultMatches(results).map((match) => {
     const outcome = choices.get(match.id);
     return outcome ? completedMatch(match, outcome) : match;
   });
-  const groups = buildGroupResults(matches, picks);
-  const knockout = buildKnockoutResults(matches, picks);
+  const groups = buildGroupResults(projectedMatches, picks);
+  const knockout = buildKnockoutResults(projectedMatches, picks);
 
   return {
     ...results,
-    matches,
+    matches: projectedMatches.filter(isCountedMatch),
+    fixtures: projectedMatches.filter((match) => !match.completed),
     groups,
     topThirdGroups: groupStageFinal(groups)
       ? selectTopThirdGroups(groups)
@@ -339,7 +358,7 @@ export function buildTodaysResultsReport({
   if (!currentRow) return null;
 
   const today = dateKey(now, timeZone);
-  const todaysMatches = (results.matches ?? [])
+  const todaysMatches = allResultMatches(results)
     .filter(
       (match) =>
         !match.completed &&

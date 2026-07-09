@@ -56,6 +56,11 @@ function bonusPick(picks: EntryPicks, bonusId: string) {
   return picks.bonus.find((bonus) => bonus.id === bonusId)?.pick ?? "";
 }
 
+function bonusAnswerArray(results: PoolResults, bonusId: string) {
+  const value = results.bonus?.[bonusId];
+  return Array.isArray(value) ? value : [];
+}
+
 describe("World Cup scoring data", () => {
   it("loads every roster entry pick sheet into scored standings", () => {
     const entriesConfig = entriesJson as EntriesConfig;
@@ -229,39 +234,45 @@ describe("World Cup scoring data", () => {
     const mostCards = computeMostCardsFromFifaLiveMatches([
       {
         HomeTeam: {
-          ShortClubName: "Yellow Team",
-          Bookings: [{ Card: 1 }, { Card: 1 }],
+          ShortClubName: "Second Yellow Team",
+          Bookings: [
+            { Card: 1, IdPlayer: "second-yellow" },
+            { Card: 2, IdPlayer: "second-yellow" },
+          ],
         },
         AwayTeam: {
-          ShortClubName: "Indirect Red Team",
+          ShortClubName: "Direct Red Team",
           Bookings: [{ Card: 3 }],
         },
       },
       {
         HomeTeam: {
-          ShortClubName: "Direct Red Team",
-          Bookings: [{ Card: 4 }],
+          ShortClubName: "Yellow Plus Direct Red Team",
+          Bookings: [
+            { Card: 1, IdPlayer: "direct-red" },
+            { Card: 3, IdPlayer: "direct-red" },
+          ],
         },
         AwayTeam: {
           ShortClubName: "Ignored Team",
-          Bookings: [{ Card: 2 }],
+          Bookings: [{ Card: 1 }],
         },
       },
     ]);
 
-    expect(mostCards).toEqual(["Direct Red Team"]);
+    expect(mostCards).toEqual(["Yellow Plus Direct Red Team"]);
   });
 
   it("awards current automatic bonus winners from result answers", () => {
     const rows = loadPicks();
     const results = resultsJson as PoolResults;
     const firstRules = rows[0]?.picks.scoringRules;
-    const farthestGoalAnswers = results.bonus?.farthestGoal ?? [];
-    const bestPassCompletionAnswers = results.bonus?.bestPassCompletion ?? [];
+    const farthestGoalAnswers = bonusAnswerArray(results, "farthestGoal");
+    const bestPassCompletionAnswers = bonusAnswerArray(results, "bestPassCompletion");
 
     expect(firstRules).toBeDefined();
-    expect(farthestGoalAnswers).toEqual(["Cape Verde"]);
-    expect(bestPassCompletionAnswers).toEqual(["Argentina", "Spain"]);
+    expect(farthestGoalAnswers).toEqual(["Belgium"]);
+    expect(bestPassCompletionAnswers).toEqual(["Spain"]);
 
     const expectedAggregate =
       rows.filter(({ picks }) =>
@@ -278,6 +289,35 @@ describe("World Cup scoring data", () => {
         sum +
         score.bonus
           .filter((bonus) => bonus.id === "farthestGoal" || bonus.id === "bestPassCompletion")
+          .reduce((bonusSum, bonus) => bonusSum + bonus.points, 0)
+      );
+    }, 0);
+
+    expect(actualAggregate).toBe(expectedAggregate);
+  });
+
+  it("awards the FIFA card bonus from Fair Play point leaders", () => {
+    const rows = loadPicks();
+    const results = resultsJson as PoolResults;
+    const firstRules = rows[0]?.picks.scoringRules;
+    const cardScores = results.bonus?.mostCards;
+
+    expect(firstRules).toBeDefined();
+    expect(cardScores).toMatchObject({
+      Paraguay: 13,
+      "South Africa": 13,
+    });
+
+    const leaders = ["Paraguay", "South Africa"];
+    const expectedAggregate =
+      rows.filter(({ picks }) => leaders.includes(bonusPick(picks, "mostCards"))).length *
+      (firstRules?.bonus ?? 0);
+    const actualAggregate = rows.reduce((sum, { picks }) => {
+      const score = scorePool(picks, results);
+      return (
+        sum +
+        score.bonus
+          .filter((bonus) => bonus.id === "mostCards")
           .reduce((bonusSum, bonus) => bonusSum + bonus.points, 0)
       );
     }, 0);

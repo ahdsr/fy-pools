@@ -19,6 +19,7 @@ const EMPTY_SUBTOTALS: ScoreSubtotals = {
   finals: 0,
   bonus: 0,
 };
+const CARD_BONUS_ID = "mostCards";
 
 export type PoolAnalyticsRow = {
   id: string;
@@ -192,6 +193,7 @@ function finalsRemaining(
 
 function bonusRemaining(picks: EntryPicks, score: PoolScore, rules: EntryPicks["scoringRules"]) {
   return picks.bonus.reduce((sum, item) => {
+    if (item.id === CARD_BONUS_ID) return sum;
     const bonusScore = score.bonus.find((scored) => scored.id === item.id);
     return sum + stageRemaining(rules.bonus, bonusScore?.points ?? 0, false);
   }, 0);

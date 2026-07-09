@@ -149,6 +149,12 @@ function uniqueTeams(teams: string[]) {
   });
 }
 
+function bonusResultIsAnswered(value: NonNullable<PoolResults["bonus"]>[string] | undefined) {
+  if (Array.isArray(value)) return value.length > 0;
+  if (value && typeof value === "object") return Object.keys(value).length > 0;
+  return false;
+}
+
 function groupIsOpen(results: PoolResults, groupId: string) {
   return results.groups?.[groupId]?.status !== "final";
 }
@@ -166,8 +172,18 @@ function matchTime(match: MatchResult) {
   return Number.isFinite(value) ? value : 0;
 }
 
+function allResultMatches(results: PoolResults) {
+  const seen = new Set<string>();
+  return [...(results.matches ?? []), ...(results.fixtures ?? [])].filter((match) => {
+    const key = match.id || `${match.date}|${match.homeTeam}|${match.awayTeam}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
 function unfinishedMatches(results: PoolResults) {
-  return (results.matches ?? [])
+  return allResultMatches(results)
     .filter((match) => !match.completed && match.state !== "post")
     .sort((a, b) => matchTime(a) - matchTime(b));
 }
@@ -486,7 +502,7 @@ function buildBonusEvents({
   const threatEvents: OpponentPathEvent[] = [];
 
   for (const bonus of playerPicks.bonus) {
-    if ((results.bonus?.[bonus.id]?.length ?? 0) > 0) continue;
+    if (bonusResultIsAnswered(results.bonus?.[bonus.id])) continue;
 
     const opponentBonus = opponentPicks.bonus.find((item) => item.id === bonus.id);
     if (!opponentBonus || sameTeam(bonus.pick, opponentBonus.pick)) continue;
@@ -791,7 +807,7 @@ function buildEntryRemainingBonusEvents({
   results: PoolResults;
 }) {
   return picks.bonus
-    .filter((bonus) => (results.bonus?.[bonus.id]?.length ?? 0) === 0)
+    .filter((bonus) => !bonusResultIsAnswered(results.bonus?.[bonus.id]))
     .map<OpponentPathEvent>((bonus) => ({
       id: `bonus-${bonus.id}-${normalizeKey(bonus.pick)}`,
       category: "Bonus",

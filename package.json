@@ -16,6 +16,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "test:live-fifa": "node scripts/live-fifa-audit.mjs",
     "perf:public-pages": "node scripts/check-public-page-performance.mjs",
     "test:smoke": "vitest run tests/round-of-16.smoke.test.ts",
     "audit:prod": "npm audit --omit=dev --audit-level=moderate",

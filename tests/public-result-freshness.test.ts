@@ -45,17 +45,17 @@ describe("public result freshness", () => {
     const results = {
       meta: {
         lastUpdated: fetchedAt,
-        source: "espn",
-        status: "Auto-updated from ESPN.",
+        source: "fifa",
+        status: "Auto-updated from FIFA.",
       },
       matches: [],
     } satisfies PoolResults;
     mocks.snapshotData = {
       results_payload: results,
-      source: "espn",
+      source: "fifa",
       source_signature: "snapshot-signature",
       fetched_at: fetchedAt,
-      status: "Auto-updated from ESPN.",
+      status: "Auto-updated from FIFA.",
       last_error: null,
     };
     mockSnapshotRead();
@@ -69,10 +69,10 @@ describe("public result freshness", () => {
 
     expect(snapshot?.results).toBe(results);
     expect(snapshot?.freshness).toMatchObject({
-      source: "espn",
+      source: "fifa",
       sourceSignature: "snapshot-signature",
       stale: false,
-      status: "Auto-updated from ESPN.",
+      status: "Auto-updated from FIFA.",
     });
   });
 

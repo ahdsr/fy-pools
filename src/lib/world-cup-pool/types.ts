@@ -119,22 +119,36 @@ export type GroupResult = {
     goalsFor: number;
     goalsAgainst: number;
     goalDifference: number;
+    fairPlayPoints?: number;
+    fifaRank?: number;
   }[];
 };
 
 export type MatchResult = {
   id: string;
+  source?: "fifa";
+  name?: string;
+  shortName?: string;
   date: string;
   state: string;
   completed: boolean;
   detail: string;
+  stage?: string;
+  group?: string;
+  matchNumber?: number | null;
+  resultType?: number | null;
+  officialityStatus?: number | null;
   homeTeam: string;
   awayTeam: string;
   homeScore: number | null;
   awayScore: number | null;
+  homePenaltyScore?: number | null;
+  awayPenaltyScore?: number | null;
   winner: string;
   loser: string;
 };
+
+export type BonusResultValue = string[] | Record<string, number>;
 
 export type PoolResults = {
   meta?: {
@@ -142,9 +156,31 @@ export type PoolResults = {
     status?: string;
     source?: string;
     sourceUrl?: string;
+    sources?: Record<
+      string,
+      {
+        source?: string;
+        sourceUrl?: string;
+        apiUrl?: string;
+        dateId?: string;
+        lastUpdateDate?: string;
+      }
+    >;
+    bonusSources?: Record<
+      string,
+      {
+        source?: string;
+        sourceUrl?: string;
+        apiUrl?: string;
+        update?: string;
+      }
+    >;
+    manualOverrideCount?: number;
+    manualOverrideSource?: string;
     sourceNote?: string;
   };
   matches?: MatchResult[];
+  fixtures?: MatchResult[];
   groups?: Record<string, GroupResult>;
   topThirdGroups?: string[];
   roundOf16?: string[];
@@ -157,7 +193,7 @@ export type PoolResults = {
     runnerUp?: string;
     thirdPlace?: string;
   };
-  bonus?: Record<string, string[]>;
+  bonus?: Record<string, BonusResultValue>;
 };
 
 export type ResultsFreshness = {
@@ -204,6 +240,7 @@ export type BonusScore = {
   label: string;
   pick: string;
   answers: string[];
+  answerText?: string;
   hit: boolean;
   points: number;
 };

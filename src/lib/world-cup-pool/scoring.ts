@@ -1,4 +1,5 @@
 import type {
+  BonusResultValue,
   BonusScore,
   EntryPicks,
   FinalPositionScore,
@@ -17,6 +18,8 @@ const STAGE_LABELS: Record<StageScore["stageKey"], string> = {
   thirdPlaceMatch: "3rd-place match",
   finalists: "Final",
 };
+const CARD_BONUS_ID = "mostCards";
+const CARD_BONUS_LABEL = "Most red & yellow cards";
 
 export function normalizeName(value: unknown) {
   return String(value ?? "")
@@ -44,8 +47,36 @@ function includesTeam(list: string[] | undefined, team: string) {
   return Array.isArray(list) && list.some((item) => sameTeam(item, team));
 }
 
-function asArray(value: string[] | undefined) {
+function asArray(value: BonusResultValue | undefined) {
   return Array.isArray(value) ? value.filter(Boolean) : [];
+}
+
+function teamValueFromRecord(record: BonusResultValue | undefined, team: string) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) return null;
+
+  for (const [key, value] of Object.entries(record)) {
+    if (sameTeam(key, team)) return value;
+  }
+  return null;
+}
+
+function cardLeadersFromRecord(record: BonusResultValue | undefined) {
+  if (!record || typeof record !== "object" || Array.isArray(record)) {
+    return { leaders: [] as string[], max: 0 };
+  }
+
+  const entries = Object.entries(record)
+    .map(([team, value]) => [team, Number(value)] as const)
+    .filter(([, value]) => Number.isFinite(value) && value > 0);
+  const max = Math.max(...entries.map(([, value]) => value), 0);
+
+  return {
+    leaders: entries
+      .filter(([, value]) => value === max)
+      .map(([team]) => team)
+      .sort((a, b) => a.localeCompare(b)),
+    max,
+  };
 }
 
 export function actualAdvancersForGroup(results: PoolResults, groupId: string) {
@@ -143,6 +174,26 @@ function scoreBonus(
   rules: ScoringRules,
 ): BonusScore[] {
   return picks.bonus.map((item) => {
+    if (item.id === CARD_BONUS_ID) {
+      const cardScores = results.bonus?.[item.id];
+      const cardPoints = Number(teamValueFromRecord(cardScores, item.pick) ?? 0);
+      const { leaders, max } = cardLeadersFromRecord(cardScores);
+      const hit = includesTeam(leaders, item.pick);
+      const leaderText = leaders.length
+        ? `${leaders.join(", ")} (${max} Fair Play pts)`
+        : "Pending";
+
+      return {
+        id: item.id,
+        label: CARD_BONUS_LABEL,
+        pick: item.pick,
+        answers: leaders,
+        answerText: `${leaderText}; ${item.pick}: ${cardPoints}`,
+        hit,
+        points: hit ? rules.bonus : 0,
+      };
+    }
+
     const answers = asArray(results.bonus?.[item.id]);
     const hit = includesTeam(answers, item.pick);
     return {

@@ -178,7 +178,7 @@ export function PodiumBonusContent({
           <p className="mt-3 text-sm leading-5 text-muted-foreground">
             Current answer:{" "}
             <span className="font-medium text-brand-ink">
-              {formatAuditAnswers(item.answers)}
+              {item.answerText ?? formatAuditAnswers(item.answers)}
             </span>
           </p>
         </LedgerRow>

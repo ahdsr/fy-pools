@@ -4,10 +4,11 @@ import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import {
-  buildResultsFromEvents,
   createTeamResolver,
-  ESPN_SCOREBOARD_URL,
+  buildResultsFromFifaMatches,
+  fetchFifaCalendarMatches,
   fetchFifaBonusResults,
+  fetchFifaRankings,
 } from "@/lib/world-cup-pool/results-updater";
 import type { EntryPicks, PoolResults } from "@/lib/world-cup-pool/types";
 
@@ -77,36 +78,26 @@ function pickSeedFileName(entriesConfig: EntriesConfigForUpdate) {
   return path.basename(picksPath);
 }
 
-async function fetchEspnEvents() {
-  const response = await fetch(ESPN_SCOREBOARD_URL, { cache: "no-store" });
-  if (!response.ok) {
-    throw new Error(`ESPN scoreboard request failed with ${response.status}`);
-  }
-
-  const scoreboard = (await response.json()) as { events?: unknown };
-  if (!Array.isArray(scoreboard.events)) {
-    throw new Error("ESPN scoreboard response did not include events");
-  }
-
-  return scoreboard.events as Parameters<typeof buildResultsFromEvents>[0];
-}
-
 export async function updateLocalWorldCupResults() {
   const entriesConfig = await readJson<EntriesConfigForUpdate>("entries.json");
-  const [picks, aliases, manualOverrides, events] = await Promise.all([
+  const [picks, aliases, manualOverrides, fifaMatches] = await Promise.all([
     readJson<EntryPicks>(pickSeedFileName(entriesConfig)),
     readJson<{ aliases?: Record<string, string> }>("team-aliases.json"),
     readJson<Partial<PoolResults>>("manual-overrides.json"),
-    fetchEspnEvents(),
+    fetchFifaCalendarMatches(),
   ]);
 
   const resolveTeam = createTeamResolver(picks, aliases);
-  const fifaBonusResults = await fetchFifaBonusResults(resolveTeam);
-  const results = buildResultsFromEvents(events, {
+  const [fifaBonusResults, fifaRankingResults] = await Promise.all([
+    fetchFifaBonusResults(resolveTeam, fifaMatches),
+    fetchFifaRankings(resolveTeam),
+  ]);
+  const results = buildResultsFromFifaMatches(fifaMatches, {
     picks,
     aliases,
-    manualOverrides,
+    manualOverrides: manualOverrides as Parameters<typeof buildResultsFromFifaMatches>[1]["manualOverrides"],
     fifaBonusResults,
+    fifaRankingResults,
   });
 
   await writeFile(
