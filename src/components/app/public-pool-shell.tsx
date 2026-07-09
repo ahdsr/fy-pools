@@ -9,6 +9,9 @@ type PublicPoolShellProps = {
   description?: string;
   descriptionClassName?: string;
   scoreRefreshLabel?: string;
+  scoreRefreshSource?: string;
+  scoreRefreshStatus?: string;
+  scoreRefreshStale?: boolean;
   meta?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -19,6 +22,9 @@ export function PublicPoolShell({
   description,
   descriptionClassName,
   scoreRefreshLabel,
+  scoreRefreshSource,
+  scoreRefreshStatus,
+  scoreRefreshStale = false,
   meta,
   children,
 }: PublicPoolShellProps) {
@@ -50,9 +56,22 @@ export function PublicPoolShell({
         </section>
         {children}
         {scoreRefreshLabel ? (
-          <p className="pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70">
-            Scores refreshed {scoreRefreshLabel}
-          </p>
+          <div
+            className={cn(
+              "pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70",
+              scoreRefreshStale && "text-destructive",
+            )}
+            role={scoreRefreshStale ? "status" : undefined}
+          >
+            <p>
+              {scoreRefreshStale ? "Scores may be stale" : "Scores refreshed"}{" "}
+              {scoreRefreshLabel}
+              {scoreRefreshSource ? ` from ${scoreRefreshSource}` : ""}
+            </p>
+            {scoreRefreshStatus ? (
+              <p className="mt-1 text-muted-foreground/70">{scoreRefreshStatus}</p>
+            ) : null}
+          </div>
         ) : null}
       </div>
       <SiteFooter />

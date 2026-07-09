@@ -41,7 +41,7 @@ export function RoundOf16PublicStats({ pool }: { pool: RoundOf16PublicPool }) {
 
   return (
     <LedgerPanel>
-      <LedgerRows className="grid md:grid-cols-4 md:divide-x md:divide-y-0">
+      <LedgerRows className="grid md:grid-cols-5 md:divide-x md:divide-y-0">
         <LedgerRow>
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground sm:text-sm">
             Entries
@@ -84,6 +84,19 @@ export function RoundOf16PublicStats({ pool }: { pool: RoundOf16PublicPool }) {
           </p>
           <p className="mt-2 text-sm font-normal leading-5 text-muted-foreground">
             {pool.settings.payouts.filter((payout) => payout.place || payout.amount).length} payouts
+          </p>
+        </LedgerRow>
+        <LedgerRow>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground sm:text-sm">
+            Scoring
+          </p>
+          <p className="mt-2 text-2xl font-semibold leading-none text-brand-ink sm:text-3xl">
+            {pool.latestStandingsCalculatedAt ? "Updated" : "Pending"}
+          </p>
+          <p className="mt-2 text-sm font-normal leading-5 text-muted-foreground">
+            {pool.latestStandingsCalculatedAt
+              ? formatDateTime(pool.latestStandingsCalculatedAt)
+              : "No snapshot yet"}
           </p>
         </LedgerRow>
       </LedgerRows>
@@ -198,6 +211,7 @@ export function RoundOf16Leaderboard({
       id="leaderboard"
       title="Leaderboard"
       description="Latest stored standings snapshot from automatic scoring."
+      action={<Badge variant="outline">{rows.length} scored</Badge>}
     >
       <Table>
         <TableHeader>

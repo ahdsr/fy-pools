@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "crons": [
+    {
+      "path": "/api/world-cup/results/refresh",
+      "schedule": "*/2 * * * *"
+    }
+  ]
+}

@@ -1,6 +1,6 @@
 import "server-only";
 
-import { getLatestRoundOf16Standings } from "@/lib/round-of-16/persistence";
+import { getLatestRoundOf16StandingsSnapshot } from "@/lib/round-of-16/persistence";
 import {
   pickPayloadAndItemIdsFromItems,
   type RoundOf16StoredLeaderboardRow,
@@ -42,6 +42,7 @@ export type RoundOf16PublicPool = {
   settings: RoundOf16PoolSettings;
   entries: RoundOf16PublicEntry[];
   latestStandings: RoundOf16StoredLeaderboardRow[];
+  latestStandingsCalculatedAt: string;
   picksArePublic: boolean;
   viewerEntry?: RoundOf16ViewerEntry;
 };
@@ -163,6 +164,10 @@ export async function getPublicRoundOf16Pool(
     return [publicEntry];
   });
 
+  const latestStandingsSnapshot = picksArePublic
+    ? await getLatestRoundOf16StandingsSnapshot(String(pool.id))
+    : { rows: [], calculatedAt: "" };
+
   return {
     poolId: String(pool.id),
     poolSlug: String(pool.slug),
@@ -172,9 +177,8 @@ export async function getPublicRoundOf16Pool(
     updatedAt: String(pool.updated_at ?? ""),
     settings,
     entries: publicEntries,
-    latestStandings: picksArePublic
-      ? await getLatestRoundOf16Standings(String(pool.id))
-      : [],
+    latestStandings: latestStandingsSnapshot.rows,
+    latestStandingsCalculatedAt: latestStandingsSnapshot.calculatedAt,
     picksArePublic,
     viewerEntry,
   } satisfies RoundOf16PublicPool;

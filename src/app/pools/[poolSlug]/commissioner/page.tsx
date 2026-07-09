@@ -6,9 +6,11 @@ import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { Button } from "@/components/ui/button";
 import {
-  formatDateTime,
   getPublicPool,
   MARCINS_POOL_SLUG,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
 } from "@/lib/world-cup-pool/data";
 
 type CommissionerPageProps = {
@@ -28,7 +30,10 @@ export default async function CommissionerPage({
       eyebrow="Commissioner area"
       title="Commissioner tools require sign-in"
       description="Admin controls, imports, lock rules, and result overrides live in the signed-in dashboard rather than on Marcin's public share page."
-      scoreRefreshLabel={formatDateTime(pool.results.meta?.lastUpdated)}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
     >
       <LedgerPanel title="Private controls">
         <LedgerRows className="grid md:grid-cols-[1fr_auto] md:items-center md:divide-x md:divide-y-0">

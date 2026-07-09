@@ -188,4 +188,20 @@ describe("Round of 16 launch smoke coverage", () => {
     expect(migration).not.toContain("p_owner_id");
     expect(migration).not.toContain("p_pool_name");
   });
+
+  it("requires the atomic scoring snapshot RPC instead of fallback writes", () => {
+    const source = readFileSync(
+      join(process.cwd(), "src/lib/round-of-16/persistence.ts"),
+      "utf8",
+    );
+    const snapshotFunction = source.slice(
+      source.indexOf("async function replaceRoundOf16ScoreSnapshot"),
+      source.indexOf("export async function refreshRoundOf16Scoring"),
+    );
+
+    expect(snapshotFunction).toContain("replace_round_of_16_score_snapshot");
+    expect(snapshotFunction).toContain("throw new Error(snapshotError.message)");
+    expect(snapshotFunction).not.toContain(".from(\"standings_snapshots\")");
+    expect(snapshotFunction).not.toContain(".from(\"score_breakdowns\")");
+  });
 });

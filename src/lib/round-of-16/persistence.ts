@@ -1,5 +1,7 @@
 import "server-only";
 
+import { revalidatePath } from "next/cache";
+
 import {
   ROUND_OF_16_TEMPLATE_SLUG,
   getEnabledRoundOf16BonusProps,
@@ -139,6 +141,7 @@ export type RoundOf16ScoringPoolData = {
   settings: RoundOf16PoolSettings;
   submittedEntries: number;
   latestStandings: RoundOf16StoredLeaderboardRow[];
+  latestStandingsCalculatedAt: string;
 };
 
 export type CommissionerRoundOf16AdminPool = {
@@ -1254,40 +1257,7 @@ async function replaceRoundOf16ScoreSnapshot({
   );
 
   if (!snapshotError) return;
-
-  const missingRpc =
-    snapshotError.code === "42883" ||
-    snapshotError.code === "PGRST202" ||
-    snapshotError.message.includes("replace_round_of_16_score_snapshot");
-  if (!missingRpc) throw new Error(snapshotError.message);
-
-  const entryIds = scoredRows.map((row) => row.entryId);
-  if (entryIds.length > 0) {
-    const { error: deleteError } = await admin
-      .from("score_breakdowns")
-      .delete()
-      .in("entry_id", entryIds);
-
-    if (deleteError) throw new Error(deleteError.message);
-
-    const breakdownRows = scoredRows.flatMap((row) => row.breakdownRows);
-    if (breakdownRows.length > 0) {
-      const { error: insertError } = await admin
-        .from("score_breakdowns")
-        .insert(breakdownRows);
-
-      if (insertError) throw new Error(insertError.message);
-    }
-  }
-
-  const { error: insertSnapshotError } = await admin
-    .from("standings_snapshots")
-    .insert({
-      pool_id: poolId,
-      rows: rankedRows,
-    });
-
-  if (insertSnapshotError) throw new Error(insertSnapshotError.message);
+  throw new Error(snapshotError.message);
 }
 
 export async function refreshRoundOf16Scoring({
@@ -1334,7 +1304,7 @@ export async function refreshRoundOf16ScoringForPool({
   const admin = createSupabaseAdminClient();
   const { data: pool, error: poolError } = await admin
     .from("pools")
-    .select("id,name,settings")
+    .select("id,name,slug,settings")
     .eq("id", poolId)
     .single();
 
@@ -1434,25 +1404,44 @@ export async function refreshRoundOf16ScoringForPool({
       standingsLeaderTotal: rankedRows[0]?.total ?? null,
     },
   });
+  const poolSlug = String(pool.slug ?? "");
+  revalidatePath("/dashboard");
+  revalidatePath(`/pools/${poolSlug}`);
+  revalidatePath(`/pools/${poolSlug}/leaderboard`);
+  for (const row of rankedRows) {
+    revalidatePath(`/pools/${poolSlug}/entry/${row.entryId}`);
+  }
 
   return rankedRows;
 }
 
-export async function getLatestRoundOf16Standings(poolId: string) {
-  if (!isSupabaseConfigured()) return [];
+export async function getLatestRoundOf16StandingsSnapshot(poolId: string) {
+  if (!isSupabaseConfigured()) {
+    return { rows: [], calculatedAt: "" };
+  }
 
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("standings_snapshots")
-    .select("rows")
+    .select("rows,calculated_at")
     .eq("pool_id", poolId)
     .order("calculated_at", { ascending: false })
     .limit(1)
     .maybeSingle();
 
-  if (error || !Array.isArray(data?.rows)) return [];
+  if (error || !Array.isArray(data?.rows)) {
+    return { rows: [], calculatedAt: "" };
+  }
 
-  return data.rows as RoundOf16StoredLeaderboardRow[];
+  return {
+    rows: data.rows as RoundOf16StoredLeaderboardRow[],
+    calculatedAt: String(data.calculated_at ?? ""),
+  };
+}
+
+export async function getLatestRoundOf16Standings(poolId: string) {
+  const snapshot = await getLatestRoundOf16StandingsSnapshot(poolId);
+  return snapshot.rows;
 }
 
 export async function getCommissionerRoundOf16AdminPool(poolId: string) {
@@ -1750,12 +1739,15 @@ export async function getCommissionerRoundOf16ScoringPool(poolId: string) {
     return entryPick?.status === "submitted" || entryPick?.status === "locked";
   }).length;
 
+  const latestStandingsSnapshot = await getLatestRoundOf16StandingsSnapshot(poolId);
+
   return {
     poolId: String(pool.id),
     poolName: String(pool.name),
     poolSlug: String(pool.slug),
     settings,
     submittedEntries,
-    latestStandings: await getLatestRoundOf16Standings(poolId),
+    latestStandings: latestStandingsSnapshot.rows,
+    latestStandingsCalculatedAt: latestStandingsSnapshot.calculatedAt,
   } satisfies RoundOf16ScoringPoolData;
 }

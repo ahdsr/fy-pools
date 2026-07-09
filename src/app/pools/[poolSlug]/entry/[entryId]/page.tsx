@@ -14,7 +14,13 @@ import { RoundOf16EntryDetail } from "@/components/app/round-of-16-public-panels
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
-import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
+import {
+  formatDateTime,
+  getPublicPool,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
+} from "@/lib/world-cup-pool/data";
 import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
 import {
@@ -124,7 +130,6 @@ export default async function EntryPage({ params }: EntryPageProps) {
     submittedBracket,
     publicSlug,
   } = snapshot;
-  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
   return (
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
@@ -142,7 +147,10 @@ export default async function EntryPage({ params }: EntryPageProps) {
       }
       description={entry.quote ?? entry.celebrationQuote ?? "Winning it all!"}
       descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
-      scoreRefreshLabel={scoreRefreshLabel}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
     >
       <div className="flex flex-wrap gap-3">
         <Button asChild variant="secondaryGreen">

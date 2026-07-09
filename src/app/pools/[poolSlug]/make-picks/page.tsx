@@ -6,9 +6,11 @@ import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { Button } from "@/components/ui/button";
 import {
-  formatDateTime,
   getPublicPool,
   MARCINS_POOL_SLUG,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
 } from "@/lib/world-cup-pool/data";
 
 type MakePicksPageProps = {
@@ -26,7 +28,10 @@ export default async function MakePicksPage({ params }: MakePicksPageProps) {
       eyebrow="Player entry"
       title="Sign in to make picks"
       description="Marcin's public pool page is read-only for friends. Pick entry belongs behind the player sign-in flow so drafts, locks, and private picks stay controlled."
-      scoreRefreshLabel={formatDateTime(pool.results.meta?.lastUpdated)}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
     >
       <LedgerPanel title="Player access">
         <LedgerRows className="grid md:grid-cols-[1fr_auto] md:items-center md:divide-x md:divide-y-0">

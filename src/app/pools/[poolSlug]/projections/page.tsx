@@ -21,7 +21,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatDateTime, formatList } from "@/lib/world-cup-pool/data";
+import {
+  formatList,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
+} from "@/lib/world-cup-pool/data";
 import type { PoolAnalyticsRow } from "@/lib/world-cup-pool/leaderboard";
 import { findEntryScenarioProjection } from "@/lib/world-cup-pool/opponent-paths";
 import type {
@@ -423,7 +428,6 @@ export default async function ProjectionsPage({
     defaultEntryId: pool.entriesConfig.defaultEntryId,
   });
   const scenarioRoutes = new Map<string, EntryScenarioProjection>();
-  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
     <PublicPoolShell
@@ -431,7 +435,10 @@ export default async function ProjectionsPage({
       eyebrow="Projections"
       title="Who can still pass #1?"
       description="Best current finish scenarios based on everyone's remaining picks."
-      scoreRefreshLabel={scoreRefreshLabel}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
       meta={
         <PublicPoolMetaCard
           label="Prize range"

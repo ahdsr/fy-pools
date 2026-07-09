@@ -5,6 +5,7 @@ import path from "node:path";
 import { cache } from "react";
 import { unstable_rethrow } from "next/navigation";
 
+import { formatDateTime } from "@/lib/date-time";
 import {
   buildResultsFromEvents,
   ESPN_SCOREBOARD_URL,
@@ -16,8 +17,11 @@ import type {
   EntryPicks,
   PoolFixture,
   PoolResults,
+  ResultsFreshness,
 } from "@/lib/world-cup-pool/types";
-export { formatDateTime } from "@/lib/date-time";
+import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { createSupabaseAdminClient } from "@/lib/supabase/server";
+export { formatDateTime };
 
 export const MARCINS_POOL_SLUG = "marcins-2026-world-cup-pool";
 
@@ -38,22 +42,21 @@ const DATA_DIR = path.join(
   "marcins-world-cup-2026",
 );
 const DEFAULT_FIFA_BONUS_CACHE_MS = 60 * 1000;
-const DEFAULT_LIVE_RESULTS_REFRESH_MS = 60 * 1000;
-const DEFAULT_FIFA_BONUS_REQUEST_TIMEOUT_MS = 600;
 const DEFAULT_FIFA_BONUS_WARM_TIMEOUT_MS = 15 * 1000;
 const DEFAULT_ESPN_REQUEST_TIMEOUT_MS = 1200;
+const DEFAULT_RESULTS_STALE_MS = 5 * 60 * 1000;
 
 type FifaBonusResults = Record<string, string[]>;
 
 type LiveResultsCacheState = {
-  lastResults?: PoolResults;
-  lastResultsAt?: number;
-  lastEventSignature?: string;
-  resultsRefreshPromise?: Promise<PoolResults>;
-  resultsRefreshStartedAt?: number;
   bonusResults?: FifaBonusResults;
   bonusFetchedAt?: number;
   bonusPromise?: Promise<FifaBonusResults>;
+};
+
+type StoredWorldCupResultSnapshot = {
+  results: PoolResults;
+  freshness: ResultsFreshness;
 };
 
 const globalScope = globalThis as typeof globalThis & {
@@ -157,7 +160,7 @@ function fixtureFileFromPicksPath(picksPath: string) {
   return path.basename(picksPath);
 }
 
-type StaticPoolFixture = Omit<PoolFixture, "results"> & {
+type StaticPoolFixture = Omit<PoolFixture, "results" | "resultsFreshness"> & {
   fallbackResults: PoolResults;
   manualOverrides: Partial<PoolResults>;
   aliases: { aliases?: Record<string, string> };
@@ -191,155 +194,176 @@ const getMarcinsWorldCupStaticPool = cache(async (): Promise<StaticPoolFixture> 
   };
 });
 
-async function fetchLiveResults({
-  referencePicks,
-  aliases,
-  manualOverrides,
-  fallbackResults,
-  forceBonusRefresh = false,
-  bonusTimeoutMs = envMs(
-    "FY_POOLS_FIFA_BONUS_REQUEST_TIMEOUT_MS",
-    DEFAULT_FIFA_BONUS_REQUEST_TIMEOUT_MS,
-  ),
-}: {
-  referencePicks?: EntryPicks;
-  aliases: { aliases?: Record<string, string> };
-  manualOverrides: Partial<PoolResults>;
-  fallbackResults: PoolResults;
-  forceBonusRefresh?: boolean;
-  bonusTimeoutMs?: number;
-}) {
-  if (!referencePicks) return fallbackResults;
+export function resultAgeSeconds(fetchedAt: string, now = Date.now()) {
+  const fetchedTime = new Date(fetchedAt).getTime();
+  if (!Number.isFinite(fetchedTime)) return Number.POSITIVE_INFINITY;
 
-  if (!forceBonusRefresh) {
-    const state = liveResultsCache();
-    startLiveResultsRefresh({
-      referencePicks,
-      aliases,
-      manualOverrides,
-      fallbackResults,
-      bonusTimeoutMs,
-    });
-    return state.lastResults ?? fallbackResults;
-  }
-
-  return refreshLiveResults({
-    referencePicks,
-    aliases,
-    manualOverrides,
-    fallbackResults,
-    forceBonusRefresh,
-    bonusTimeoutMs,
-  });
+  return Math.max(0, Math.floor((now - fetchedTime) / 1000));
 }
 
-function startLiveResultsRefresh({
-  referencePicks,
-  aliases,
-  manualOverrides,
-  fallbackResults,
-  bonusTimeoutMs,
-}: {
-  referencePicks: EntryPicks;
-  aliases: { aliases?: Record<string, string> };
-  manualOverrides: Partial<PoolResults>;
-  fallbackResults: PoolResults;
-  bonusTimeoutMs: number;
-}) {
-  const state = liveResultsCache();
-  const now = Date.now();
-  const refreshMs = envMs(
-    "FY_POOLS_LIVE_RESULTS_REFRESH_MS",
-    DEFAULT_LIVE_RESULTS_REFRESH_MS,
-  );
-
-  if (
-    process.env.NODE_ENV === "test" ||
-    process.env.NEXT_PHASE === "phase-production-build"
-  ) {
-    return;
-  }
-  if (state.resultsRefreshPromise) return;
-  if (state.lastResultsAt && now - state.lastResultsAt < refreshMs) return;
-
-  const refreshStartedAt = now;
-  const pending = refreshLiveResults({
-    referencePicks,
-    aliases,
-    manualOverrides,
-    fallbackResults,
-    bonusTimeoutMs,
-  });
-  state.resultsRefreshStartedAt = refreshStartedAt;
-  const trackedPending = pending.finally(() => {
-    if (state.resultsRefreshPromise === trackedPending) {
-      state.resultsRefreshPromise = undefined;
-    }
-  });
-  state.resultsRefreshPromise = trackedPending;
+export function resultsAreStale(fetchedAt: string, now = Date.now()) {
+  const staleMs = envMs("FY_POOLS_RESULTS_STALE_MS", DEFAULT_RESULTS_STALE_MS);
+  return resultAgeSeconds(fetchedAt, now) * 1000 > staleMs;
 }
 
-async function refreshLiveResults({
-  referencePicks,
-  aliases,
-  manualOverrides,
-  fallbackResults,
-  forceBonusRefresh = false,
-  bonusTimeoutMs,
+function freshnessFromSnapshot({
+  fetchedAt,
+  source,
+  sourceSignature,
+  status,
+  lastError,
 }: {
-  referencePicks: EntryPicks;
-  aliases: { aliases?: Record<string, string> };
-  manualOverrides: Partial<PoolResults>;
-  fallbackResults: PoolResults;
-  forceBonusRefresh?: boolean;
-  bonusTimeoutMs: number;
-}) {
+  fetchedAt: string;
+  source: string;
+  sourceSignature?: string;
+  status: string;
+  lastError?: string | null;
+}): ResultsFreshness {
+  return {
+    fetchedAt,
+    source,
+    sourceSignature,
+    stale: resultsAreStale(fetchedAt),
+    ageSeconds: resultAgeSeconds(fetchedAt),
+    status,
+    lastError,
+  };
+}
+
+function fallbackFreshness(results: PoolResults): ResultsFreshness {
+  const fetchedAt = results.meta?.lastUpdated ?? "";
+
+  return {
+    fetchedAt,
+    source: "fixture",
+    stale: true,
+    ageSeconds: fetchedAt ? resultAgeSeconds(fetchedAt) : Number.POSITIVE_INFINITY,
+    status:
+      "Using bundled fixture results because no durable live result snapshot is available.",
+    lastError: null,
+  };
+}
+
+export async function readWorldCupResultSnapshot(
+  poolSlug: string,
+): Promise<StoredWorldCupResultSnapshot | null> {
+  if (!isSupabaseConfigured()) return null;
+
   try {
-    const events = await fetchEspnEvents();
-    const eventSignature = scoreboardSignature(
-      events,
-      manualOverrides,
-    );
-    const state = liveResultsCache();
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin
+      .from("public_result_snapshots")
+      .select(
+        "results_payload,source,source_signature,fetched_at,status,last_error",
+      )
+      .eq("pool_slug", poolSlug)
+      .maybeSingle();
 
-    if (
-      !forceBonusRefresh &&
-      state.lastResults &&
-      state.lastEventSignature === eventSignature
-    ) {
-      state.lastResultsAt = Date.now();
-      return state.lastResults;
-    }
+    if (error) throw new Error(error.message);
+    if (!data?.results_payload) return null;
 
-    const resolveTeam = createTeamResolver(referencePicks, aliases);
-    const fifaBonusResults = await getFifaBonusResults(resolveTeam, {
-      force: forceBonusRefresh,
-      timeoutMs: bonusTimeoutMs,
-    });
-
-    const results = buildResultsFromEvents(events, {
-      picks: referencePicks,
-      aliases,
-      manualOverrides,
-      fifaBonusResults,
-    });
-
-    state.lastResults = results;
-    state.lastResultsAt = Date.now();
-    state.lastEventSignature = eventSignature;
-
-    return results;
+    const fetchedAt = String(data.fetched_at ?? "");
+    return {
+      results: data.results_payload as PoolResults,
+      freshness: freshnessFromSnapshot({
+        fetchedAt,
+        source: String(data.source ?? "unknown"),
+        sourceSignature: data.source_signature
+          ? String(data.source_signature)
+          : undefined,
+        status: String(data.status ?? "ok"),
+        lastError: data.last_error ? String(data.last_error) : null,
+      }),
+    };
   } catch (error) {
     unstable_rethrow(error);
-    const state = liveResultsCache();
-    console.error(
-      state.lastResults
-        ? "[fy-pools] Live results fetch failed; using last successful live results"
-        : "[fy-pools] Live results fetch failed; using fixture fallback",
-      error,
-    );
-    return state.lastResults ?? fallbackResults;
+    console.error("[fy-pools] Stored result snapshot read failed", error);
+    return null;
   }
+}
+
+async function writeWorldCupResultSnapshot({
+  poolSlug,
+  results,
+  sourceSignature,
+}: {
+  poolSlug: string;
+  results: PoolResults;
+  sourceSignature: string;
+}) {
+  if (!isSupabaseConfigured()) return;
+
+  const fetchedAt = results.meta?.lastUpdated ?? new Date().toISOString();
+  const admin = createSupabaseAdminClient();
+  const { error } = await admin.from("public_result_snapshots").upsert(
+    {
+      pool_slug: poolSlug,
+      results_payload: results,
+      source: results.meta?.source ?? "espn",
+      source_signature: sourceSignature,
+      fetched_at: fetchedAt,
+      status: results.meta?.status ?? "ok",
+      last_error: null,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: "pool_slug" },
+  );
+
+  if (error) throw new Error(error.message);
+}
+
+export async function recordWorldCupResultSnapshotError({
+  poolSlug,
+  error,
+}: {
+  poolSlug: string;
+  error: unknown;
+}) {
+  if (!isSupabaseConfigured()) return;
+
+  try {
+    const admin = createSupabaseAdminClient();
+    const { error: updateError } = await admin
+      .from("public_result_snapshots")
+      .update({
+        last_error: error instanceof Error ? error.message : String(error),
+        updated_at: new Date().toISOString(),
+      })
+      .eq("pool_slug", poolSlug);
+
+    if (updateError) throw new Error(updateError.message);
+  } catch (updateError) {
+    unstable_rethrow(updateError);
+    console.error("[fy-pools] Stored result snapshot error update failed", updateError);
+  }
+}
+
+async function buildFreshLiveResults({
+  referencePicks,
+  aliases,
+  manualOverrides,
+  bonusTimeoutMs,
+}: {
+  referencePicks: EntryPicks;
+  aliases: { aliases?: Record<string, string> };
+  manualOverrides: Partial<PoolResults>;
+  bonusTimeoutMs: number;
+}) {
+  const events = await fetchEspnEvents();
+  const sourceSignature = scoreboardSignature(events, manualOverrides);
+  const resolveTeam = createTeamResolver(referencePicks, aliases);
+  const fifaBonusResults = await getFifaBonusResults(resolveTeam, {
+    force: true,
+    timeoutMs: bonusTimeoutMs,
+  });
+  const results = buildResultsFromEvents(events, {
+    picks: referencePicks,
+    aliases,
+    manualOverrides,
+    fifaBonusResults,
+  });
+
+  return { results, sourceSignature };
 }
 
 async function fetchEspnEvents() {
@@ -435,35 +459,29 @@ async function getFifaBonusResults(
   }
 }
 
-type GetMarcinsWorldCupPoolOptions = {
-  forceBonusRefresh?: boolean;
-  bonusTimeoutMs?: number;
-};
-
-export async function getMarcinsWorldCupPool(
-  options: GetMarcinsWorldCupPoolOptions = {},
-): Promise<PoolFixture> {
-  const staticPool = await getMarcinsWorldCupStaticPool();
+function getReferencePicks(staticPool: StaticPoolFixture) {
   const referencePicksPath = staticPool.entriesConfig.entries.find(
     (entry) => entry.picksPath,
   )?.picksPath;
-  const referencePicks = referencePicksPath
+
+  return referencePicksPath
     ? staticPool.picksByPath.get(referencePicksPath)
     : undefined;
-  const results = await fetchLiveResults({
-    referencePicks,
-    aliases: staticPool.aliases,
-    manualOverrides: staticPool.manualOverrides,
-    fallbackResults: staticPool.fallbackResults,
-    forceBonusRefresh: options.forceBonusRefresh,
-    bonusTimeoutMs: options.bonusTimeoutMs,
-  });
+}
+
+export async function getMarcinsWorldCupPool(): Promise<PoolFixture> {
+  const staticPool = await getMarcinsWorldCupStaticPool();
+  const storedSnapshot = await readWorldCupResultSnapshot(MARCINS_POOL_SLUG);
+  const results = storedSnapshot?.results ?? staticPool.fallbackResults;
+  const resultsFreshness =
+    storedSnapshot?.freshness ?? fallbackFreshness(staticPool.fallbackResults);
 
   return {
     slug: staticPool.slug,
     entriesConfig: staticPool.entriesConfig,
     picksByPath: staticPool.picksByPath,
     results,
+    resultsFreshness,
   };
 }
 
@@ -473,14 +491,73 @@ export async function getPublicPool(poolSlug: string) {
 }
 
 export async function warmMarcinsWorldCupResults() {
-  return getMarcinsWorldCupPool({
-    forceBonusRefresh: true,
+  const staticPool = await getMarcinsWorldCupStaticPool();
+  const referencePicks = getReferencePicks(staticPool);
+  if (!referencePicks) {
+    throw new Error("Reference picks were not found for live result refresh.");
+  }
+
+  const { results, sourceSignature } = await buildFreshLiveResults({
+    referencePicks,
+    aliases: staticPool.aliases,
+    manualOverrides: staticPool.manualOverrides,
     bonusTimeoutMs: envMs(
       "FY_POOLS_FIFA_BONUS_WARM_TIMEOUT_MS",
       DEFAULT_FIFA_BONUS_WARM_TIMEOUT_MS,
       1000,
     ),
   });
+
+  await writeWorldCupResultSnapshot({
+    poolSlug: MARCINS_POOL_SLUG,
+    results,
+    sourceSignature,
+  });
+
+  return {
+    slug: staticPool.slug,
+    entriesConfig: staticPool.entriesConfig,
+    picksByPath: staticPool.picksByPath,
+    results,
+    resultsFreshness: freshnessFromSnapshot({
+      fetchedAt: results.meta?.lastUpdated ?? new Date().toISOString(),
+      source: results.meta?.source ?? "espn",
+      sourceSignature,
+      status: results.meta?.status ?? "ok",
+      lastError: null,
+    }),
+  } satisfies PoolFixture;
+}
+
+export function scoreRefreshLabel(pool: PoolFixture) {
+  return formatDateTime(
+    pool.resultsFreshness.fetchedAt || pool.results.meta?.lastUpdated,
+  );
+}
+
+export function scoreRefreshSourceLabel(pool: PoolFixture) {
+  if (pool.resultsFreshness.source === "fixture") return "fixture fallback";
+  if (pool.resultsFreshness.source === "espn") return "ESPN/FIFA";
+  return pool.resultsFreshness.source;
+}
+
+export function scoreRefreshStatus(pool: PoolFixture) {
+  const liveMatches = (pool.results.matches ?? []).filter(
+    (match) => match.state === "in" && !match.completed,
+  ).length;
+  const parts = [
+    pool.resultsFreshness.stale
+      ? `Snapshot is older than the freshness target (${pool.resultsFreshness.ageSeconds}s).`
+      : "",
+    liveMatches > 0
+      ? `${liveMatches} live match${liveMatches === 1 ? "" : "es"} counted; totals can move until matches finish.`
+      : "",
+    pool.resultsFreshness.lastError
+      ? `Last refresh error: ${pool.resultsFreshness.lastError}`
+      : "",
+  ].filter(Boolean);
+
+  return parts.join(" ");
 }
 
 export function formatList(items: string[]) {

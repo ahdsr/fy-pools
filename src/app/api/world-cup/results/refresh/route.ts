@@ -1,6 +1,10 @@
 import type { NextRequest } from "next/server";
 
-import { warmMarcinsWorldCupResults } from "@/lib/world-cup-pool/data";
+import {
+  MARCINS_POOL_SLUG,
+  recordWorldCupResultSnapshotError,
+  warmMarcinsWorldCupResults,
+} from "@/lib/world-cup-pool/data";
 
 function authorized(request: NextRequest) {
   const cronSecret = process.env.CRON_SECRET;
@@ -14,12 +18,38 @@ export async function GET(request: NextRequest) {
     return Response.json({ ok: false, error: "Unauthorized" }, { status: 401 });
   }
 
-  const pool = await warmMarcinsWorldCupResults();
+  try {
+    const pool = await warmMarcinsWorldCupResults();
+    const freshness = pool.resultsFreshness;
 
-  return Response.json({
-    ok: true,
-    poolSlug: pool.slug,
-    lastUpdated: pool.results.meta?.lastUpdated ?? null,
-    status: pool.results.meta?.status ?? null,
-  });
+    return Response.json({
+      ok: true,
+      poolSlug: pool.slug,
+      fetchedAt: freshness.fetchedAt,
+      source: freshness.source,
+      sourceSignature: freshness.sourceSignature ?? null,
+      stale: freshness.stale,
+      status: freshness.status,
+    });
+  } catch (error) {
+    await recordWorldCupResultSnapshotError({
+      poolSlug: MARCINS_POOL_SLUG,
+      error,
+    });
+
+    const message = error instanceof Error ? error.message : String(error);
+    return Response.json(
+      {
+        ok: false,
+        poolSlug: MARCINS_POOL_SLUG,
+        fetchedAt: null,
+        source: null,
+        sourceSignature: null,
+        stale: true,
+        status: "World Cup result refresh failed.",
+        error: message,
+      },
+      { status: 502 },
+    );
+  }
 }

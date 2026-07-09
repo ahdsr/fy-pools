@@ -6,26 +6,7 @@ import { buildPickedBracketView } from "@/lib/world-cup-pool/bracket";
 import { buildLeaderboardRows, buildPoolAnalytics } from "@/lib/world-cup-pool/leaderboard";
 import { getPublicPool } from "@/lib/world-cup-pool/data";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
-import type { PoolFixture, PoolResults } from "@/lib/world-cup-pool/types";
-
-type StandingsSnapshot = NonNullable<
-  Awaited<ReturnType<typeof buildPublicPoolStandingsSnapshot>>
->;
-
-type PublicPoolCacheState = {
-  standingsByResults: WeakMap<PoolResults, StandingsSnapshot>;
-};
-
-const globalScope = globalThis as typeof globalThis & {
-  __fyPoolsPublicPoolCache?: PublicPoolCacheState;
-};
-
-function publicPoolCache() {
-  globalScope.__fyPoolsPublicPoolCache ??= {
-    standingsByResults: new WeakMap(),
-  };
-  return globalScope.__fyPoolsPublicPoolCache;
-}
+import type { PoolFixture } from "@/lib/world-cup-pool/types";
 
 export const getPublicPoolSnapshot = cache(async (poolSlug: string) => {
   return getPublicPool(poolSlug);
@@ -56,13 +37,7 @@ export const getPublicPoolStandingsSnapshot = cache(async (poolSlug: string) => 
   const pool = await getPublicPoolSnapshot(poolSlug);
   if (!pool) return null;
 
-  const cacheState = publicPoolCache();
-  const cached = cacheState.standingsByResults.get(pool.results);
-  if (cached) return cached;
-
-  const snapshot = await buildPublicPoolStandingsSnapshot(pool);
-  cacheState.standingsByResults.set(pool.results, snapshot);
-  return snapshot;
+  return buildPublicPoolStandingsSnapshot(pool);
 });
 
 export async function getPublicPoolStandings(poolSlug: string) {

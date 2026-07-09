@@ -88,8 +88,8 @@ After applying migrations, verify these schema facts before launch:
   `pick_status`, `lock_scope`, and `pick_type`.
 - Core tables exist: `profiles`, `pools`, `pool_members`, `pool_invites`,
   `entries`, `entry_picks`, `entry_pick_items`, `score_breakdowns`,
-  `standings_snapshots`, `commissioner_notifications`, and
-  `api_rate_limit_buckets`.
+  `standings_snapshots`, `public_result_snapshots`,
+  `commissioner_notifications`, and `api_rate_limit_buckets`.
 - RLS is enabled on every table in the `public` schema.
 - Direct `anon` and `authenticated` table privileges are revoked. Any future
   browser-read surface must add both a narrow policy and the matching table
@@ -110,6 +110,9 @@ The MVP app uses Supabase in two distinct ways:
 - Trusted scoring refreshes use `FY_POOLS_SCORING_API_KEY` and the durable
   `consume_api_rate_limit` database function to keep request limits consistent
   across server instances.
+- Public World Cup score pages read durable result snapshots from
+  `public_result_snapshots`. The scheduled refresh endpoint updates that table;
+  public page requests must not silently trigger live provider refreshes.
 - RLS remains enabled on every `public` table. Direct anon/authenticated table
   access remains denied unless a later task adds a narrow, reviewed policy and
   matching table grant for a specific browser-read surface.

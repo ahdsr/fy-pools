@@ -9,7 +9,12 @@ import {
 import { SectionHeader } from "@/components/app/section-header";
 import { Badge } from "@/components/ui/badge";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
-import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
+import {
+  getPublicPool,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
+} from "@/lib/world-cup-pool/data";
 import {
   buildPoolHeatmap,
   type BonusHeatmapSummary,
@@ -582,7 +587,6 @@ export default async function HeatmapPage({ params }: HeatmapPageProps) {
 
   const heatmap = buildPoolHeatmap(pool.entriesConfig, pool.picksByPath);
   const referencePicks = getReferencePicks(pool.picksByPath);
-  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
     <PublicPoolShell
@@ -590,7 +594,10 @@ export default async function HeatmapPage({ params }: HeatmapPageProps) {
       eyebrow="Heatmap"
       title="Pick heatmap"
       description="Consensus, contrarian picks, group predictions, and entrant overlap across the pool."
-      scoreRefreshLabel={scoreRefreshLabel}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
       meta={
         <PublicPoolMetaCard
           label="Entries mapped"

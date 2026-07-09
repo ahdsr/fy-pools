@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { RoundOf16Leaderboard } from "@/components/app/round-of-16-public-panels";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
+import { formatDateTime } from "@/lib/world-cup-pool/data";
 
 type LeaderboardPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -22,6 +23,11 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
       eyebrow="Leaderboard"
       title={`${roundOf16Pool.poolName} standings`}
       description="Latest stored standings snapshot from automatic scoring."
+      scoreRefreshLabel={
+        roundOf16Pool.latestStandingsCalculatedAt
+          ? formatDateTime(roundOf16Pool.latestStandingsCalculatedAt)
+          : undefined
+      }
     >
       <RoundOf16Leaderboard
         rows={roundOf16Pool.latestStandings}

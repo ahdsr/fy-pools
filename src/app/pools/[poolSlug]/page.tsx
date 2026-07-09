@@ -22,7 +22,12 @@ import {
   describeCurrentPoolMatch,
   getReferencePicks,
 } from "@/lib/world-cup-pool/current-match";
-import { formatDateTime } from "@/lib/world-cup-pool/data";
+import {
+  formatDateTime,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
+} from "@/lib/world-cup-pool/data";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
 
 type PoolPageProps = {
@@ -52,6 +57,11 @@ export default async function PoolPage({ params }: PoolPageProps) {
           roundOf16Pool.settings.basics.description ||
           "Round of 16 picks, scoring, and public standings."
         }
+        scoreRefreshLabel={
+          roundOf16Pool.latestStandingsCalculatedAt
+            ? formatDateTime(roundOf16Pool.latestStandingsCalculatedAt)
+            : undefined
+        }
       >
         <RoundOf16PublicStats pool={roundOf16Pool} />
 
@@ -78,7 +88,6 @@ export default async function PoolPage({ params }: PoolPageProps) {
   if (!standings) notFound();
 
   const { pool, rows, analytics, publicSlug } = standings;
-  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
   const referencePicks = getReferencePicks(pool.picksByPath);
   const currentMatchLabel = describeCurrentPoolMatch(
     pool.results,
@@ -107,7 +116,10 @@ export default async function PoolPage({ params }: PoolPageProps) {
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
       title={pool.entriesConfig.poolName}
-      scoreRefreshLabel={scoreRefreshLabel}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
     >
       <LedgerPanel>
         <StatGrid
@@ -157,6 +169,17 @@ export default async function PoolPage({ params }: PoolPageProps) {
           }
           description="Every entry is ranked by live scoring, with group, knockout, finals, and bonus subtotals kept visible for quick auditing."
         >
+          {pool.resultsFreshness.stale ? (
+            <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium leading-6 text-destructive">
+              Score data is older than the freshness target. The latest stored
+              snapshot is shown until the next refresh succeeds.
+            </div>
+          ) : null}
+          <div className="border-b bg-background/65 px-4 py-3 text-sm leading-6 text-muted-foreground">
+            Live group-stage scores can move the table while matches are in
+            progress. Finalized matches will stay stable after the provider
+            marks them complete.
+          </div>
           <LeaderboardTable rows={rows} poolSlug={publicSlug} />
         </LedgerPanel>
 

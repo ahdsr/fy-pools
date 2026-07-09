@@ -10,7 +10,12 @@ import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { buildBracketView } from "@/lib/world-cup-pool/bracket";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
-import { formatDateTime, getPublicPool } from "@/lib/world-cup-pool/data";
+import {
+  getPublicPool,
+  scoreRefreshLabel,
+  scoreRefreshSourceLabel,
+  scoreRefreshStatus,
+} from "@/lib/world-cup-pool/data";
 
 type BracketPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -44,7 +49,6 @@ export default async function BracketPage({ params }: BracketPageProps) {
   const referencePicks = getReferencePicks(pool.picksByPath);
   const bracket = buildBracketView(pool.results, referencePicks);
   if (!bracket) notFound();
-  const scoreRefreshLabel = formatDateTime(pool.results.meta?.lastUpdated);
 
   return (
     <PublicPoolShell
@@ -52,7 +56,10 @@ export default async function BracketPage({ params }: BracketPageProps) {
       eyebrow="Knockout bracket"
       title="Path to the final"
       description="Every knockout match is arranged through the final, with live winners and scores filled in as results land."
-      scoreRefreshLabel={scoreRefreshLabel}
+      scoreRefreshLabel={scoreRefreshLabel(pool)}
+      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      scoreRefreshStatus={scoreRefreshStatus(pool)}
+      scoreRefreshStale={pool.resultsFreshness.stale}
       meta={
         <PublicPoolMetaCard label="Source" value={bracket.sourceLabel} />
       }

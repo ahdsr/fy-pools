@@ -160,6 +160,16 @@ export type PoolResults = {
   bonus?: Record<string, string[]>;
 };
 
+export type ResultsFreshness = {
+  fetchedAt: string;
+  source: string;
+  sourceSignature?: string;
+  stale: boolean;
+  ageSeconds: number;
+  status: string;
+  lastError?: string | null;
+};
+
 export type GroupScore = {
   groupId: string;
   points: number;
@@ -216,5 +226,6 @@ export type PoolFixture = {
   slug: string;
   entriesConfig: EntriesConfig;
   results: PoolResults;
+  resultsFreshness: ResultsFreshness;
   picksByPath: Map<string, EntryPicks>;
 };
