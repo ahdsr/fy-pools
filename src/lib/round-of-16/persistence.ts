@@ -503,13 +503,16 @@ function effectiveInviteStatus({
   expiresAt?: string | null;
 }) {
   if (status === "revoked" || status === "accepted") return status;
-  if (status === "expired") return "expired";
   if (expiresAt) {
     const parsed = new Date(expiresAt);
     if (!Number.isNaN(parsed.getTime()) && parsed.getTime() <= Date.now()) {
       return "expired";
     }
+
+    if (!Number.isNaN(parsed.getTime())) return "pending";
   }
+
+  if (status === "expired") return "expired";
 
   return "pending";
 }
@@ -777,6 +780,8 @@ export async function getJoinPoolData(inviteCode: string) {
     .roundOf16;
 
   if (!settings) return null;
+  const inviteExpiresAt =
+    getInviteExpiresAt(settings) ?? String(invite.expires_at ?? "");
 
   const user = isSupabaseConfigured() ? await getSupabaseUser() : null;
   let existingSubmission: JoinPoolData["existingSubmission"];
@@ -819,9 +824,9 @@ export async function getJoinPoolData(inviteCode: string) {
       displayName: String(invite.display_name ?? ""),
       status: effectiveInviteStatus({
         status: String(invite.status),
-        expiresAt: String(invite.expires_at ?? ""),
+        expiresAt: inviteExpiresAt,
       }),
-      expiresAt: String(invite.expires_at ?? ""),
+      expiresAt: inviteExpiresAt,
       acceptedBy: String(invite.accepted_by ?? ""),
       acceptedAt: String(invite.accepted_at ?? ""),
       isShareLink: !String(invite.email ?? ""),
@@ -1578,6 +1583,7 @@ export async function updateCommissionerRoundOf16AdminPool({
 
   const validParticipants = normalizeRoundOf16Participants(participants);
   let createdInviteCount = 0;
+  let refreshedInviteCount = 0;
   if (validParticipants.length > 0) {
     const { data: existingInvites, error: existingInvitesError } = await admin
       .from("pool_invites")
@@ -1615,6 +1621,29 @@ export async function updateCommissionerRoundOf16AdminPool({
 
   const currentDeadline = currentSettings.basics.picksLockAt;
   const nextDeadline = nextSettings.basics.picksLockAt;
+  if (currentDeadline !== nextDeadline) {
+    const nextInviteExpiresAt = getInviteExpiresAt(nextSettings);
+    const nextInviteExpiryTime = nextInviteExpiresAt
+      ? new Date(nextInviteExpiresAt).getTime()
+      : Number.NaN;
+    const nextInviteStatus =
+      Number.isFinite(nextInviteExpiryTime) && nextInviteExpiryTime <= Date.now()
+        ? "expired"
+        : "pending";
+    const { data: refreshedInvites, error: refreshInvitesError } = await admin
+      .from("pool_invites")
+      .update({
+        status: nextInviteStatus,
+        expires_at: nextInviteExpiresAt,
+      })
+      .eq("pool_id", poolId)
+      .in("status", ["pending", "expired"])
+      .select("id");
+
+    if (refreshInvitesError) throw new Error(refreshInvitesError.message);
+    refreshedInviteCount = refreshedInvites?.length ?? 0;
+  }
+
   const currentStatus = String(pool.status ?? "open");
   const changedFields = [
     currentStatus !== nextStatus ? "status" : "",
@@ -1639,6 +1668,7 @@ export async function updateCommissionerRoundOf16AdminPool({
         previousDeadline: currentDeadline,
         nextDeadline,
         createdInviteCount,
+        refreshedInviteCount,
       },
     });
   }
@@ -1669,6 +1699,7 @@ export async function updateCommissionerRoundOf16AdminPool({
         poolSlug: String(pool.slug),
         previousDeadline: currentDeadline,
         nextDeadline,
+        refreshedInviteCount,
       },
     });
   }
