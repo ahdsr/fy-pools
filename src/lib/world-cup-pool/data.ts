@@ -88,6 +88,19 @@ function logRefreshWarning(message: string, error: unknown) {
   console.warn(message, error);
 }
 
+function isPrerenderFetchRejection(error: unknown) {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "object" && error && "message" in error
+        ? String(error.message)
+        : "";
+
+  return message.includes(
+    "During prerendering, fetch() rejects when the prerender is complete",
+  );
+}
+
 function teamSignature(competitor: {
   team?: {
     displayName?: string;
@@ -277,6 +290,8 @@ export async function readWorldCupResultSnapshot(
     };
   } catch (error) {
     unstable_rethrow(error);
+    if (isPrerenderFetchRejection(error)) return null;
+
     console.error("[fy-pools] Stored result snapshot read failed", error);
     return null;
   }
