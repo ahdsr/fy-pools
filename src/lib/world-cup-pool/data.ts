@@ -234,11 +234,20 @@ export async function readWorldCupResultSnapshot(
     if (!data?.results_payload) return null;
 
     const fetchedAt = String(data.fetched_at ?? "");
+    const source = String(data.source ?? "unknown");
+    const results = data.results_payload as PoolResults;
+    const resultSource = String(results.meta?.source ?? source);
+    if (source !== "fifa" || resultSource !== "fifa") {
+      throw new Error(
+        `Stored World Cup result snapshot source must be FIFA; received ${source}/${resultSource}.`,
+      );
+    }
+
     return {
-      results: data.results_payload as PoolResults,
+      results,
       freshness: freshnessFromSnapshot({
         fetchedAt,
-        source: String(data.source ?? "unknown"),
+        source,
         sourceSignature: data.source_signature
           ? String(data.source_signature)
           : undefined,
@@ -441,6 +450,10 @@ function getReferencePicks(staticPool: StaticPoolFixture) {
 
 export async function getMarcinsWorldCupPool(): Promise<PoolFixture> {
   const staticPool = await getMarcinsWorldCupStaticPool();
+  if (staticPool.fallbackResults.meta?.source !== "fifa") {
+    throw new Error("Bundled World Cup result fixture must use FIFA as its source.");
+  }
+
   const storedSnapshot = await readWorldCupResultSnapshot(MARCINS_POOL_SLUG);
   const results = storedSnapshot?.results ?? staticPool.fallbackResults;
   const resultsFreshness =

@@ -86,6 +86,39 @@ describe("public result freshness", () => {
     expect(resultsAreStale(freshTimestamp)).toBe(false);
   });
 
+  it("rejects durable snapshots that are not sourced from FIFA", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    const fetchedAt = new Date().toISOString();
+    mocks.snapshotData = {
+      results_payload: {
+        meta: {
+          lastUpdated: fetchedAt,
+          source: "legacy-feed",
+          status: "Legacy result snapshot.",
+        },
+        matches: [],
+      } satisfies PoolResults,
+      source: "legacy-feed",
+      source_signature: "legacy-signature",
+      fetched_at: fetchedAt,
+      status: "Legacy result snapshot.",
+      last_error: null,
+    };
+    mockSnapshotRead();
+
+    const { readWorldCupResultSnapshot } = await import(
+      "@/lib/world-cup-pool/data"
+    );
+
+    await expect(
+      readWorldCupResultSnapshot("marcins-2026-world-cup-pool"),
+    ).resolves.toBeNull();
+    expect(consoleError).toHaveBeenCalledWith(
+      "[fy-pools] Stored result snapshot read failed",
+      expect.any(Error),
+    );
+  });
+
   it("does not call provider APIs while building public standings", async () => {
     mocks.supabaseConfigured = false;
     const fetchSpy = vi.spyOn(globalThis, "fetch");
