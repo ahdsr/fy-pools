@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   supabaseConfigured: true,
   snapshotData: null as Record<string, unknown> | null,
   from: vi.fn(),
+  rpc: vi.fn(),
 }));
 
 vi.mock("@/lib/supabase/config", () => ({
@@ -15,6 +16,7 @@ vi.mock("@/lib/supabase/config", () => ({
 vi.mock("@/lib/supabase/server", () => ({
   createSupabaseAdminClient: () => ({
     from: mocks.from,
+    rpc: mocks.rpc,
   }),
 }));
 
@@ -35,6 +37,7 @@ describe("public result freshness", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     mocks.from.mockReset();
+    mocks.rpc.mockReset();
     mocks.snapshotData = null;
     mocks.supabaseConfigured = true;
     delete process.env.FY_POOLS_RESULTS_STALE_MS;
@@ -84,6 +87,79 @@ describe("public result freshness", () => {
 
     expect(resultsAreStale(oldTimestamp)).toBe(true);
     expect(resultsAreStale(freshTimestamp)).toBe(false);
+  });
+
+  it("uses the durable lease to coalesce viewer-driven refreshes", async () => {
+    mocks.rpc.mockResolvedValue({
+      data: [{ claimed: true }],
+      error: null,
+    });
+    const { claimWorldCupResultRefresh } = await import(
+      "@/lib/world-cup-pool/data"
+    );
+
+    await expect(
+      claimWorldCupResultRefresh({
+        poolSlug: "marcins-2026-world-cup-pool",
+        minimumIntervalSeconds: 30,
+      }),
+    ).resolves.toBe(true);
+    expect(mocks.rpc).toHaveBeenCalledWith("claim_public_result_refresh", {
+      p_pool_slug: "marcins-2026-world-cup-pool",
+      p_min_interval_seconds: 30,
+    });
+  });
+
+  it("opens the rapid refresh window for live and imminent matches", async () => {
+    const { isWorldCupScoreRefreshActive } = await import(
+      "@/lib/world-cup-pool/data"
+    );
+    const now = Date.now();
+
+    expect(
+      isWorldCupScoreRefreshActive(
+        {
+          matches: [
+            {
+              id: "match-1",
+              date: new Date(now + 60_000).toISOString(),
+              state: "scheduled",
+              completed: false,
+              detail: "Scheduled",
+              homeTeam: "Canada",
+              awayTeam: "Mexico",
+              homeScore: null,
+              awayScore: null,
+              winner: "",
+              loser: "",
+            },
+          ],
+        },
+        now,
+      ),
+    ).toBe(true);
+    expect(
+      isWorldCupScoreRefreshActive(
+        {
+          matches: [
+            {
+              id: "match-2",
+              date: new Date(now - 5 * 60 * 60 * 1000).toISOString(),
+              state: "scheduled",
+              completed: false,
+              detail: "Scheduled",
+              homeTeam: "Canada",
+              awayTeam: "Mexico",
+              homeScore: null,
+              awayScore: null,
+              winner: "",
+              loser: "",
+            },
+          ],
+        },
+        now,
+      ),
+    ).toBe(false);
   });
 
   it("rejects durable snapshots that are not sourced from FIFA", async () => {

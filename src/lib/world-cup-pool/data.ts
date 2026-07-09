@@ -2,6 +2,7 @@ import "server-only";
 
 import { readFile } from "node:fs/promises";
 import path from "node:path";
+import { cacheLife } from "next/cache";
 import { cache } from "react";
 import { unstable_rethrow } from "next/navigation";
 
@@ -49,6 +50,8 @@ const DEFAULT_FIFA_BONUS_CACHE_MS = 60 * 1000;
 const DEFAULT_FIFA_BONUS_WARM_TIMEOUT_MS = 15 * 1000;
 const DEFAULT_FIFA_REQUEST_TIMEOUT_MS = 15 * 1000;
 const DEFAULT_RESULTS_STALE_MS = 5 * 60 * 1000;
+const LIVE_SCORE_WINDOW_BEFORE_MS = 5 * 60 * 1000;
+const LIVE_SCORE_WINDOW_AFTER_MS = 4 * 60 * 60 * 1000;
 
 type LiveResultsCacheState = {
   bonusResults?: FifaBonusResults;
@@ -175,6 +178,29 @@ export function resultAgeSeconds(fetchedAt: string, now = Date.now()) {
 export function resultsAreStale(fetchedAt: string, now = Date.now()) {
   const staleMs = envMs("FY_POOLS_RESULTS_STALE_MS", DEFAULT_RESULTS_STALE_MS);
   return resultAgeSeconds(fetchedAt, now) * 1000 > staleMs;
+}
+
+export function isWorldCupScoreRefreshActive(
+  results: PoolResults,
+  now = Date.now(),
+) {
+  return (results.matches ?? []).some((match) => {
+    if (match.state === "in" && !match.completed) return true;
+
+    const matchStart = new Date(match.date).getTime();
+    return (
+      !match.completed &&
+      Number.isFinite(matchStart) &&
+      now >= matchStart - LIVE_SCORE_WINDOW_BEFORE_MS &&
+      now < matchStart + LIVE_SCORE_WINDOW_AFTER_MS
+    );
+  });
+}
+
+export function liveScoreMatchDates(pool: PoolFixture) {
+  return (pool.results.matches ?? [])
+    .map((match) => match.date)
+    .filter(Boolean);
 }
 
 function freshnessFromSnapshot({
@@ -317,6 +343,32 @@ export async function recordWorldCupResultSnapshotError({
   } catch (updateError) {
     unstable_rethrow(updateError);
     console.error("[fy-pools] Stored result snapshot error update failed", updateError);
+  }
+}
+
+export async function claimWorldCupResultRefresh({
+  poolSlug,
+  minimumIntervalSeconds,
+}: {
+  poolSlug: string;
+  minimumIntervalSeconds: number;
+}) {
+  if (!isSupabaseConfigured()) return true;
+
+  try {
+    const admin = createSupabaseAdminClient();
+    const { data, error } = await admin.rpc("claim_public_result_refresh", {
+      p_pool_slug: poolSlug,
+      p_min_interval_seconds: minimumIntervalSeconds,
+    });
+    if (error) throw new Error(error.message);
+
+    const row = Array.isArray(data) ? data[0] : data;
+    return row?.claimed === true;
+  } catch (error) {
+    unstable_rethrow(error);
+    console.error("[fy-pools] World Cup result refresh lease failed", error);
+    return false;
   }
 }
 
@@ -473,6 +525,47 @@ export async function getPublicPool(poolSlug: string) {
   return getMarcinsWorldCupPool();
 }
 
+export type PublicEntryRouteInfo = {
+  poolSlug: string;
+  poolName: string;
+  entry: {
+    id: string;
+    name: string;
+    quote?: string;
+    celebrationQuote?: string;
+  };
+};
+
+// This deliberately reads only fixture data. It forms the stable entry-page
+// shell while the live result snapshot and score analysis stream separately.
+export async function getPublicEntryRouteInfo(
+  poolSlug: string,
+  entryId: string,
+): Promise<PublicEntryRouteInfo | null> {
+  "use cache";
+
+  cacheLife("max");
+
+  if (!POOL_ALIASES.has(poolSlug)) return null;
+
+  const entriesConfig = await readFixtureJson<EntriesConfig>("entries.json");
+  const entry = entriesConfig.entries.find(
+    (candidate) => candidate.id === entryId && Boolean(candidate.picksPath),
+  );
+  if (!entry) return null;
+
+  return {
+    poolSlug: MARCINS_POOL_SLUG,
+    poolName: entriesConfig.poolName,
+    entry: {
+      id: entry.id,
+      name: entry.name,
+      quote: entry.quote,
+      celebrationQuote: entry.celebrationQuote,
+    },
+  };
+}
+
 export async function warmMarcinsWorldCupResults() {
   const staticPool = await getMarcinsWorldCupStaticPool();
   const referencePicks = getReferencePicks(staticPool);
@@ -522,25 +615,6 @@ export function scoreRefreshSourceLabel(pool: PoolFixture) {
   if (pool.resultsFreshness.source === "fixture") return "fixture fallback";
   if (pool.resultsFreshness.source === "fifa") return "FIFA";
   return pool.resultsFreshness.source;
-}
-
-export function scoreRefreshStatus(pool: PoolFixture) {
-  const liveMatches = (pool.results.matches ?? []).filter(
-    (match) => match.state === "in" && !match.completed,
-  ).length;
-  const parts = [
-    pool.resultsFreshness.stale
-      ? `Snapshot is older than the freshness target (${pool.resultsFreshness.ageSeconds}s).`
-      : "",
-    liveMatches > 0
-      ? `${liveMatches} live match${liveMatches === 1 ? "" : "es"} counted; totals can move until matches finish.`
-      : "",
-    pool.resultsFreshness.lastError
-      ? `Last refresh error: ${pool.resultsFreshness.lastError}`
-      : "",
-  ].filter(Boolean);
-
-  return parts.join(" ");
 }
 
 export function formatList(items: string[]) {

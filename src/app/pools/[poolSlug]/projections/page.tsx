@@ -23,9 +23,9 @@ import {
 } from "@/components/ui/table";
 import {
   formatList,
+  liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
-  scoreRefreshStatus,
 } from "@/lib/world-cup-pool/data";
 import type { PoolAnalyticsRow } from "@/lib/world-cup-pool/leaderboard";
 import { findEntryScenarioProjection } from "@/lib/world-cup-pool/opponent-paths";
@@ -437,8 +437,7 @@ export default async function ProjectionsPage({
       description="Best current finish scenarios based on everyone's remaining picks."
       scoreRefreshLabel={scoreRefreshLabel(pool)}
       scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      scoreRefreshStatus={scoreRefreshStatus(pool)}
-      scoreRefreshStale={pool.resultsFreshness.stale}
+      liveScoreMatchDates={liveScoreMatchDates(pool)}
       meta={
         <PublicPoolMetaCard
           label="Prize range"

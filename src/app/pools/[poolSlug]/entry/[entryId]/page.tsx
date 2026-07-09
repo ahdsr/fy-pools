@@ -6,20 +6,18 @@ import { CirclePlus } from "lucide-react";
 import { FullEntryAuditPanel } from "@/components/app/entry-detail-panels";
 import { EntryMovementPanel } from "@/components/app/entry-movement-panel";
 import { LedgerPanel } from "@/components/app/ledger";
+import { LiveScoreRefresh } from "@/components/app/live-score-refresh";
 import { ScoreCards } from "@/components/app/pool-public-widgets";
-import {
-  PublicPoolShell,
-} from "@/components/app/public-pool-shell";
+import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { RoundOf16EntryDetail } from "@/components/app/round-of-16-public-panels";
 import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { Button } from "@/components/ui/button";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import {
   formatDateTime,
+  getPublicEntryRouteInfo,
   getPublicPool,
-  scoreRefreshLabel,
-  scoreRefreshSourceLabel,
-  scoreRefreshStatus,
+  liveScoreMatchDates,
 } from "@/lib/world-cup-pool/data";
 import { buildEntryMovementDigest } from "@/lib/world-cup-pool/entry-movement-digest";
 import { buildFutureLeverageReport } from "@/lib/world-cup-pool/future-leverage";
@@ -69,8 +67,46 @@ export async function generateStaticParams({
   );
 }
 
-export default async function EntryPage({ params }: EntryPageProps) {
-  const { poolSlug, entryId } = await params;
+export default function EntryPage({ params }: EntryPageProps) {
+  return (
+    <Suspense fallback={<EntryRouteFallback />}>
+      {params.then(({ poolSlug, entryId }) => (
+        <EntryPageContent poolSlug={poolSlug} entryId={entryId} />
+      ))}
+    </Suspense>
+  );
+}
+
+async function EntryPageContent({
+  poolSlug,
+  entryId,
+}: {
+  poolSlug: string;
+  entryId: string;
+}) {
+  const routeInfo = await getPublicEntryRouteInfo(poolSlug, entryId);
+
+  if (routeInfo) {
+    return (
+      <PublicPoolShell
+        poolName={routeInfo.poolName}
+        eyebrow={null}
+        title={<EntryTitle name={routeInfo.entry.name} />}
+        description={
+          routeInfo.entry.quote ??
+          routeInfo.entry.celebrationQuote ??
+          "Winning it all!"
+        }
+        descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
+      >
+        <EntryNavigation poolSlug={routeInfo.poolSlug} />
+        <Suspense fallback={<EntryDetailsFallback />}>
+          <StaticEntryDetailStream poolSlug={poolSlug} entryId={entryId} />
+        </Suspense>
+      </PublicPoolShell>
+    );
+  }
+
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug);
 
   if (roundOf16Pool) {
@@ -120,6 +156,42 @@ export default async function EntryPage({ params }: EntryPageProps) {
   const snapshot = await getEntryAnalysisSnapshot(poolSlug, entryId);
   if (!snapshot) notFound();
 
+  return (
+    <PublicPoolShell
+      poolName={snapshot.pool.entriesConfig.poolName}
+      eyebrow={null}
+      title={<EntryTitle name={snapshot.entry.name} />}
+      description={
+        snapshot.entry.quote ??
+        snapshot.entry.celebrationQuote ??
+        "Winning it all!"
+      }
+      descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
+    >
+      <EntryNavigation poolSlug={snapshot.publicSlug} />
+      <EntryDetails snapshot={snapshot} />
+    </PublicPoolShell>
+  );
+}
+
+async function StaticEntryDetailStream({
+  poolSlug,
+  entryId,
+}: {
+  poolSlug: string;
+  entryId: string;
+}) {
+  const snapshot = await getEntryAnalysisSnapshot(poolSlug, entryId);
+  if (!snapshot) notFound();
+
+  return <EntryDetails snapshot={snapshot} />;
+}
+
+function EntryDetails({
+  snapshot,
+}: {
+  snapshot: NonNullable<Awaited<ReturnType<typeof getEntryAnalysisSnapshot>>>;
+}) {
   const {
     pool,
     entry,
@@ -128,43 +200,11 @@ export default async function EntryPage({ params }: EntryPageProps) {
     entryRow,
     score,
     submittedBracket,
-    publicSlug,
   } = snapshot;
-  return (
-    <PublicPoolShell
-      poolName={pool.entriesConfig.poolName}
-      eyebrow={null}
-      title={
-        <span className="flex min-w-0 items-center gap-4 sm:gap-5">
-          <span
-            aria-hidden="true"
-            className="flex size-16 shrink-0 items-center justify-center rounded-full border border-brand-rule/70 bg-surface-paper text-lg font-semibold leading-none text-brand-mark shadow-[0_12px_28px_color-mix(in_oklch,black,transparent_86%)] sm:size-20 sm:text-2xl"
-          >
-            {getEntryInitials(entry.name)}
-          </span>
-          <span className="min-w-0 break-words">{entry.name}</span>
-        </span>
-      }
-      description={entry.quote ?? entry.celebrationQuote ?? "Winning it all!"}
-      descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
-      scoreRefreshLabel={scoreRefreshLabel(pool)}
-      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      scoreRefreshStatus={scoreRefreshStatus(pool)}
-      scoreRefreshStale={pool.resultsFreshness.stale}
-    >
-      <div className="flex flex-wrap gap-3">
-        <Button asChild variant="secondaryGreen">
-          <Link href={`/pools/${publicSlug}#leaderboard`}>
-            Back to standings
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href={`/pools/${publicSlug}/projections`}>
-            View projections
-          </Link>
-        </Button>
-      </div>
 
+  return (
+    <>
+      <LiveScoreRefresh matchDates={liveScoreMatchDates(pool)} />
       <CreatePoolCta />
 
       <ScoreCards
@@ -196,11 +236,80 @@ export default async function EntryPage({ params }: EntryPageProps) {
 
       <Suspense fallback={<EntryMovementFallback />}>
         <EntryMovementStream
-          poolSlug={poolSlug}
+          poolSlug={pool.slug}
           entryId={entry.id}
         />
       </Suspense>
-    </PublicPoolShell>
+
+    </>
+  );
+}
+
+function EntryTitle({ name }: { name: string }) {
+  return (
+    <span className="flex min-w-0 items-center gap-4 sm:gap-5">
+      <span
+        aria-hidden="true"
+        className="flex size-16 shrink-0 items-center justify-center rounded-full border border-brand-rule/70 bg-surface-paper text-lg font-semibold leading-none text-brand-mark shadow-[0_12px_28px_color-mix(in_oklch,black,transparent_86%)] sm:size-20 sm:text-2xl"
+      >
+        {getEntryInitials(name)}
+      </span>
+      <span className="min-w-0 break-words">{name}</span>
+    </span>
+  );
+}
+
+function EntryNavigation({ poolSlug }: { poolSlug: string }) {
+  return (
+    <div className="flex flex-wrap gap-3">
+      <Button asChild variant="secondaryGreen">
+        <Link href={`/pools/${poolSlug}#leaderboard`}>Back to standings</Link>
+      </Button>
+      <Button asChild variant="outline">
+        <Link href={`/pools/${poolSlug}/projections`}>View projections</Link>
+      </Button>
+    </div>
+  );
+}
+
+function EntryRouteFallback() {
+  return (
+    <LedgerPanel
+      title="Loading entry"
+      description="Preparing the entry details."
+    >
+      <div className="grid gap-3 p-5">
+        <div className="h-16 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-16 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
+  );
+}
+
+function EntryDetailsFallback() {
+  return (
+    <>
+      <LedgerPanel
+        title="Loading score details"
+        description="Updating this entry's score and standing."
+      >
+        <div className="grid gap-3 p-5 md:grid-cols-3">
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+      <LedgerPanel
+        title="Loading picks"
+        description="Preparing the score breakdown and bracket."
+      >
+        <div className="grid gap-3 p-5">
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+    </>
   );
 }
 

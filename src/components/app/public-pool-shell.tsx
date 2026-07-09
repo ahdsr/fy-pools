@@ -1,4 +1,5 @@
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
+import { LiveScoreRefresh } from "@/components/app/live-score-refresh";
 import { SiteFooter } from "@/components/app/site-footer";
 import { cn } from "@/lib/utils";
 
@@ -10,8 +11,7 @@ type PublicPoolShellProps = {
   descriptionClassName?: string;
   scoreRefreshLabel?: string;
   scoreRefreshSource?: string;
-  scoreRefreshStatus?: string;
-  scoreRefreshStale?: boolean;
+  liveScoreMatchDates?: string[];
   meta?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -23,8 +23,7 @@ export function PublicPoolShell({
   descriptionClassName,
   scoreRefreshLabel,
   scoreRefreshSource,
-  scoreRefreshStatus,
-  scoreRefreshStale = false,
+  liveScoreMatchDates,
   meta,
   children,
 }: PublicPoolShellProps) {
@@ -55,22 +54,15 @@ export function PublicPoolShell({
           {meta ? <aside className="grid gap-3">{meta}</aside> : null}
         </section>
         {children}
+        {liveScoreMatchDates ? (
+          <LiveScoreRefresh matchDates={liveScoreMatchDates} />
+        ) : null}
         {scoreRefreshLabel ? (
-          <div
-            className={cn(
-              "pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70",
-              scoreRefreshStale && "text-destructive",
-            )}
-            role={scoreRefreshStale ? "status" : undefined}
-          >
+          <div className="pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70">
             <p>
-              {scoreRefreshStale ? "Scores may be stale" : "Scores refreshed"}{" "}
-              {scoreRefreshLabel}
+              Scores updated {scoreRefreshLabel}
               {scoreRefreshSource ? ` from ${scoreRefreshSource}` : ""}
             </p>
-            {scoreRefreshStatus ? (
-              <p className="mt-1 text-muted-foreground/70">{scoreRefreshStatus}</p>
-            ) : null}
           </div>
         ) : null}
       </div>

@@ -42,6 +42,18 @@ The Stripe and Resend variables in `.env.example` are reserved for later launch
 work. They are not required for the Round of 16 MVP flow unless payments or
 automated email sending are explicitly added back to the launch scope.
 
+## World Cup Score Refresh
+
+When a visitor is actively viewing a World Cup pool page, the app refreshes the
+FIFA-backed result snapshot on demand. During a match window, visible tabs ask
+for an update every 30 seconds; Supabase grants only one refresh across all
+viewers. Outside a match window, a visit can refresh a snapshot no more than
+once every 15 minutes. This needs no scheduled job or paid data provider.
+
+Only a complete FIFA refresh replaces the existing snapshot, so a transient
+provider failure cannot overwrite the last known scores. Apply the
+`public_result_refresh_leases` migration before deploying this change.
+
 ## Supabase Project Checklist
 
 1. Create a new production Supabase project.
@@ -89,6 +101,7 @@ After applying migrations, verify these schema facts before launch:
 - Core tables exist: `profiles`, `pools`, `pool_members`, `pool_invites`,
   `entries`, `entry_picks`, `entry_pick_items`, `score_breakdowns`,
   `standings_snapshots`, `public_result_snapshots`,
+  `public_result_refresh_leases`,
   `commissioner_notifications`, and `api_rate_limit_buckets`.
 - RLS is enabled on every table in the `public` schema.
 - Direct `anon` and `authenticated` table privileges are revoked. Any future
@@ -111,8 +124,9 @@ The MVP app uses Supabase in two distinct ways:
   `consume_api_rate_limit` database function to keep request limits consistent
   across server instances.
 - Public World Cup score pages read durable result snapshots from
-  `public_result_snapshots`. The scheduled refresh endpoint updates that table;
-  public page requests must not silently trigger live provider refreshes.
+  `public_result_snapshots`. The viewer-driven refresh endpoint updates that
+  table through a durable lease, so concurrent public page requests never
+  trigger duplicate live-provider refreshes.
 - RLS remains enabled on every `public` table. Direct anon/authenticated table
   access remains denied unless a later task adds a narrow, reviewed policy and
   matching table grant for a specific browser-read surface.

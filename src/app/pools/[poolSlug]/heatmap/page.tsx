@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 
 import { LedgerPanel } from "@/components/app/ledger";
+import { PodiumHeatmap } from "@/components/app/podium-heatmap";
 import { TeamPill } from "@/components/app/pool-public-widgets";
 import {
   PublicPoolMetaCard,
@@ -11,10 +12,12 @@ import { Badge } from "@/components/ui/badge";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import {
   getPublicPool,
+  liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
-  scoreRefreshStatus,
 } from "@/lib/world-cup-pool/data";
+import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
+import { teamCanStillEarnFinalPosition } from "@/lib/world-cup-pool/team-eligibility";
 import {
   buildPoolHeatmap,
   type BonusHeatmapSummary,
@@ -587,17 +590,57 @@ export default async function HeatmapPage({ params }: HeatmapPageProps) {
 
   const heatmap = buildPoolHeatmap(pool.entriesConfig, pool.picksByPath);
   const referencePicks = getReferencePicks(pool.picksByPath);
+  const leaderboardRows = buildLeaderboardRows(
+    pool.entriesConfig,
+    pool.picksByPath,
+    pool.results,
+  );
+  const podiumEntries = leaderboardRows.flatMap((entry) => {
+    const picks = entry.picksPath
+      ? pool.picksByPath.get(entry.picksPath)
+      : undefined;
+    if (!picks) return [];
+
+    return [
+      {
+        id: entry.id,
+        name: entry.name,
+        rank: entry.rank,
+        points: entry.score.total,
+        podium: picks.podium,
+        eliminated: {
+          champion: !teamCanStillEarnFinalPosition({
+            results: pool.results,
+            picks,
+            positionKey: "champion",
+            team: picks.podium.champion,
+          }),
+          runnerUp: !teamCanStillEarnFinalPosition({
+            results: pool.results,
+            picks,
+            positionKey: "runnerUp",
+            team: picks.podium.runnerUp,
+          }),
+          thirdPlace: !teamCanStillEarnFinalPosition({
+            results: pool.results,
+            picks,
+            positionKey: "thirdPlace",
+            team: picks.podium.thirdPlace,
+          }),
+        },
+      },
+    ];
+  });
 
   return (
     <PublicPoolShell
       poolName={pool.entriesConfig.poolName}
       eyebrow="Heatmap"
       title="Pick heatmap"
-      description="Consensus, contrarian picks, group predictions, and entrant overlap across the pool."
+      description="See the podium calls side by side, ranked by live points, then explore consensus and contrarian picks across the pool."
       scoreRefreshLabel={scoreRefreshLabel(pool)}
       scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      scoreRefreshStatus={scoreRefreshStatus(pool)}
-      scoreRefreshStale={pool.resultsFreshness.stale}
+      liveScoreMatchDates={liveScoreMatchDates(pool)}
       meta={
         <PublicPoolMetaCard
           label="Entries mapped"
@@ -605,6 +648,17 @@ export default async function HeatmapPage({ params }: HeatmapPageProps) {
         />
       }
     >
+      <LedgerPanel
+        title="Podium predictions"
+        description="A score-ranked view of every submitted Champion, Runner-up, and Third-place call."
+      >
+        <PodiumHeatmap
+          entries={podiumEntries}
+          poolSlug={pool.slug}
+          summaries={heatmap.podiumSummaries}
+        />
+      </LedgerPanel>
+
       <KnockoutFlowPanel
         stages={heatmap.knockoutFlowStages}
         referencePicks={referencePicks}

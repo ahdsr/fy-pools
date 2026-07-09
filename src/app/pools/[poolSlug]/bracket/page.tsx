@@ -12,9 +12,9 @@ import { buildBracketView } from "@/lib/world-cup-pool/bracket";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import {
   getPublicPool,
+  liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
-  scoreRefreshStatus,
 } from "@/lib/world-cup-pool/data";
 
 type BracketPageProps = {
@@ -58,8 +58,7 @@ export default async function BracketPage({ params }: BracketPageProps) {
       description="Every knockout match is arranged through the final, with live winners and scores filled in as results land."
       scoreRefreshLabel={scoreRefreshLabel(pool)}
       scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      scoreRefreshStatus={scoreRefreshStatus(pool)}
-      scoreRefreshStale={pool.resultsFreshness.stale}
+      liveScoreMatchDates={liveScoreMatchDates(pool)}
       meta={
         <PublicPoolMetaCard label="Source" value={bracket.sourceLabel} />
       }

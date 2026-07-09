@@ -24,9 +24,9 @@ import {
 } from "@/lib/world-cup-pool/current-match";
 import {
   formatDateTime,
+  liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
-  scoreRefreshStatus,
 } from "@/lib/world-cup-pool/data";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
 
@@ -118,8 +118,7 @@ export default async function PoolPage({ params }: PoolPageProps) {
       title={pool.entriesConfig.poolName}
       scoreRefreshLabel={scoreRefreshLabel(pool)}
       scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      scoreRefreshStatus={scoreRefreshStatus(pool)}
-      scoreRefreshStale={pool.resultsFreshness.stale}
+      liveScoreMatchDates={liveScoreMatchDates(pool)}
     >
       <LedgerPanel>
         <StatGrid
@@ -169,12 +168,6 @@ export default async function PoolPage({ params }: PoolPageProps) {
           }
           description="Every entry is ranked by live scoring, with group, knockout, finals, and bonus subtotals kept visible for quick auditing."
         >
-          {pool.resultsFreshness.stale ? (
-            <div className="border-b border-destructive/20 bg-destructive/10 px-4 py-3 text-sm font-medium leading-6 text-destructive">
-              Score data is older than the freshness target. The latest stored
-              snapshot is shown until the next refresh succeeds.
-            </div>
-          ) : null}
           <div className="border-b bg-background/65 px-4 py-3 text-sm leading-6 text-muted-foreground">
             Live group-stage scores can move the table while matches are in
             progress. Finalized matches will stay stable after the provider

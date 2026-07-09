@@ -1,0 +1,182 @@
+import Link from "next/link";
+
+import type { PodiumSummary } from "@/lib/world-cup-pool/heatmap";
+
+type PodiumHeatmapEntry = {
+  id: string;
+  name: string;
+  rank: number;
+  points: number;
+  podium: {
+    champion: string;
+    runnerUp: string;
+    thirdPlace: string;
+  };
+  eliminated: Record<"champion" | "runnerUp" | "thirdPlace", boolean>;
+};
+
+type PodiumHeatmapProps = {
+  entries: PodiumHeatmapEntry[];
+  poolSlug: string;
+  summaries: PodiumSummary[];
+};
+
+const PODIUM_COLUMNS = [
+  {
+    key: "champion",
+    label: "Champion",
+    position: "Champion",
+    color: "var(--brand-lime)",
+  },
+  {
+    key: "runnerUp",
+    label: "Runner-up",
+    position: "Runner-up",
+    color: "var(--brand-sky)",
+  },
+  {
+    key: "thirdPlace",
+    label: "Third place",
+    position: "Third place",
+    color: "var(--brand-coral)",
+  },
+] as const;
+
+function pickCount(
+  summaries: PodiumSummary[],
+  position: PodiumSummary["position"],
+  team: string,
+) {
+  return summaries
+    .find((summary) => summary.position === position)
+    ?.rows.find((row) => row.team === team)?.cell.count ?? 0;
+}
+
+function HeatCell({
+  team,
+  count,
+  totalEntries,
+  label,
+  color,
+  eliminated,
+}: {
+  team: string;
+  count: number;
+  totalEntries: number;
+  label: string;
+  color: string;
+  eliminated: boolean;
+}) {
+  const share = totalEntries ? count / totalEntries : 0;
+  const intensity = Math.round(14 + share * 64);
+
+  return (
+    <td
+      className="border-b border-l border-border/80 p-0 text-center"
+      title={`${count} ${count === 1 ? "entry" : "entries"} selected ${team} for ${label}${eliminated ? "; eliminated" : ""}`}
+    >
+      <span
+        className={`flex min-h-12 items-center justify-center px-3 py-2 text-sm font-semibold leading-tight ${
+          eliminated ? "bg-muted text-muted-foreground line-through decoration-2" : "text-brand-ink"
+        }`}
+        style={{
+          backgroundColor: eliminated
+            ? undefined
+            : `color-mix(in oklch, var(--surface-paper), ${color} ${intensity}%)`,
+        }}
+      >
+        {team}
+      </span>
+    </td>
+  );
+}
+
+export function PodiumHeatmap({
+  entries,
+  poolSlug,
+  summaries,
+}: PodiumHeatmapProps) {
+  return (
+    <div className="overflow-x-auto">
+      <table className="min-w-[46rem] w-full border-collapse text-sm">
+        <caption className="sr-only">
+          World Cup podium predictions ranked by current pool points. Darker cells
+          show selections shared by more entries.
+        </caption>
+        <thead>
+          <tr className="bg-surface-ledger">
+            <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              Rank
+            </th>
+            <th className="border-b border-l border-border/80 px-4 py-3 text-left text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              Entry
+            </th>
+            <th className="border-b border-l border-border/80 px-4 py-3 text-right text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+              Points
+            </th>
+            <th
+              className="border-b border-l border-border/80 bg-cta-green px-4 py-3 text-center text-sm font-bold uppercase tracking-wide text-cta-green-foreground"
+              colSpan={PODIUM_COLUMNS.length}
+            >
+              World Cup predictions
+            </th>
+          </tr>
+          <tr className="bg-background/65">
+            <th className="border-b px-4 py-2" />
+            <th className="border-b border-l border-border/80 px-4 py-2" />
+            <th className="border-b border-l border-border/80 px-4 py-2" />
+            {PODIUM_COLUMNS.map((column) => (
+              <th
+                key={column.key}
+                className="border-b border-l border-border/80 px-4 py-2 text-center text-xs font-bold uppercase tracking-normal text-brand-ink"
+              >
+                {column.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {entries.map((entry) => (
+            <tr key={entry.id} className="bg-surface-paper/70 hover:bg-background">
+              <td className="border-b px-4 py-3 font-semibold tabular-nums text-muted-foreground">
+                {entry.rank}
+              </td>
+              <td className="border-b border-l border-border/80 px-4 py-3">
+                <Link
+                  href={`/pools/${poolSlug}/entry/${entry.id}`}
+                  className="font-semibold text-brand-ink transition hover:text-brand-hot focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  {entry.name}
+                </Link>
+              </td>
+              <td className="border-b border-l border-border/80 px-4 py-3 text-right font-bold tabular-nums text-brand-ink">
+                {entry.points}
+              </td>
+              {PODIUM_COLUMNS.map((column) => {
+                const team = entry.podium[column.key];
+
+                return (
+                  <HeatCell
+                    key={column.key}
+                    team={team}
+                    count={pickCount(summaries, column.position, team)}
+                    totalEntries={entries.length}
+                    label={column.label}
+                    color={column.color}
+                    eliminated={entry.eliminated[column.key]}
+                  />
+                );
+              })}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <p className="border-t bg-background/55 px-4 py-3 text-xs leading-5 text-muted-foreground">
+        Green marks Champion calls, blue marks Runner-up calls, and coral marks
+        Third-place calls. More shared picks are more saturated; crossed-out
+        teams can no longer finish in that position. Select an entry name to
+        open its full submission.
+      </p>
+    </div>
+  );
+}
