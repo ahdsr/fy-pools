@@ -8,6 +8,7 @@ import resultsJson from "@/data/marcins-world-cup-2026/results.json";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { scorePool } from "@/lib/world-cup-pool/scoring";
 import {
+  computeMostCardsFromFifaLiveMatches,
   computeBestPassCompletionFromFifaTeamStats,
   computeFarthestGoalFromFifaTimelines,
 } from "@/lib/world-cup-pool/results-updater";
@@ -222,6 +223,33 @@ describe("World Cup scoring data", () => {
 
     expect(farthestGoal).toEqual(["Cape Verde"]);
     expect(bestPassCompletion).toEqual(["Portugal", "Spain"]);
+  });
+
+  it("ranks FIFA most-card bonus by weighted card points", () => {
+    const mostCards = computeMostCardsFromFifaLiveMatches([
+      {
+        HomeTeam: {
+          ShortClubName: "Yellow Team",
+          Bookings: [{ Card: 1 }, { Card: 1 }],
+        },
+        AwayTeam: {
+          ShortClubName: "Indirect Red Team",
+          Bookings: [{ Card: 3 }],
+        },
+      },
+      {
+        HomeTeam: {
+          ShortClubName: "Direct Red Team",
+          Bookings: [{ Card: 4 }],
+        },
+        AwayTeam: {
+          ShortClubName: "Ignored Team",
+          Bookings: [{ Card: 2 }],
+        },
+      },
+    ]);
+
+    expect(mostCards).toEqual(["Direct Red Team"]);
   });
 
   it("awards current automatic bonus winners from result answers", () => {

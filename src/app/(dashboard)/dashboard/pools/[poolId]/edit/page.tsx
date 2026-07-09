@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
+import { DashboardLoadingScreen } from "@/components/app/dashboard-loading-screen";
 import { getCommissionerRoundOf16AdminPool } from "@/lib/round-of-16/persistence";
 import { createRoundOf16WizardStateFromSettings } from "@/lib/templates/round-of-16-draft";
 import { NewPoolWizardStart } from "../../new/new-pool-wizard-start";
@@ -10,21 +11,27 @@ type EditPoolPageProps = {
 };
 
 export default async function EditPoolPage({ params }: EditPoolPageProps) {
+  return (
+    <Suspense fallback={<DashboardLoadingScreen />}>
+      <EditPoolWizard params={params} />
+    </Suspense>
+  );
+}
+
+async function EditPoolWizard({ params }: EditPoolPageProps) {
   const { poolId } = await params;
   const pool = await getCommissionerRoundOf16AdminPool(poolId);
 
   if (!pool) notFound();
 
   return (
-    <Suspense>
-      <NewPoolWizardStart
-        editPool={{
-          poolId: pool.poolId,
-          poolSlug: pool.poolSlug,
-          status: pool.status,
-          initialState: createRoundOf16WizardStateFromSettings(pool.settings),
-        }}
-      />
-    </Suspense>
+    <NewPoolWizardStart
+      editPool={{
+        poolId: pool.poolId,
+        poolSlug: pool.poolSlug,
+        status: pool.status,
+        initialState: createRoundOf16WizardStateFromSettings(pool.settings),
+      }}
+    />
   );
 }

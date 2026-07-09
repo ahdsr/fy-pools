@@ -1,10 +1,27 @@
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
+import { Suspense } from "react";
 
+import { DashboardLoadingScreen } from "@/components/app/dashboard-loading-screen";
 import { DashboardHeader } from "@/components/app/mock-auth";
 import { getSupabaseUser } from "@/lib/supabase/server";
 
 export default async function DashboardLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <>
+      <DashboardHeader />
+      <Suspense fallback={<DashboardLoadingScreen />}>
+        <AuthenticatedDashboard>{children}</AuthenticatedDashboard>
+      </Suspense>
+    </>
+  );
+}
+
+async function AuthenticatedDashboard({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -16,10 +33,5 @@ export default async function DashboardLayout({
     redirect("/sign-in");
   }
 
-  return (
-    <>
-      <DashboardHeader />
-      {children}
-    </>
-  );
+  return children;
 }
