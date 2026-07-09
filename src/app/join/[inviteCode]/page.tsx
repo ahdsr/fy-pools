@@ -10,6 +10,7 @@ import { signInPathFor, signUpPathFor } from "@/lib/auth/paths";
 import { getJoinPoolData } from "@/lib/round-of-16/persistence";
 import { getSupabaseUser } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
+import { getKnockoutPoolStageDetails } from "@/lib/templates/round-of-16-draft";
 import { RoundOf16PickForm } from "./round-of-16-pick-form";
 
 type JoinPageProps = {
@@ -85,6 +86,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
       />
     );
   }
+  const stage = getKnockoutPoolStageDetails(joinData.pool.settings);
 
   if (joinData.invite.status === "revoked") {
     return (
@@ -161,7 +163,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
           title={`Join ${joinData.pool.name}`}
           description={
             joinData.pool.settings.basics.description ||
-            "Make your Round of 16 picks before the pool deadline."
+            `Make your ${stage.pluralLabel.toLowerCase()} picks before the pool deadline.`
           }
           showHeader={false}
           heroAction={
@@ -219,7 +221,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
       <PageShell
         eyebrow="Pool invite"
         title={`Join ${joinData.pool.name}`}
-        description="Create an account or sign in before submitting your Round of 16 picks."
+        description={`Create an account or sign in before submitting your ${stage.pluralLabel.toLowerCase()} picks.`}
         showHeader={false}
       >
         <section className="grid gap-5 lg:grid-cols-2">
@@ -247,7 +249,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
       <PageShell
         eyebrow="Pool invite"
         title={joinData.pool.name}
-        description="The pick deadline has passed. Round of 16 entries are locked."
+        description={`The pick deadline has passed. ${stage.pluralLabel} entries are locked.`}
         showHeader={false}
       >
         <LedgerPanel
@@ -338,7 +340,7 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
     <PageShell
       eyebrow="Pool invite"
       title={joinData.pool.name}
-      description={joinData.pool.settings.basics.description || "Make or update your Round of 16 picks before the pool deadline."}
+      description={joinData.pool.settings.basics.description || `Make or update your ${stage.pluralLabel.toLowerCase()} picks before the pool deadline.`}
       showHeader={false}
       heroAction={
         <Badge variant="outline" className="h-auto py-1.5">

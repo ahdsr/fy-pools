@@ -9,6 +9,11 @@ export type RoundOf16DraftBasics = {
   description: string;
 };
 
+export type KnockoutPoolStage =
+  | "round-of-16"
+  | "quarter-final"
+  | "semi-final";
+
 export type RoundOf16MatchupDraft = {
   id: string;
   label: string;
@@ -64,6 +69,7 @@ export type RoundOf16PoolDraft = RoundOf16WizardState & {
 };
 
 export type RoundOf16PoolSettings = {
+  stage?: KnockoutPoolStage;
   basics: RoundOf16DraftBasics;
   matchups: RoundOf16MatchupDraft[];
   bonusProps: RoundOf16BonusPropDraft[];
@@ -85,6 +91,8 @@ export type RoundOf16SubmittedEntry = {
 };
 
 export const ROUND_OF_16_TEMPLATE_SLUG = "world-cup-mini-round-of-16";
+export const QUARTER_FINAL_TEMPLATE_SLUG = "world-cup-quarter-final-pickem";
+export const SEMI_FINAL_TEMPLATE_SLUG = "world-cup-semi-final-pickem";
 export const ROUND_OF_16_BONUS_MAX_TOTAL_SHARE = 0.4;
 export const ROUND_OF_16_DEFAULT_WINNER_POINTS = 3;
 export const ROUND_OF_16_DEFAULT_BONUS_POINTS = 3;
@@ -150,6 +158,42 @@ export const DEFAULT_ROUND_OF_16_MATCHUPS: RoundOf16MatchupDraft[] = Array.from(
   }),
 );
 
+export const DEFAULT_QUARTER_FINAL_MATCHUPS: RoundOf16MatchupDraft[] = [
+  {
+    id: "qf-2",
+    label: "Quarter-final: Spain vs Belgium",
+    teamOne: "Spain",
+    teamTwo: "Belgium",
+  },
+  {
+    id: "qf-3",
+    label: "Quarter-final: Argentina vs Switzerland",
+    teamOne: "Argentina",
+    teamTwo: "Switzerland",
+  },
+  {
+    id: "qf-4",
+    label: "Quarter-final: Norway vs England",
+    teamOne: "Norway",
+    teamTwo: "England",
+  },
+];
+
+export const DEFAULT_SEMI_FINAL_MATCHUPS: RoundOf16MatchupDraft[] = [
+  {
+    id: "sf-1",
+    label: "Semi-final 1",
+    teamOne: "Winner of France vs Morocco",
+    teamTwo: "Winner of Spain vs Belgium",
+  },
+  {
+    id: "sf-2",
+    label: "Semi-final 2",
+    teamOne: "Winner of Norway vs England",
+    teamTwo: "Winner of Argentina vs Switzerland",
+  },
+];
+
 export const DEFAULT_ROUND_OF_16_BONUS_PROPS: RoundOf16BonusPropDraft[] = [
   {
     id: "total-goals",
@@ -183,21 +227,165 @@ export const DEFAULT_ROUND_OF_16_BONUS_PROPS: RoundOf16BonusPropDraft[] = [
   },
 ];
 
+export const DEFAULT_QUARTER_FINAL_BONUS_PROPS: RoundOf16BonusPropDraft[] = [
+  {
+    id: "total-goals",
+    label: "Total goals across the remaining quarter-finals",
+    enabled: true,
+    points: 1,
+  },
+  {
+    id: "most-goals-team",
+    label: "Team with the most quarter-final goals",
+    enabled: true,
+    points: 1,
+  },
+  {
+    id: "biggest-upset",
+    label: "Biggest quarter-final upset winner",
+    enabled: true,
+    points: 1,
+  },
+  {
+    id: "penalty-decisions",
+    label: "Quarter-finals decided by penalties",
+    enabled: true,
+    points: 1,
+  },
+];
+
+export const DEFAULT_SEMI_FINAL_BONUS_PROPS: RoundOf16BonusPropDraft[] = [
+  {
+    id: "total-goals",
+    label: "Total goals across the semi-finals",
+    enabled: true,
+    points: 1,
+  },
+  {
+    id: "most-goals-team",
+    label: "Team with the most semi-final goals",
+    enabled: true,
+    points: 1,
+  },
+  {
+    id: "penalty-decisions",
+    label: "Semi-finals decided by penalties",
+    enabled: true,
+    points: 1,
+  },
+];
+
+export function getKnockoutPoolStage(
+  settingsOrTemplate:
+    | { stage?: KnockoutPoolStage; matchups?: unknown[] }
+    | string
+    | null
+    | undefined,
+): KnockoutPoolStage {
+  if (settingsOrTemplate === QUARTER_FINAL_TEMPLATE_SLUG) {
+    return "quarter-final";
+  }
+  if (settingsOrTemplate === SEMI_FINAL_TEMPLATE_SLUG) {
+    return "semi-final";
+  }
+  if (
+    settingsOrTemplate &&
+    typeof settingsOrTemplate === "object" &&
+    (settingsOrTemplate.stage === "semi-final" ||
+      settingsOrTemplate.matchups?.length === 2)
+  ) {
+    return "semi-final";
+  }
+  if (
+    settingsOrTemplate &&
+    typeof settingsOrTemplate === "object" &&
+    (settingsOrTemplate.stage === "quarter-final" ||
+      settingsOrTemplate.matchups?.length === 3)
+  ) {
+    return "quarter-final";
+  }
+
+  return "round-of-16";
+}
+
+export function getKnockoutPoolStageDetails(
+  settingsOrTemplate:
+    | { stage?: KnockoutPoolStage; matchups?: unknown[] }
+    | string
+    | null
+    | undefined,
+) {
+  const stage = getKnockoutPoolStage(settingsOrTemplate);
+
+  return stage === "semi-final"
+    ? {
+        stage,
+        label: "Semi-final",
+        pluralLabel: "Semi-finals",
+        matchupCount: 2,
+        fieldPrefix: "sf",
+        templateSlug: SEMI_FINAL_TEMPLATE_SLUG,
+      }
+    : stage === "quarter-final"
+    ? {
+        stage,
+        label: "Quarter-final",
+        pluralLabel: "Quarter-finals",
+        matchupCount: 3,
+        fieldPrefix: "qf",
+        templateSlug: QUARTER_FINAL_TEMPLATE_SLUG,
+      }
+    : {
+        stage,
+        label: "Round of 16",
+        pluralLabel: "Round of 16",
+        matchupCount: 8,
+        fieldPrefix: "r16",
+        templateSlug: ROUND_OF_16_TEMPLATE_SLUG,
+      };
+}
+
 export function createDefaultRoundOf16WizardState(
   templateSlug = ROUND_OF_16_TEMPLATE_SLUG,
 ): RoundOf16WizardState {
+  const stage = getKnockoutPoolStage(templateSlug);
+  const isQuarterFinal = stage === "quarter-final";
+  const isSemiFinal = stage === "semi-final";
+
   return {
-    templateSlug,
+    templateSlug: getKnockoutPoolStageDetails(templateSlug).templateSlug,
     basics: {
-      poolName: "Round of 16 Pool",
+      poolName: isSemiFinal
+        ? "Semi-final Pool"
+        : isQuarterFinal
+          ? "Quarter-final Pool"
+          : "Round of 16 Pool",
       commissionerName: "",
-      eventLabel: "2026 World Cup Round of 16",
-      picksLockAt: "2026-07-04T12:00",
+      eventLabel: isSemiFinal
+        ? "2026 World Cup Semi-finals"
+        : isQuarterFinal
+        ? "2026 World Cup Quarter-finals"
+        : "2026 World Cup Round of 16",
+      picksLockAt: isSemiFinal
+        ? "2026-07-14T15:00"
+        : isQuarterFinal
+          ? "2026-07-10T15:00"
+          : "2026-07-04T12:00",
       timezone: "America/Toronto",
       description: "",
     },
-    matchups: DEFAULT_ROUND_OF_16_MATCHUPS.map((matchup) => ({ ...matchup })),
-    bonusProps: DEFAULT_ROUND_OF_16_BONUS_PROPS.map((prop) => ({ ...prop })),
+    matchups: (isSemiFinal
+      ? DEFAULT_SEMI_FINAL_MATCHUPS
+      : isQuarterFinal
+        ? DEFAULT_QUARTER_FINAL_MATCHUPS
+        : DEFAULT_ROUND_OF_16_MATCHUPS
+    ).map((matchup) => ({ ...matchup })),
+    bonusProps: (isSemiFinal
+      ? DEFAULT_SEMI_FINAL_BONUS_PROPS
+      : isQuarterFinal
+        ? DEFAULT_QUARTER_FINAL_BONUS_PROPS
+        : DEFAULT_ROUND_OF_16_BONUS_PROPS
+    ).map((prop) => ({ ...prop })),
     scoring: {
       winnerPoints: ROUND_OF_16_DEFAULT_WINNER_POINTS,
       prizePoolLabel: "",
@@ -217,12 +405,12 @@ export function createDefaultRoundOf16WizardState(
 
 export function createRoundOf16WizardStateFromSettings(
   settings: RoundOf16PoolSettings,
-  templateSlug = ROUND_OF_16_TEMPLATE_SLUG,
 ): RoundOf16WizardState {
-  const defaults = createDefaultRoundOf16WizardState(templateSlug);
+  const resolvedTemplateSlug = getKnockoutPoolStageDetails(settings).templateSlug;
+  const defaults = createDefaultRoundOf16WizardState(resolvedTemplateSlug);
 
   return {
-    templateSlug,
+    templateSlug: resolvedTemplateSlug,
     basics: {
       ...defaults.basics,
       ...settings.basics,
@@ -400,20 +588,24 @@ export function validateRoundOf16PoolSettings(
     return "Pick deadline must be in the future.";
   }
 
-  if (!Array.isArray(settings?.matchups) || settings.matchups.length !== 8) {
-    return "Configure exactly eight Round of 16 matchups.";
+  const stageDetails = getKnockoutPoolStageDetails(settings);
+  if (
+    !Array.isArray(settings?.matchups) ||
+    settings.matchups.length !== stageDetails.matchupCount
+  ) {
+    return `Configure exactly ${stageDetails.matchupCount} ${stageDetails.pluralLabel.toLowerCase()} matchups.`;
   }
 
   const selectedTeams = new Set<string>();
   for (const matchup of settings.matchups) {
     if (!matchup || typeof matchup !== "object") {
-      return "Every Round of 16 matchup needs two teams.";
+      return `Every ${stageDetails.label} matchup needs two teams.`;
     }
 
     const teamOne = textValue(matchup.teamOne).trim();
     const teamTwo = textValue(matchup.teamTwo).trim();
     if (!teamOne || !teamTwo) {
-      return "Every Round of 16 matchup needs two teams.";
+      return `Every ${stageDetails.label} matchup needs two teams.`;
     }
     if (normalizedValue(teamOne) === normalizedValue(teamTwo)) {
       return "A matchup cannot use the same team twice.";
@@ -422,7 +614,7 @@ export function validateRoundOf16PoolSettings(
     for (const team of [teamOne, teamTwo]) {
       const normalizedTeam = normalizedValue(team);
       if (selectedTeams.has(normalizedTeam)) {
-        return "Each Round of 16 team can appear only once.";
+        return `Each ${stageDetails.label} team can appear only once.`;
       }
       selectedTeams.add(normalizedTeam);
     }
@@ -456,7 +648,7 @@ export function validateRoundOf16PoolSettings(
     scoring: settings.scoring as RoundOf16ScoringDraft,
   });
   if (scoringBalance.highestBonusPoints > scoringBalance.maxSingleBonusPoints) {
-    return "Each bonus prop must be worth no more than one correct Round of 16 winner.";
+    return `Each bonus prop must be worth no more than one correct ${stageDetails.label} winner.`;
   }
   if (scoringBalance.bonusTotal > scoringBalance.maxBonusTotal) {
     return `Bonus props can make up at most ${Math.round(
@@ -569,8 +761,10 @@ export function validateRoundOf16WizardState(
     state.inviteSettings.participants,
   );
 
+  const stageDetails = getKnockoutPoolStageDetails(state.templateSlug);
+
   return {
-    template: state.templateSlug === ROUND_OF_16_TEMPLATE_SLUG,
+    template: state.templateSlug === stageDetails.templateSlug,
     basics:
       state.basics.poolName.trim().length > 0 &&
       state.basics.commissionerName.trim().length > 0 &&
@@ -578,7 +772,7 @@ export function validateRoundOf16WizardState(
       (state.basics.picksLockAt ?? "").trim().length > 0 &&
       state.basics.timezone.trim().length > 0,
     matchups:
-      state.matchups.length === 8 &&
+      state.matchups.length === stageDetails.matchupCount &&
       state.matchups.every(
         (matchup) =>
           matchup.teamOne.trim().length > 0 &&
@@ -609,6 +803,7 @@ export function toRoundOf16PoolSettings(
   state: RoundOf16WizardState,
 ): RoundOf16PoolSettings {
   return {
+    stage: getKnockoutPoolStage(state.templateSlug),
     basics: state.basics,
     matchups: state.matchups,
     bonusProps: state.bonusProps,

@@ -1,4 +1,5 @@
 import {
+  getKnockoutPoolStageDetails,
   getEnabledRoundOf16BonusProps,
   type RoundOf16PickPayload,
   type RoundOf16PoolSettings,
@@ -62,22 +63,23 @@ export function scoreRoundOf16Entry({
   picks: RoundOf16PickPayload;
   results: RoundOf16ResultPayload;
 }): RoundOf16ScoreResult {
+  const stage = getKnockoutPoolStageDetails(settings);
   const winnerLines = settings.matchups.map((matchup, index) => {
-    const key = `r16_${index + 1}_winner`;
+    const key = `${stage.fieldPrefix}_${index + 1}_winner`;
     const pick = picks.winners[matchup.id] ?? "";
     const result = results.winners[matchup.id] ?? "";
     const hit = Boolean(pick && result && answersMatch({ pick, result }));
 
     return {
       key,
-      label: `${matchup.label || `Round of 16 Match ${index + 1}`} winner`,
+      label: `${matchup.label || `${stage.label} Match ${index + 1}`} winner`,
       pick,
       result,
       pointsAwarded: hit ? settings.scoring.winnerPoints : 0,
       maxPoints: settings.scoring.winnerPoints,
       reason: result
         ? hit
-          ? "Correct Round of 16 winner."
+          ? `Correct ${stage.label.toLowerCase()} winner.`
           : "Winner pick did not match the result."
         : "Result has not been entered.",
     };

@@ -285,7 +285,7 @@ export default async function DashboardPage() {
                   No published pools yet
                 </p>
                 <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                  Create a Round of 16 pool to start inviting participants and
+                  Create a quarter-final pool to start inviting participants and
                   tracking submissions.
                 </p>
                 <Button asChild className="mt-4" variant="primaryGreen">

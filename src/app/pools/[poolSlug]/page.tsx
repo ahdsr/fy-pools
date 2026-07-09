@@ -18,6 +18,7 @@ import {
   RoundOf16ViewerEntryPanel,
 } from "@/components/app/round-of-16-public-panels";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
+import { getKnockoutPoolStageDetails } from "@/lib/templates/round-of-16-draft";
 import {
   describeCurrentPoolMatch,
   getReferencePicks,
@@ -49,13 +50,14 @@ export default async function PoolPage({ params }: PoolPageProps) {
   });
 
   if (roundOf16Pool) {
+    const stage = getKnockoutPoolStageDetails(roundOf16Pool.settings);
     return (
       <PublicPoolShell
         poolName={roundOf16Pool.poolName}
         title={roundOf16Pool.poolName}
         description={
           roundOf16Pool.settings.basics.description ||
-          "Round of 16 picks, scoring, and public standings."
+          `${stage.pluralLabel} picks, scoring, and public standings.`
         }
         scoreRefreshLabel={
           roundOf16Pool.latestStandingsCalculatedAt

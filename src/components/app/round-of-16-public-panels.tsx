@@ -20,6 +20,7 @@ import type {
 } from "@/lib/round-of-16/public";
 import type { RoundOf16StoredLeaderboardRow } from "@/lib/round-of-16/persistence";
 import {
+  getKnockoutPoolStageDetails,
   getEnabledRoundOf16BonusProps,
   type RoundOf16PoolSettings,
 } from "@/lib/templates/round-of-16-draft";
@@ -316,15 +317,16 @@ export function RoundOf16BracketPanel({
   standings: RoundOf16StoredLeaderboardRow[];
 }) {
   const results = latestResultByLineKey(standings);
+  const stage = getKnockoutPoolStageDetails(settings);
 
   return (
     <LedgerPanel
-      title="Round of 16 bracket"
+      title={`${stage.label} bracket`}
       description="Configured matchups with official winners shown after scoring."
     >
       <LedgerRows className="grid lg:grid-cols-2 lg:divide-x lg:divide-y-0">
         {settings.matchups.map((matchup, index) => {
-          const result = results.get(`r16_${index + 1}_winner`) ?? "";
+          const result = results.get(`${stage.fieldPrefix}_${index + 1}_winner`) ?? "";
 
           return (
             <LedgerRow key={matchup.id} className="space-y-3">
@@ -371,12 +373,13 @@ export function RoundOf16EntryDetail({
   standing?: RoundOf16StoredLeaderboardRow;
 }) {
   const bonusProps = getEnabledRoundOf16BonusProps(settings);
+  const stage = getKnockoutPoolStageDetails(settings);
 
   return (
     <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
       <LedgerPanel
         title="Submitted picks"
-        description="This entry's locked Round of 16 winners and bonus answers."
+        description={`This entry's locked ${stage.pluralLabel.toLowerCase()} winners and bonus answers.`}
       >
         <LedgerRows>
           {settings.matchups.map((matchup, index) => (
@@ -386,7 +389,7 @@ export function RoundOf16EntryDetail({
             >
               <div>
                 <p className="font-semibold text-brand-ink">
-                  {matchup.label || `Round of 16 Match ${index + 1}`}
+                  {matchup.label || `${stage.label} Match ${index + 1}`}
                 </p>
                 <MatchupLine
                   homeTeam={matchup.teamOne}

@@ -34,12 +34,14 @@ import { getAllTemplates } from "@/lib/templates/catalog";
 import {
   ROUND_OF_16_DRAFT_STORAGE_KEY,
   ROUND_OF_16_BONUS_MAX_TOTAL_SHARE,
-  ROUND_OF_16_TEMPLATE_SLUG,
+  QUARTER_FINAL_TEMPLATE_SLUG,
+  SEMI_FINAL_TEMPLATE_SLUG,
   createDefaultRoundOf16WizardState,
   createRoundOf16PoolDraft,
   formatCurrencyAmount,
   getRoundOf16PayoutBalance,
   getRoundOf16ScoringBalance,
+  getKnockoutPoolStageDetails,
   isRoundOf16WizardStateComplete,
   parseCurrencyAmount,
   saveRoundOf16Draft,
@@ -73,7 +75,7 @@ const stepDefinitions = [
   },
   {
     key: "matchups",
-    title: "Round of 16",
+    title: "Matchups",
     description: "Automatic bracket matchups.",
     icon: CalendarClock,
   },
@@ -367,8 +369,9 @@ function AutomaticMatchupsList({
 }: {
   matchups: RoundOf16WizardState["matchups"];
 }) {
-  const leftSide = matchups.slice(0, 4);
-  const rightSide = matchups.slice(4);
+  const midpoint = Math.ceil(matchups.length / 2);
+  const leftSide = matchups.slice(0, midpoint);
+  const rightSide = matchups.slice(midpoint);
 
   function renderMatchupCard(
     matchup: RoundOf16WizardState["matchups"][number],
@@ -408,7 +411,7 @@ function AutomaticMatchupsList({
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {rightSide.map((matchup, index) =>
-            renderMatchupCard(matchup, index + 4),
+            renderMatchupCard(matchup, index + midpoint),
           )}
         </div>
       </div>
@@ -494,10 +497,11 @@ function DraftSuccessPanel({
   draft: RoundOf16PoolDraft;
   onEdit: () => void;
 }) {
+  const stage = getKnockoutPoolStageDetails(draft.templateSlug);
   const checklist = [
     "Template selected",
     "Pool basics captured",
-    "Eight Round of 16 matchups configured",
+    `${draft.matchups.length} ${stage.pluralLabel.toLowerCase()} matchups configured`,
     "Bonus props enabled",
     "Scoring and payouts reviewed",
     "Invite plan drafted",
@@ -735,11 +739,11 @@ export function NewPoolWizardStart({
   const isEditingPool = Boolean(editPool);
   const queryTemplate = searchParams.get("template") ?? "";
   const queryDraftId = searchParams.get("draft") ?? "";
-  const initialTemplate = templates.some(
-    (template) => template.slug === queryTemplate,
-  )
-    ? queryTemplate
-    : "";
+  const initialTemplate =
+    queryTemplate === QUARTER_FINAL_TEMPLATE_SLUG ||
+    queryTemplate === SEMI_FINAL_TEMPLATE_SLUG
+      ? queryTemplate
+      : QUARTER_FINAL_TEMPLATE_SLUG;
   const [currentStep, setCurrentStep] = React.useState(0);
   const [completedSteps, setCompletedSteps] = React.useState<Set<StepKey>>(
     () => new Set(),
@@ -772,9 +776,13 @@ export function NewPoolWizardStart({
   const selectedTemplate = templates.find(
     (template) => template.slug === state.templateSlug,
   );
-  const roundOf16Template = templates.find(
-    (template) => template.slug === ROUND_OF_16_TEMPLATE_SLUG,
+  const quarterFinalTemplate = templates.find(
+    (template) => template.slug === QUARTER_FINAL_TEMPLATE_SLUG,
   );
+  const semiFinalTemplate = templates.find(
+    (template) => template.slug === SEMI_FINAL_TEMPLATE_SLUG,
+  );
+  const stage = getKnockoutPoolStageDetails(state.templateSlug);
   const validationOptions = { requireFutureDeadline: !isEditingPool };
   const validation = validateRoundOf16WizardState(state, validationOptions);
   const currentStepDefinition = stepDefinitions[currentStep];
@@ -799,11 +807,18 @@ export function NewPoolWizardStart({
   const submitPending = isEditingPool ? updatePending : publishPending;
   const actionMessage = isEditingPool ? updateState.message : publishState.message;
 
-  function selectRoundOf16Template() {
-    setState((current) => ({
-      ...current,
-      templateSlug: ROUND_OF_16_TEMPLATE_SLUG,
-    }));
+  function selectTemplate(templateSlug: string) {
+    setState((current) => {
+      const defaults = createDefaultRoundOf16WizardState(templateSlug);
+
+      return {
+        ...defaults,
+        basics: {
+          ...defaults.basics,
+          commissionerName: current.basics.commissionerName,
+        },
+      };
+    });
   }
 
   function goToNextStep() {
@@ -918,7 +933,7 @@ export function NewPoolWizardStart({
     return (
       <PageShell
         eyebrow="Pool wizard"
-        title="Round of 16 pool published"
+        title={`${stage.label} pool published`}
         description="Copy participant links and send them to the people joining this pool."
         showHeader={false}
       >
@@ -931,7 +946,7 @@ export function NewPoolWizardStart({
     return (
       <PageShell
         eyebrow="Pool wizard"
-        title="Round of 16 draft"
+        title={`${stage.label} draft`}
         description="Review the saved mock pool draft before this flow is connected to hosted pool publishing."
         showHeader={false}
       >
@@ -943,7 +958,7 @@ export function NewPoolWizardStart({
   return (
     <PageShell
       eyebrow="Pool wizard"
-      title={isEditingPool ? `Edit ${state.basics.poolName}` : "Set up a Round of 16 pool"}
+      title={isEditingPool ? `Edit ${state.basics.poolName}` : `Set up a ${stage.label} pool`}
       description={
         isEditingPool
           ? "Update the same format, picks, scoring, payouts, and invite details from the setup wizard."
@@ -1012,23 +1027,22 @@ export function NewPoolWizardStart({
                     Selected format
                   </p>
                   <h2 className="mt-3 text-2xl font-bold tracking-[0.005em] text-brand-ink">
-                    {selectedTemplate?.slug === ROUND_OF_16_TEMPLATE_SLUG
-                      ? selectedTemplate.name
-                      : "Choose the Round of 16 template"}
+                    {selectedTemplate?.name ?? `Choose the ${stage.label} template`}
                   </h2>
                   <p className="mt-3 text-sm font-normal leading-6 text-muted-foreground">
-                    This v1 wizard is built for a short World Cup pool with eight
-                    Round of 16 winner picks and configurable bonus props.
+                    {stage.stage === "semi-final"
+                      ? "The bracket is seeded from the four quarter-finals and locks before the first semi-final."
+                      : "This pool covers the three remaining World Cup quarter-finals: Spain–Belgium, Argentina–Switzerland, and Norway–England."}
                   </p>
                 </div>
 
                 <div className="grid gap-3 md:grid-cols-2">
                   <button
                     type="button"
-                    onClick={selectRoundOf16Template}
+                    onClick={() => selectTemplate(QUARTER_FINAL_TEMPLATE_SLUG)}
                     className={cn(
                       "rounded-lg border bg-surface-paper p-4 text-left transition hover:border-primary/40 hover:bg-cta-green-soft",
-                      state.templateSlug === ROUND_OF_16_TEMPLATE_SLUG
+                      state.templateSlug === QUARTER_FINAL_TEMPLATE_SLUG
                         ? "border-primary ring-1 ring-primary/20"
                         : undefined,
                     )}
@@ -1036,14 +1050,14 @@ export function NewPoolWizardStart({
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="font-semibold text-brand-ink">
-                          {roundOf16Template?.name ?? "Mini Round of 16 Pool"}
+                          {quarterFinalTemplate?.name ?? "Remaining Quarter-final Pool"}
                         </p>
                         <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                          Round winners, five preset props, simple scoring, and
-                          invite planning.
+                          Three remaining quarter-final winners, four preset props,
+                          simple scoring, and invite planning.
                         </p>
                       </div>
-                      {state.templateSlug === ROUND_OF_16_TEMPLATE_SLUG ? (
+                      {state.templateSlug === QUARTER_FINAL_TEMPLATE_SLUG ? (
                         <CheckCircle2 className="size-5 shrink-0 text-brand-success" />
                       ) : (
                         <Circle className="size-5 shrink-0 text-muted-foreground" />
@@ -1064,9 +1078,36 @@ export function NewPoolWizardStart({
                   </div>
                 </div>
 
+                <button
+                  type="button"
+                  onClick={() => selectTemplate(SEMI_FINAL_TEMPLATE_SLUG)}
+                  className={cn(
+                    "rounded-lg border bg-surface-paper p-4 text-left transition hover:border-primary/40 hover:bg-cta-green-soft",
+                    state.templateSlug === SEMI_FINAL_TEMPLATE_SLUG
+                      ? "border-primary ring-1 ring-primary/20"
+                      : undefined,
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-semibold text-brand-ink">
+                        {semiFinalTemplate?.name ?? "Semi-final Pool"}
+                      </p>
+                      <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                        Correct bracket paths, three preset props, and a July 14 lock before the first semi-final.
+                      </p>
+                    </div>
+                    {state.templateSlug === SEMI_FINAL_TEMPLATE_SLUG ? (
+                      <CheckCircle2 className="size-5 shrink-0 text-brand-success" />
+                    ) : (
+                      <Circle className="size-5 shrink-0 text-muted-foreground" />
+                    )}
+                  </div>
+                </button>
+
                 {!validation.template ? (
                   <FieldError>
-                    Select the Mini Round of 16 Pool template to continue.
+                    Select a current knockout template to continue.
                   </FieldError>
                 ) : null}
               </div>
@@ -1196,9 +1237,9 @@ export function NewPoolWizardStart({
                     Bracket teams are predetermined
                   </p>
                   <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                    This setup step only confirms the automatic Round of 16
-                    bracket. The commissioner makes winner picks later through
-                    the same participant form as invited players.
+                    {stage.stage === "semi-final"
+                      ? "The two semi-final paths are populated from the correct quarter-final winners. The winning teams are not known until those matches finish."
+                      : "This setup step confirms the remaining quarter-final slate. France–Morocco is already in progress and is not included."} The commissioner makes winner picks later through the same participant form as invited players.
                   </p>
                 </div>
                 <AutomaticMatchupsList matchups={state.matchups} />
@@ -1212,9 +1253,7 @@ export function NewPoolWizardStart({
                     {enabledBonusCount} bonus props enabled
                   </p>
                   <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                    Players answer enabled props alongside their Round of 16
-                    winner picks. Each bonus can be worth up to one winner pick,
-                    and the full bonus pool should stay below{" "}
+                    {`Players answer enabled props alongside their ${stage.label.toLowerCase()} winner picks. Each bonus can be worth up to one winner pick, and the full bonus pool should stay below `}
                     {percentLabel(ROUND_OF_16_BONUS_MAX_TOTAL_SHARE)} of all
                     points.
                   </p>

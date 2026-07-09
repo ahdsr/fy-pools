@@ -15,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ROUND_OF_16_DRAFT_STORAGE_KEY,
+  getKnockoutPoolStageDetails,
   readRoundOf16Drafts,
   type RoundOf16PoolDraft,
 } from "@/lib/templates/round-of-16-draft";
@@ -48,6 +49,7 @@ function formatDateTime(value: string) {
 
 function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
   const enabledProps = draft.bonusProps.filter((prop) => prop.enabled).length;
+  const stage = getKnockoutPoolStageDetails(draft.templateSlug);
 
   function handleDeleteDraft() {
     if (
@@ -82,7 +84,7 @@ function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
             {draft.basics.poolName || "Untitled draft"}
           </h2>
           <p className="text-sm font-normal leading-6 text-muted-foreground">
-            Mini Round of 16 Pool draft. Picks lock{" "}
+            Mini {stage.label} Pool draft. Picks lock{" "}
             {formatDateTime(draft.basics.picksLockAt)}. Publish when setup and
             invites are ready.
           </p>

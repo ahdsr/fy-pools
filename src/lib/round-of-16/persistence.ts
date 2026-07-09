@@ -3,7 +3,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 
 import {
-  ROUND_OF_16_TEMPLATE_SLUG,
+  getKnockoutPoolStageDetails,
   getEnabledRoundOf16BonusProps,
   slugifyPoolName,
   validateRoundOf16InviteInputs,
@@ -371,17 +371,22 @@ function userHasConfirmedEmail(
   return Boolean(user.email_confirmed_at || user.confirmed_at);
 }
 
-async function ensureRoundOf16TemplateVersion(admin: SupabaseAdmin) {
+async function ensureRoundOf16TemplateVersion(
+  admin: SupabaseAdmin,
+  settings: RoundOf16PoolSettings,
+) {
+  const stage = getKnockoutPoolStageDetails(settings);
   const { data, error } = await admin
     .from("template_versions")
     .upsert(
       {
-        slug: ROUND_OF_16_TEMPLATE_SLUG,
-        name: "Mini Round of 16 Pool",
+        slug: stage.templateSlug,
+        name: `Mini ${stage.label} Pool`,
         version: 1,
-        description: "Round of 16 winner picks with configurable bonus props.",
+        description: `${stage.label} winner picks with configurable bonus props.`,
         config: {
-          wizardType: "round-of-16",
+          wizardType: "knockout",
+          stage: stage.stage,
         },
       },
       { onConflict: "slug,version" },
@@ -403,10 +408,11 @@ async function ensureRoundOf16PickFields({
   templateVersionId: string;
   settings: RoundOf16PoolSettings;
 }) {
+  const stage = getKnockoutPoolStageDetails(settings);
   const winnerFields = settings.matchups.map((matchup, index) => ({
     template_version_id: templateVersionId,
-    key: `r16_${index + 1}_winner`,
-    label: `${matchup.label || `Round of 16 Match ${index + 1}`} winner`,
+    key: `${stage.fieldPrefix}_${index + 1}_winner`,
+    label: `${matchup.label || `${stage.label} Match ${index + 1}`} winner`,
     pick_type: "bracket_winner",
     required: true,
     sort_order: index + 1,
@@ -476,7 +482,7 @@ async function buildPoolSlug(admin: SupabaseAdmin, poolName: string) {
 }
 
 function buildInviteCode() {
-  return `r16-${crypto.randomUUID()}`;
+  return `pool-${crypto.randomUUID()}`;
 }
 
 function effectiveInviteStatus({
@@ -570,6 +576,7 @@ export function pickPayloadAndItemIdsFromItems({
 }) {
   const payload = emptyRoundOf16PickPayload();
   const itemIds = new Map<string, string>();
+  const stage = getKnockoutPoolStageDetails(settings);
 
   for (const item of items ?? []) {
     const value =
@@ -589,7 +596,7 @@ export function pickPayloadAndItemIdsFromItems({
       const matchupIndex = settings.matchups.findIndex(
         (matchup) => matchup.id === matchupId,
       );
-      const key = `r16_${matchupIndex + 1}_winner`;
+      const key = `${stage.fieldPrefix}_${matchupIndex + 1}_winner`;
       payload.winners[matchupId] = winner;
       if (itemId && matchupIndex >= 0) itemIds.set(key, itemId);
     }
@@ -624,7 +631,7 @@ export async function publishRoundOf16Pool({
   const validParticipants = normalizeRoundOf16Participants(participants);
 
   await ensureProfile({ userId: user.id, displayName });
-  const templateVersionId = await ensureRoundOf16TemplateVersion(admin);
+  const templateVersionId = await ensureRoundOf16TemplateVersion(admin, settings);
   await ensureRoundOf16PickFields({ admin, templateVersionId, settings });
 
   const poolSlug = await buildPoolSlug(admin, settings.basics.poolName);
@@ -696,7 +703,7 @@ export async function publishRoundOf16Pool({
       summary: `Published ${settings.basics.poolName}.`,
       metadata: {
         poolSlug: pool.slug,
-        template: ROUND_OF_16_TEMPLATE_SLUG,
+        template: getKnockoutPoolStageDetails(settings).templateSlug,
         directInviteCount: validParticipants.length,
         hasSignupInvite: true,
         pickDeadline: settings.basics.picksLockAt,
@@ -889,8 +896,9 @@ export async function submitRoundOf16Picks({
     templateVersionId: joinData.pool.templateVersionId,
     settings,
   });
+  const stage = getKnockoutPoolStageDetails(settings);
   const winnerItems = settings.matchups.map((matchup, index) => ({
-    template_pick_field_id: fieldMap.get(`r16_${index + 1}_winner`)?.id,
+    template_pick_field_id: fieldMap.get(`${stage.fieldPrefix}_${index + 1}_winner`)?.id,
     pick_type: "bracket_winner",
     value: {
       matchupId: matchup.id,

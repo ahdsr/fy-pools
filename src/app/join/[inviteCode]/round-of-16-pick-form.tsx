@@ -30,6 +30,7 @@ import { normalizeEmailAddress } from "@/lib/email";
 import { cn } from "@/lib/utils";
 import {
   getEnabledRoundOf16BonusProps,
+  getKnockoutPoolStageDetails,
   type RoundOf16PickPayload,
   type RoundOf16PoolSettings,
   type RoundOf16MatchupDraft,
@@ -204,15 +205,17 @@ function BracketMatchCard({
 function WinnerColumn({
   matchups,
   winners,
+  stageLabel,
 }: {
   matchups: RoundOf16MatchupDraft[];
   winners: Record<string, string>;
+  stageLabel: string;
 }) {
   return (
     <div className="rounded-lg border bg-background shadow-sm">
       <div className="border-b bg-surface-ledger/60 px-3 py-2">
         <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-          Your Round of 16 winners
+          Your {stageLabel} winners
         </p>
       </div>
       <div className="grid divide-y">
@@ -248,9 +251,11 @@ function RoundOf16BracketPicker({
   winners: Record<string, string>;
   onWinnerChange: (matchupId: string, winner: string) => void;
 }) {
-  const leftMatchups = matchups.slice(0, 4);
-  const rightMatchups = matchups.slice(4);
+  const midpoint = Math.ceil(matchups.length / 2);
+  const leftMatchups = matchups.slice(0, midpoint);
+  const rightMatchups = matchups.slice(midpoint);
   const pickedCount = matchups.filter((matchup) => winners[matchup.id]).length;
+  const stage = getKnockoutPoolStageDetails({ matchups });
 
   return (
     <div className="space-y-4">
@@ -276,11 +281,15 @@ function RoundOf16BracketPicker({
           ))}
         </div>
         <div className="order-last lg:order-none">
-          <WinnerColumn matchups={matchups} winners={winners} />
+          <WinnerColumn
+            matchups={matchups}
+            winners={winners}
+            stageLabel={stage.pluralLabel}
+          />
         </div>
         <div className="grid min-w-0 gap-4">
           {rightMatchups.map((matchup, index) => {
-            const matchIndex = index + 4;
+            const matchIndex = index + midpoint;
 
             return (
               <BracketMatchCard
@@ -321,6 +330,7 @@ export function RoundOf16PickForm({
     () => initialPayload?.bonusAnswers ?? {},
   );
   const enabledBonusProps = getEnabledRoundOf16BonusProps(settings);
+  const stage = getKnockoutPoolStageDetails(settings);
   const teamOptions = React.useMemo(() => roundOf16Teams(settings), [settings]);
   const hasExistingSubmission = Boolean(existingSubmittedAt || state.submitted);
   const joinPath = `/join/${encodeURIComponent(inviteCode)}`;
@@ -492,7 +502,7 @@ export function RoundOf16PickForm({
         ) : null}
 
         <LedgerPanel
-          title="Bracket picks"
+          title={`${stage.label} picks`}
           description={`Choose one winner from each matchup. Picks lock ${formatPickDeadline(settings)}.`}
         >
           <div className="p-4">

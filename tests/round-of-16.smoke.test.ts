@@ -7,7 +7,10 @@ import { pickPayloadAndItemIdsFromItems } from "@/lib/round-of-16/persistence";
 import {
   createDefaultRoundOf16WizardState,
   getEnabledRoundOf16BonusProps,
+  getKnockoutPoolStageDetails,
   isRoundOf16WizardStateComplete,
+  QUARTER_FINAL_TEMPLATE_SLUG,
+  SEMI_FINAL_TEMPLATE_SLUG,
   toRoundOf16PoolSettings,
   validateRoundOf16InviteInputs,
   validateRoundOf16PoolSettings,
@@ -68,6 +71,68 @@ function completePickPayload(
 }
 
 describe("Round of 16 launch smoke coverage", () => {
+  it("supports the remaining quarter-final slate with quarter-final pick keys", () => {
+    const state = createDefaultRoundOf16WizardState(
+      QUARTER_FINAL_TEMPLATE_SLUG,
+    );
+    state.basics.commissionerName = "Commissioner";
+    state.basics.picksLockAt = "2099-07-10T15:00";
+    state.scoring.prizePoolLabel = "$30";
+    state.payouts = [
+      { id: "payout-1", place: "1st Place", amount: "$30" },
+    ];
+    const settings = toRoundOf16PoolSettings(state);
+    const picks = completePickPayload(settings, "teamOne");
+    const score = scoreRoundOf16Entry({ settings, picks, results: picks });
+    const { itemIds } = pickPayloadAndItemIdsFromItems({
+      settings,
+      items: [
+        {
+          id: "pick-item-quarter-final-1",
+          value: {
+            matchupId: settings.matchups[0].id,
+            winner: settings.matchups[0].teamOne,
+          },
+        },
+      ],
+    });
+
+    expect(getKnockoutPoolStageDetails(settings).label).toBe("Quarter-final");
+    expect(settings.matchups.map((matchup) => matchup.id)).toEqual([
+      "qf-2",
+      "qf-3",
+      "qf-4",
+    ]);
+    expect(validateRoundOf16PoolSettings(settings)).toBeNull();
+    expect(score.lines[0]?.key).toBe("qf_1_winner");
+    expect(itemIds.get("qf_1_winner")).toBe("pick-item-quarter-final-1");
+  });
+
+  it("opens a semifinal template with the correct quarter-final bracket paths", () => {
+    const state = createDefaultRoundOf16WizardState(SEMI_FINAL_TEMPLATE_SLUG);
+    state.basics.commissionerName = "Commissioner";
+    state.basics.picksLockAt = "2099-07-14T15:00";
+    state.scoring.prizePoolLabel = "$20";
+    state.payouts = [
+      { id: "payout-1", place: "1st Place", amount: "$20" },
+    ];
+    const settings = toRoundOf16PoolSettings(state);
+
+    expect(getKnockoutPoolStageDetails(settings).label).toBe("Semi-final");
+    expect(settings.basics.picksLockAt).toBe("2099-07-14T15:00");
+    expect(settings.matchups).toMatchObject([
+      {
+        teamOne: "Winner of France vs Morocco",
+        teamTwo: "Winner of Spain vs Belgium",
+      },
+      {
+        teamOne: "Winner of Norway vs England",
+        teamTwo: "Winner of Argentina vs Switzerland",
+      },
+    ]);
+    expect(validateRoundOf16PoolSettings(settings)).toBeNull();
+  });
+
   it("keeps the default launch wizard state publishable after required fields are filled", () => {
     const { state, settings } = createLaunchReadySettings();
 
