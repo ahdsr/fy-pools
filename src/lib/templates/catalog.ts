@@ -84,7 +84,7 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
       },
       {
         slug: "world-cup-quarter-final-pickem",
-        name: "Remaining Quarter-final Pool",
+        name: "Quarter Final Pool",
         bestFor: "Weekend watch parties",
         picks: "Remaining quarter-final winners and bonus props",
         lock: "Before Spain vs Belgium",
@@ -98,7 +98,7 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
       },
       {
         slug: "world-cup-semi-final-pickem",
-        name: "Semi-final Pool",
+        name: "Semi-Final Pool",
         bestFor: "Final-four watch parties",
         picks: "Semi-final winners and bonus props",
         lock: "Before the first semi-final",

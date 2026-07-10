@@ -1,17 +1,19 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import { PodiumHeatmap } from "@/components/app/podium-heatmap";
 import { TeamPill } from "@/components/app/pool-public-widgets";
 import {
   PublicPoolMetaCard,
+  PublicPoolScoreRefresh,
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
 import { SectionHeader } from "@/components/app/section-header";
 import { Badge } from "@/components/ui/badge";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import {
-  getPublicPool,
+  getPublicPoolRouteInfo,
   liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
@@ -32,9 +34,15 @@ import {
   type PodiumSummary,
 } from "@/lib/world-cup-pool/heatmap";
 import type { EntryPicks } from "@/lib/world-cup-pool/types";
+import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
 
 type HeatmapPageProps = {
   params: Promise<{ poolSlug: string }>;
+};
+
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [{ params: { poolSlug: "marcins-2026-world-cup-pool" } }],
 };
 
 const PIE_COLORS = [
@@ -583,9 +591,53 @@ function EntrantSimilarityPanel({ rows }: { rows: EntrantSimilarityRow[] }) {
   );
 }
 
-export default async function HeatmapPage({ params }: HeatmapPageProps) {
-  const { poolSlug } = await params;
-  const pool = await getPublicPool(poolSlug);
+export default function HeatmapPage({ params }: HeatmapPageProps) {
+  return (
+    <Suspense fallback={<HeatmapRouteFallback />}>
+      {params.then(({ poolSlug }) => <HeatmapPageContent poolSlug={poolSlug} />)}
+    </Suspense>
+  );
+}
+
+async function HeatmapPageContent({ poolSlug }: { poolSlug: string }) {
+  const routeInfo = await getPublicPoolRouteInfo(poolSlug);
+  if (!routeInfo) notFound();
+
+  return (
+    <PublicPoolShell
+      poolName={routeInfo.poolName}
+      eyebrow="Heatmap"
+      title="Pick heatmap"
+      description="See the podium calls side by side, ranked by live points, then explore consensus and contrarian picks across the pool."
+      meta={
+        <Suspense fallback={null}>
+          <HeatmapMetaStream poolSlug={poolSlug} />
+        </Suspense>
+      }
+    >
+      <Suspense fallback={<HeatmapDetailsFallback />}>
+        <WorldCupHeatmapDetails poolSlug={poolSlug} />
+      </Suspense>
+    </PublicPoolShell>
+  );
+}
+
+async function HeatmapMetaStream({ poolSlug }: { poolSlug: string }) {
+  const pool = await getPublicPoolSnapshot(poolSlug);
+  if (!pool) notFound();
+
+  const heatmap = buildPoolHeatmap(pool.entriesConfig, pool.picksByPath);
+
+  return (
+    <PublicPoolMetaCard
+      label="Entries mapped"
+      value={`${heatmap.eligibleEntryCount}/${pool.entriesConfig.entries.length}`}
+    />
+  );
+}
+
+async function WorldCupHeatmapDetails({ poolSlug }: { poolSlug: string }) {
+  const pool = await getPublicPoolSnapshot(poolSlug);
   if (!pool) notFound();
 
   const heatmap = buildPoolHeatmap(pool.entriesConfig, pool.picksByPath);
@@ -633,21 +685,7 @@ export default async function HeatmapPage({ params }: HeatmapPageProps) {
   });
 
   return (
-    <PublicPoolShell
-      poolName={pool.entriesConfig.poolName}
-      eyebrow="Heatmap"
-      title="Pick heatmap"
-      description="See the podium calls side by side, ranked by live points, then explore consensus and contrarian picks across the pool."
-      scoreRefreshLabel={scoreRefreshLabel(pool)}
-      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      liveScoreMatchDates={liveScoreMatchDates(pool)}
-      meta={
-        <PublicPoolMetaCard
-          label="Entries mapped"
-          value={`${heatmap.eligibleEntryCount}/${pool.entriesConfig.entries.length}`}
-        />
-      }
-    >
+    <>
       <LedgerPanel
         title="Podium predictions"
         description="A score-ranked view of every submitted Champion, Runner-up, and Third-place call."
@@ -729,6 +767,40 @@ export default async function HeatmapPage({ params }: HeatmapPageProps) {
           />
         ))}
       </section>
-    </PublicPoolShell>
+      <PublicPoolScoreRefresh
+        liveScoreMatchDates={liveScoreMatchDates(pool)}
+        scoreRefreshLabel={scoreRefreshLabel(pool)}
+        scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      />
+    </>
+  );
+}
+
+function HeatmapRouteFallback() {
+  return (
+    <LedgerPanel title="Loading heatmap" description="Preparing pick trends across the pool.">
+      <div className="grid gap-3 p-5">
+        <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-64 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
+  );
+}
+
+function HeatmapDetailsFallback() {
+  return (
+    <>
+      <LedgerPanel title="Loading podium picks" description="Mapping submitted predictions.">
+        <div className="grid gap-3 p-5">
+          <div className="h-56 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+      <LedgerPanel title="Loading consensus" description="Comparing picks across entries.">
+        <div className="grid gap-3 p-5 md:grid-cols-2">
+          <div className="h-40 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-40 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+    </>
   );
 }

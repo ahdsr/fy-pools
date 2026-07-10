@@ -70,7 +70,7 @@ function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
   }
 
   return (
-    <article className="flex min-h-[16rem] flex-col justify-between gap-5 rounded-lg border bg-surface-paper p-4">
+    <article className="flex min-h-[16rem] flex-col justify-between gap-5 px-5 py-6 md:[&:nth-child(even)]:border-l">
       <div className="min-w-0 space-y-4">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="outline">draft</Badge>
@@ -89,8 +89,8 @@ function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
             invites are ready.
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border bg-background px-3 py-2">
+        <div className="grid gap-4 sm:grid-cols-3 sm:divide-x">
+          <div className="sm:pr-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <Users className="size-3.5" />
               Expected
@@ -99,7 +99,7 @@ function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
               {draft.inviteSettings.expectedEntries} entries
             </p>
           </div>
-          <div className="rounded-lg border bg-background px-3 py-2">
+          <div className="sm:px-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <ListChecks className="size-3.5" />
               Setup
@@ -108,7 +108,7 @@ function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
               {draft.matchups.length} matchups, {enabledProps} props
             </p>
           </div>
-          <div className="rounded-lg border bg-background px-3 py-2">
+          <div className="sm:pl-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <CalendarClock className="size-3.5" />
               Deadline
@@ -149,14 +149,14 @@ export function DraftPoolRows() {
   if (!drafts.length) return null;
 
   return (
-    <section className="space-y-4">
-      <div className="flex items-center gap-3 border-t border-dashed border-brand-rule pt-5">
+    <section className="border-t border-dashed border-brand-rule">
+      <div className="flex items-center gap-3 px-5 pt-5">
         <FileText className="size-4 text-brand-mark" />
         <h3 className="text-lg font-bold tracking-normal text-brand-ink">
           Saved drafts
         </h3>
       </div>
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid divide-y md:grid-cols-2 md:divide-y-0">
         {drafts.map((draft) => (
           <DraftPoolRow key={draft.id} draft={draft} />
         ))}

@@ -264,9 +264,10 @@ export async function readWorldCupResultSnapshot(
     const results = data.results_payload as PoolResults;
     const resultSource = String(results.meta?.source ?? source);
     if (source !== "fifa" || resultSource !== "fifa") {
-      throw new Error(
-        `Stored World Cup result snapshot source must be FIFA; received ${source}/${resultSource}.`,
-      );
+      // Snapshots written before the FIFA-only result feed can still exist in
+      // production. They are not a read failure: ignore them and let the
+      // fixture fallback render until the next FIFA refresh replaces the row.
+      return null;
     }
 
     return {
@@ -523,6 +524,30 @@ export async function getMarcinsWorldCupPool(): Promise<PoolFixture> {
 export async function getPublicPool(poolSlug: string) {
   if (!POOL_ALIASES.has(poolSlug)) return null;
   return getMarcinsWorldCupPool();
+}
+
+export type PublicPoolRouteInfo = {
+  poolSlug: string;
+  poolName: string;
+};
+
+// This deliberately reads only fixture data. It forms the stable public-pool
+// shell while live results and scoring stream separately.
+export async function getPublicPoolRouteInfo(
+  poolSlug: string,
+): Promise<PublicPoolRouteInfo | null> {
+  "use cache";
+
+  cacheLife("max");
+
+  if (!POOL_ALIASES.has(poolSlug)) return null;
+
+  const entriesConfig = await readFixtureJson<EntriesConfig>("entries.json");
+
+  return {
+    poolSlug: MARCINS_POOL_SLUG,
+    poolName: entriesConfig.poolName,
+  };
 }
 
 export type PublicEntryRouteInfo = {

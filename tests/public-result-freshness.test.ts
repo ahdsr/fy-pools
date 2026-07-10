@@ -162,7 +162,7 @@ describe("public result freshness", () => {
     ).toBe(false);
   });
 
-  it("rejects durable snapshots that are not sourced from FIFA", async () => {
+  it("quietly ignores durable snapshots that are not sourced from FIFA", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
     const fetchedAt = new Date().toISOString();
     mocks.snapshotData = {
@@ -189,10 +189,7 @@ describe("public result freshness", () => {
     await expect(
       readWorldCupResultSnapshot("marcins-2026-world-cup-pool"),
     ).resolves.toBeNull();
-    expect(consoleError).toHaveBeenCalledWith(
-      "[fy-pools] Stored result snapshot read failed",
-      expect.any(Error),
-    );
+    expect(consoleError).not.toHaveBeenCalled();
   });
 
   it("does not call provider APIs while building public standings", async () => {

@@ -98,6 +98,7 @@ async function EntryPageContent({
           "Winning it all!"
         }
         descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
+        meta={<CreatePoolCta />}
       >
         <EntryNavigation poolSlug={routeInfo.poolSlug} />
         <Suspense fallback={<EntryDetailsFallback />}>
@@ -167,6 +168,7 @@ async function EntryPageContent({
         "Winning it all!"
       }
       descriptionClassName="ml-[5rem] sm:ml-[6.25rem]"
+      meta={<CreatePoolCta />}
     >
       <EntryNavigation poolSlug={snapshot.publicSlug} />
       <EntryDetails snapshot={snapshot} />
@@ -205,7 +207,6 @@ function EntryDetails({
   return (
     <>
       <LiveScoreRefresh matchDates={liveScoreMatchDates(pool)} />
-      <CreatePoolCta />
 
       <ScoreCards
         score={score}
@@ -218,6 +219,13 @@ function EntryDetails({
             : undefined
         }
       />
+
+      <Suspense fallback={<EntryMovementFallback />}>
+        <EntryMovementStream
+          poolSlug={pool.slug}
+          entryId={entry.id}
+        />
+      </Suspense>
 
       <FullEntryAuditPanel
         picks={picks}
@@ -233,14 +241,6 @@ function EntryDetails({
           ) : undefined
         }
       />
-
-      <Suspense fallback={<EntryMovementFallback />}>
-        <EntryMovementStream
-          poolSlug={pool.slug}
-          entryId={entry.id}
-        />
-      </Suspense>
-
     </>
   );
 }
@@ -395,16 +395,27 @@ function getSignupHref() {
 
 function CreatePoolCta() {
   return (
-    <LedgerPanel
-      title="You still have time to create your own pool"
-      description="Start a shorter 2026 World Cup pool from one of the rounds that can still lock cleanly."
-      action={
-        <Button asChild variant="primaryGreen">
-          <Link href={getSignupHref()}>
-            <CirclePlus /> Create pool
-          </Link>
-        </Button>
-      }
-    />
+    <aside className="relative isolate overflow-hidden rounded-2xl border border-brand-ink bg-brand-ink p-5 text-surface-paper shadow-[0_18px_44px_color-mix(in_oklch,var(--brand-ink),transparent_70%)]">
+      <div
+        aria-hidden="true"
+        className="absolute inset-x-0 bottom-0 h-1 bg-cta-green"
+      />
+      <CirclePlus
+        className="size-9 text-cta-green"
+        strokeWidth={1.75}
+        aria-hidden="true"
+      />
+      <p className="mt-5 text-2xl font-semibold leading-[1.04] tracking-[-0.03em] text-surface-paper">
+        Start your own pool
+      </p>
+      <p className="mt-2 text-sm leading-5 text-surface-paper/70">
+        Make the next round yours.
+      </p>
+      <Button asChild variant="primaryGreen" className="mt-5 w-full">
+        <Link href={getSignupHref()}>
+          Create a pool <CirclePlus />
+        </Link>
+      </Button>
+    </aside>
   );
 }

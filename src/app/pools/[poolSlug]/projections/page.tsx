@@ -9,6 +9,7 @@ import { StatGrid } from "@/components/app/pool-public-widgets";
 import { ProjectionPathSubmit } from "@/components/app/projection-path-submit";
 import {
   PublicPoolMetaCard,
+  PublicPoolScoreRefresh,
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +24,7 @@ import {
 } from "@/components/ui/table";
 import {
   formatList,
+  getPublicPoolRouteInfo,
   liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
@@ -409,11 +411,67 @@ function FocusedWinPath({
   );
 }
 
-export default async function ProjectionsPage({
+export default function ProjectionsPage({
   params,
   searchParams,
 }: ProjectionsPageProps) {
-  const { poolSlug } = await params;
+  return (
+    <Suspense fallback={<ProjectionRouteFallback />}>
+      {params.then(({ poolSlug }) => (
+        <ProjectionsPageContent poolSlug={poolSlug} searchParams={searchParams} />
+      ))}
+    </Suspense>
+  );
+}
+
+async function ProjectionsPageContent({
+  poolSlug,
+  searchParams,
+}: {
+  poolSlug: string;
+  searchParams: ProjectionsPageProps["searchParams"];
+}) {
+  const routeInfo = await getPublicPoolRouteInfo(poolSlug);
+  if (!routeInfo) notFound();
+
+  return (
+    <PublicPoolShell
+      poolName={routeInfo.poolName}
+      eyebrow="Projections"
+      title="Who can still pass #1?"
+      description="Best current finish scenarios based on everyone's remaining picks."
+      meta={
+        <Suspense fallback={null}>
+          <ProjectionMetaStream poolSlug={poolSlug} />
+        </Suspense>
+      }
+    >
+      <Suspense fallback={<ProjectionDetailsFallback />}>
+        <WorldCupProjectionDetails poolSlug={poolSlug} searchParams={searchParams} />
+      </Suspense>
+    </PublicPoolShell>
+  );
+}
+
+async function ProjectionMetaStream({ poolSlug }: { poolSlug: string }) {
+  const standings = await getPublicPoolStandings(poolSlug);
+  if (!standings) return null;
+
+  return (
+    <PublicPoolMetaCard
+      label="Prize range"
+      value={`Top ${standings.analytics.payoutPlaces}`}
+    />
+  );
+}
+
+async function WorldCupProjectionDetails({
+  poolSlug,
+  searchParams,
+}: {
+  poolSlug: string;
+  searchParams: ProjectionsPageProps["searchParams"];
+}) {
   const { entry } = await searchParams;
   const standings = await getPublicPoolStandings(poolSlug);
   if (!standings) notFound();
@@ -430,21 +488,7 @@ export default async function ProjectionsPage({
   const scenarioRoutes = new Map<string, EntryScenarioProjection>();
 
   return (
-    <PublicPoolShell
-      poolName={pool.entriesConfig.poolName}
-      eyebrow="Projections"
-      title="Who can still pass #1?"
-      description="Best current finish scenarios based on everyone's remaining picks."
-      scoreRefreshLabel={scoreRefreshLabel(pool)}
-      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      liveScoreMatchDates={liveScoreMatchDates(pool)}
-      meta={
-        <PublicPoolMetaCard
-          label="Prize range"
-          value={`Top ${analytics.payoutPlaces}`}
-        />
-      }
-    >
+    <>
       <LedgerPanel>
         <StatGrid
           stats={[
@@ -524,7 +568,41 @@ export default async function ProjectionsPage({
           {projectionNote}
         </div>
       </LedgerPanel>
-    </PublicPoolShell>
+      <PublicPoolScoreRefresh
+        liveScoreMatchDates={liveScoreMatchDates(pool)}
+        scoreRefreshLabel={scoreRefreshLabel(pool)}
+        scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      />
+    </>
+  );
+}
+
+function ProjectionRouteFallback() {
+  return (
+    <LedgerPanel
+      title="Loading projections"
+      description="Preparing the pool's finish scenarios."
+    >
+      <div className="grid gap-3 p-5">
+        <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-56 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
+  );
+}
+
+function ProjectionDetailsFallback() {
+  return (
+    <>
+      <LedgerPanel title="Loading projections" description="Scoring current pool paths.">
+        <div className="grid gap-3 p-5 md:grid-cols-3">
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+      <FocusedWinPathFallback rows={[]} selectedId="" />
+    </>
   );
 }
 

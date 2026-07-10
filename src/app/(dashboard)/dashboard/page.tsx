@@ -113,7 +113,7 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
     participantStatus.tone === "complete" ? CheckCircle2 : AlertCircle;
 
   return (
-    <article className="flex min-h-[16rem] flex-col justify-between gap-5 rounded-lg border bg-surface-paper p-4">
+    <article className="flex min-h-[16rem] flex-col justify-between gap-5 px-5 py-6 md:[&:nth-child(even)]:border-l">
       <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Badge variant="secondary">{pool.status}</Badge>
@@ -136,8 +136,8 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
             .
           </p>
         </div>
-        <div className="grid gap-3 sm:grid-cols-3">
-          <div className="rounded-lg border bg-background px-3 py-2">
+        <div className="grid gap-4 sm:grid-cols-3 sm:divide-x">
+          <div className="sm:pr-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <Users className="size-3.5" />
               Invites
@@ -146,7 +146,7 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
               {pool.inviteCounts.accepted} claimed, {pool.inviteCounts.pending} unclaimed
             </p>
           </div>
-          <div className="rounded-lg border bg-background px-3 py-2">
+          <div className="sm:px-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <ListChecks className="size-3.5" />
               Entries
@@ -157,7 +157,7 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
                 : `${submittedEntries} submitted`}
             </p>
           </div>
-          <div className="rounded-lg border bg-background px-3 py-2">
+          <div className="sm:pl-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <CalendarClock className="size-3.5" />
               Deadline
@@ -169,12 +169,12 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
         </div>
         <div
           className={[
-            "flex gap-3 rounded-lg border px-3 py-2",
+            "flex gap-3 border-l-2 py-1 pl-3",
             participantStatus.tone === "warning"
-              ? "border-destructive/20 bg-destructive/5"
+              ? "border-destructive"
               : participantStatus.tone === "complete"
-                ? "border-brand-success/25 bg-cta-green-soft"
-                : "bg-background",
+                ? "border-brand-success"
+                : "border-brand-mark",
           ].join(" ")}
         >
           <ParticipantStatusIcon
@@ -270,15 +270,13 @@ export default async function DashboardPage() {
         description="Pools owned by this commissioner, including invite status, submissions, deadlines, and scoring state."
         action={<Badge variant="outline">{pools.length} active</Badge>}
       >
-        <div className="space-y-5 p-5">
+        <div className="grid divide-y md:grid-cols-2 md:divide-y-0">
           {pools.length ? (
-            <div className="grid gap-4 md:grid-cols-2">
-              {pools.map((pool) => (
-                <PoolSummaryCard key={pool.poolId} pool={pool} />
-              ))}
-            </div>
+            pools.map((pool) => (
+              <PoolSummaryCard key={pool.poolId} pool={pool} />
+            ))
           ) : (
-            <LedgerRow className="flex items-start gap-3">
+            <LedgerRow className="col-span-full flex items-start gap-3">
               <ClipboardList className="mt-1 size-5 shrink-0 text-brand-mark" />
               <div>
                 <p className="font-semibold text-brand-ink">
@@ -296,7 +294,9 @@ export default async function DashboardPage() {
               </div>
             </LedgerRow>
           )}
-          <DraftPoolRows />
+          <div className="col-span-full">
+            <DraftPoolRows />
+          </div>
         </div>
       </LedgerPanel>
 

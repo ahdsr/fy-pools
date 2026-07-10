@@ -10,7 +10,10 @@ import {
   PublicToolsPanel,
   StatGrid,
 } from "@/components/app/pool-public-widgets";
-import { PublicPoolShell } from "@/components/app/public-pool-shell";
+import {
+  PublicPoolScoreRefresh,
+  PublicPoolShell,
+} from "@/components/app/public-pool-shell";
 import {
   RoundOf16BracketPanel,
   RoundOf16EntrantsPanel,
@@ -25,6 +28,7 @@ import {
 } from "@/lib/world-cup-pool/current-match";
 import {
   formatDateTime,
+  getPublicPoolRouteInfo,
   liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
@@ -43,8 +47,31 @@ export const unstable_instant = {
 const currentStandingsInfo =
   "These standings are not final. Current scores are based on results entered so far: group picks use the current group order, third-place qualifiers count only once entered or final, and knockout/finals/bonus points use completed or entered outcomes. That means the table can be skewed by today's partial results until every result is final.";
 
-export default async function PoolPage({ params }: PoolPageProps) {
-  const { poolSlug } = await params;
+export default function PoolPage({ params }: PoolPageProps) {
+  return (
+    <Suspense fallback={<PoolRouteFallback />}>
+      {params.then(({ poolSlug }) => <PoolPageContent poolSlug={poolSlug} />)}
+    </Suspense>
+  );
+}
+
+async function PoolPageContent({ poolSlug }: { poolSlug: string }) {
+  const routeInfo = await getPublicPoolRouteInfo(poolSlug);
+
+  if (routeInfo) {
+    return (
+      <PublicPoolShell poolName={routeInfo.poolName} title={routeInfo.poolName}>
+        <Suspense fallback={<PoolDetailsFallback />}>
+          <WorldCupPoolDetails poolSlug={poolSlug} />
+        </Suspense>
+      </PublicPoolShell>
+    );
+  }
+
+  return <RoundOf16PoolPage poolSlug={poolSlug} />;
+}
+
+async function RoundOf16PoolPage({ poolSlug }: { poolSlug: string }) {
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,
   });
@@ -86,6 +113,10 @@ export default async function PoolPage({ params }: PoolPageProps) {
     );
   }
 
+  notFound();
+}
+
+async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
   const standings = await getPublicPoolStandings(poolSlug);
   if (!standings) notFound();
 
@@ -115,13 +146,7 @@ export default async function PoolPage({ params }: PoolPageProps) {
   ];
 
   return (
-    <PublicPoolShell
-      poolName={pool.entriesConfig.poolName}
-      title={pool.entriesConfig.poolName}
-      scoreRefreshLabel={scoreRefreshLabel(pool)}
-      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      liveScoreMatchDates={liveScoreMatchDates(pool)}
-    >
+    <>
       <LedgerPanel>
         <StatGrid
           stats={[
@@ -187,7 +212,44 @@ export default async function PoolPage({ params }: PoolPageProps) {
           <PublicToolsPanel tools={poolTools} />
         </aside>
       </section>
-    </PublicPoolShell>
+      <PublicPoolScoreRefresh
+        liveScoreMatchDates={liveScoreMatchDates(pool)}
+        scoreRefreshLabel={scoreRefreshLabel(pool)}
+        scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      />
+    </>
+  );
+}
+
+function PoolRouteFallback() {
+  return (
+    <LedgerPanel title="Loading pool" description="Preparing public pool details.">
+      <div className="grid gap-3 p-5">
+        <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-56 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
+  );
+}
+
+function PoolDetailsFallback() {
+  return (
+    <>
+      <LedgerPanel title="Loading standings" description="Calculating the latest pool scores.">
+        <div className="grid gap-3 p-5 md:grid-cols-3">
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-24 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+      <LedgerPanel title="Loading entries" description="Preparing the current leaderboard.">
+        <div className="grid gap-3 p-5">
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+    </>
   );
 }
 

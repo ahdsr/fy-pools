@@ -1,4 +1,7 @@
+import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
+import { ArrowLeft } from "lucide-react";
 
 import {
   LockerRoom,
@@ -12,15 +15,23 @@ import {
   getReferencePicks,
 } from "@/lib/world-cup-pool/current-match";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
-import { getPublicPool } from "@/lib/world-cup-pool/data";
+import {
+  getPublicPoolRouteInfo,
+} from "@/lib/world-cup-pool/data";
 import { normalizeName } from "@/lib/world-cup-pool/scoring";
 import type { EntryPicks, LeaderboardRow } from "@/lib/world-cup-pool/types";
+import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
 
 type LockerRoomPageProps = {
   params: Promise<{ poolSlug: string }>;
 };
 
 const POSITIONS: LockerRoomPosition[] = ["GK", "DEF", "MID", "FWD"];
+
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [{ params: { poolSlug: "marcins-2026-world-cup-pool" } }],
+};
 
 function sideTakes(homeTeam: string, awayTeam: string): Record<LockerRoomSide, string[]> {
   return {
@@ -103,9 +114,34 @@ function buildLockerRoomParticipants(
   });
 }
 
-export default async function LockerRoomPage({ params }: LockerRoomPageProps) {
-  const { poolSlug } = await params;
-  const pool = await getPublicPool(poolSlug);
+export default function LockerRoomPage({ params }: LockerRoomPageProps) {
+  return (
+    <Suspense fallback={<OnThePitchRouteFallback />}>
+      {params.then(({ poolSlug }) => <LockerRoomPageContent poolSlug={poolSlug} />)}
+    </Suspense>
+  );
+}
+
+async function LockerRoomPageContent({ poolSlug }: { poolSlug: string }) {
+  const routeInfo = await getPublicPoolRouteInfo(poolSlug);
+  if (!routeInfo) notFound();
+
+  return (
+    <Suspense
+      fallback={
+        <OnThePitchLoadingScreen
+          poolHref={`/pools/${routeInfo.poolSlug}`}
+          poolName={routeInfo.poolName}
+        />
+      }
+    >
+      <WorldCupLockerRoom poolSlug={poolSlug} />
+    </Suspense>
+  );
+}
+
+async function WorldCupLockerRoom({ poolSlug }: { poolSlug: string }) {
+  const pool = await getPublicPoolSnapshot(poolSlug);
   if (!pool) notFound();
 
   const rows = buildLeaderboardRows(
@@ -128,5 +164,50 @@ export default async function LockerRoomPage({ params }: LockerRoomPageProps) {
       participants={participants}
       poolHref={`/pools/${poolSlug}`}
     />
+  );
+}
+
+function OnThePitchRouteFallback() {
+  return <OnThePitchLoadingScreen poolHref="/pools" poolName="Public pool" />;
+}
+
+function OnThePitchLoadingScreen({
+  poolHref,
+  poolName,
+}: {
+  poolHref: string;
+  poolName: string;
+}) {
+  return (
+    <main className="fixed inset-x-0 bottom-0 top-16 isolate overflow-hidden bg-[#07140f] text-white">
+      <div
+        aria-hidden="true"
+        className="absolute inset-0 bg-[radial-gradient(circle_at_50%_42%,rgb(36_110_61_/_0.78),transparent_46%),linear-gradient(90deg,rgb(255_255_255_/_0.06)_1px,transparent_1px),linear-gradient(rgb(255_255_255_/_0.06)_1px,transparent_1px)] bg-[size:auto,4rem_4rem,4rem_4rem]"
+      />
+      <header className="absolute inset-x-0 top-0 z-10 flex items-start justify-between gap-3 p-3 sm:p-5">
+        <Link
+          href={poolHref}
+          aria-label="Back to pool"
+          className="inline-flex size-10 items-center justify-center rounded-lg border border-white/12 bg-black/36 text-white shadow-2xl backdrop-blur-md"
+        >
+          <ArrowLeft className="size-4" />
+        </Link>
+        <div className="rounded-lg border border-white/12 bg-black/36 px-3 py-2 text-center shadow-2xl backdrop-blur-md">
+          <p className="text-[0.68rem] font-semibold uppercase text-white/62">
+            {poolName}
+          </p>
+          <h1 className="mt-1 font-heading text-base leading-none sm:text-lg">
+            On the Pitch
+          </h1>
+        </div>
+        <span aria-hidden="true" className="size-10" />
+      </header>
+      <div className="absolute inset-x-5 top-1/2 z-10 mx-auto max-w-sm -translate-y-1/2 rounded-xl border border-white/12 bg-[#06110d]/90 p-5 text-center shadow-2xl backdrop-blur-md">
+        <p className="text-sm font-semibold">Preparing the live match</p>
+        <p className="mt-2 text-sm leading-6 text-white/62">
+          Loading the latest score, teams, and pool positions.
+        </p>
+      </div>
+    </main>
   );
 }

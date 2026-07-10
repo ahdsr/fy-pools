@@ -1,7 +1,9 @@
 import { notFound } from "next/navigation";
+import { Suspense } from "react";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import {
+  PublicPoolScoreRefresh,
   PublicPoolMetaCard,
   PublicPoolShell,
 } from "@/components/app/public-pool-shell";
@@ -12,18 +14,57 @@ import { WorldCupBracket } from "@/components/app/world-cup-bracket";
 import { buildBracketView } from "@/lib/world-cup-pool/bracket";
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import {
-  getPublicPool,
+  getPublicPoolRouteInfo,
   liveScoreMatchDates,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
 } from "@/lib/world-cup-pool/data";
+import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
 
 type BracketPageProps = {
   params: Promise<{ poolSlug: string }>;
 };
 
-export default async function BracketPage({ params }: BracketPageProps) {
-  const { poolSlug } = await params;
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [{ params: { poolSlug: "marcins-2026-world-cup-pool" } }],
+};
+
+export default function BracketPage({ params }: BracketPageProps) {
+  return (
+    <Suspense fallback={<BracketRouteFallback />}>
+      {params.then(({ poolSlug }) => <BracketPageContent poolSlug={poolSlug} />)}
+    </Suspense>
+  );
+}
+
+async function BracketPageContent({ poolSlug }: { poolSlug: string }) {
+  const routeInfo = await getPublicPoolRouteInfo(poolSlug);
+
+  if (routeInfo) {
+    return (
+      <PublicPoolShell
+        poolName={routeInfo.poolName}
+        eyebrow="Knockout bracket"
+        title="Path to the final"
+        description="Every knockout match is arranged through the final, with live winners and scores filled in as results land."
+        meta={
+          <Suspense fallback={null}>
+            <BracketMetaStream poolSlug={poolSlug} />
+          </Suspense>
+        }
+      >
+        <Suspense fallback={<BracketDetailsFallback />}>
+          <WorldCupBracketDetails poolSlug={poolSlug} />
+        </Suspense>
+      </PublicPoolShell>
+    );
+  }
+
+  return <RoundOf16BracketPage poolSlug={poolSlug} />;
+}
+
+async function RoundOf16BracketPage({ poolSlug }: { poolSlug: string }) {
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,
   });
@@ -45,7 +86,22 @@ export default async function BracketPage({ params }: BracketPageProps) {
     );
   }
 
-  const pool = await getPublicPool(poolSlug);
+  notFound();
+}
+
+async function BracketMetaStream({ poolSlug }: { poolSlug: string }) {
+  const pool = await getPublicPoolSnapshot(poolSlug);
+  if (!pool) return null;
+
+  const referencePicks = getReferencePicks(pool.picksByPath);
+  const bracket = buildBracketView(pool.results, referencePicks);
+  if (!bracket) return null;
+
+  return <PublicPoolMetaCard label="Source" value={bracket.sourceLabel} />;
+}
+
+async function WorldCupBracketDetails({ poolSlug }: { poolSlug: string }) {
+  const pool = await getPublicPoolSnapshot(poolSlug);
   if (!pool) notFound();
 
   const referencePicks = getReferencePicks(pool.picksByPath);
@@ -53,18 +109,7 @@ export default async function BracketPage({ params }: BracketPageProps) {
   if (!bracket) notFound();
 
   return (
-    <PublicPoolShell
-      poolName={pool.entriesConfig.poolName}
-      eyebrow="Knockout bracket"
-      title="Path to the final"
-      description="Every knockout match is arranged through the final, with live winners and scores filled in as results land."
-      scoreRefreshLabel={scoreRefreshLabel(pool)}
-      scoreRefreshSource={scoreRefreshSourceLabel(pool)}
-      liveScoreMatchDates={liveScoreMatchDates(pool)}
-      meta={
-        <PublicPoolMetaCard label="Source" value={bracket.sourceLabel} />
-      }
-    >
+    <>
       <LedgerPanel
         title="Tournament bracket"
         description="Scroll horizontally to follow each side of the draw into the championship match."
@@ -75,6 +120,35 @@ export default async function BracketPage({ params }: BracketPageProps) {
           picks={referencePicks}
         />
       </LedgerPanel>
-    </PublicPoolShell>
+      <PublicPoolScoreRefresh
+        liveScoreMatchDates={liveScoreMatchDates(pool)}
+        scoreRefreshLabel={scoreRefreshLabel(pool)}
+        scoreRefreshSource={scoreRefreshSourceLabel(pool)}
+      />
+    </>
+  );
+}
+
+function BracketRouteFallback() {
+  return (
+    <LedgerPanel title="Loading bracket" description="Preparing the tournament path.">
+      <div className="grid gap-3 p-5">
+        <div className="h-20 animate-pulse rounded-md bg-muted/80" />
+        <div className="h-72 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
+  );
+}
+
+function BracketDetailsFallback() {
+  return (
+    <LedgerPanel
+      title="Loading tournament bracket"
+      description="Placing the latest results on the knockout path."
+    >
+      <div className="grid gap-3 p-5">
+        <div className="h-64 animate-pulse rounded-md bg-muted/80" />
+      </div>
+    </LedgerPanel>
   );
 }

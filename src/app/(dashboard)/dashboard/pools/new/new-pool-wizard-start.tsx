@@ -1022,67 +1022,39 @@ export function NewPoolWizardStart({
             />
             {currentStepDefinition.key === "template" ? (
               <div className="grid gap-4">
-                <div className="rounded-lg border bg-background p-5">
-                  <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
-                    Selected format
-                  </p>
-                  <h2 className="mt-3 text-2xl font-bold tracking-[0.005em] text-brand-ink">
-                    {selectedTemplate?.name ?? `Choose the ${stage.label} template`}
-                  </h2>
-                  <p className="mt-3 text-sm font-normal leading-6 text-muted-foreground">
-                    {stage.stage === "semi-final"
-                      ? "The bracket is seeded from the four quarter-finals and locks before the first semi-final."
-                      : "This pool covers the three remaining World Cup quarter-finals: Spain–Belgium, Argentina–Switzerland, and Norway–England."}
-                  </p>
-                </div>
-
-                <div className="grid gap-3 md:grid-cols-2">
-                  <button
-                    type="button"
-                    onClick={() => selectTemplate(QUARTER_FINAL_TEMPLATE_SLUG)}
-                    className={cn(
-                      "rounded-lg border bg-surface-paper p-4 text-left transition hover:border-primary/40 hover:bg-cta-green-soft",
-                      state.templateSlug === QUARTER_FINAL_TEMPLATE_SLUG
-                        ? "border-primary ring-1 ring-primary/20"
-                        : undefined,
-                    )}
-                  >
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <p className="font-semibold text-brand-ink">
-                          {quarterFinalTemplate?.name ?? "Remaining Quarter-final Pool"}
-                        </p>
-                        <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                          Three remaining quarter-final winners, four preset props,
-                          simple scoring, and invite planning.
-                        </p>
-                      </div>
-                      {state.templateSlug === QUARTER_FINAL_TEMPLATE_SLUG ? (
-                        <CheckCircle2 className="size-5 shrink-0 text-brand-success" />
-                      ) : (
-                        <Circle className="size-5 shrink-0 text-muted-foreground" />
-                      )}
+                <button
+                  type="button"
+                  onClick={() => selectTemplate(QUARTER_FINAL_TEMPLATE_SLUG)}
+                  className={cn(
+                    "rounded-lg border bg-background p-5 text-left transition hover:border-primary/40 hover:bg-cta-green-soft",
+                    state.templateSlug === QUARTER_FINAL_TEMPLATE_SLUG
+                      ? "border-primary ring-1 ring-primary/20"
+                      : undefined,
+                  )}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
+                        {quarterFinalTemplate?.name ?? "Quarter Final Pool"}
+                      </h2>
+                      <p className="mt-3 text-sm font-normal leading-6 text-muted-foreground">
+                        Three remaining quarter-final winners, four preset props,
+                        simple scoring, and invite planning.
+                      </p>
                     </div>
-                  </button>
-                  <div className="rounded-lg border bg-muted/50 p-4">
-                    <p className="font-semibold text-brand-ink">
-                      Need another format?
-                    </p>
-                    <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                      Other templates stay in the library until their setup
-                      defaults are wired.
-                    </p>
-                    <Button asChild variant="outline" className="mt-4">
-                      <Link href="/dashboard/templates">Browse templates</Link>
-                    </Button>
+                    {state.templateSlug === QUARTER_FINAL_TEMPLATE_SLUG ? (
+                      <CheckCircle2 className="size-5 shrink-0 text-brand-success" />
+                    ) : (
+                      <Circle className="size-5 shrink-0 text-muted-foreground" />
+                    )}
                   </div>
-                </div>
+                </button>
 
                 <button
                   type="button"
                   onClick={() => selectTemplate(SEMI_FINAL_TEMPLATE_SLUG)}
                   className={cn(
-                    "rounded-lg border bg-surface-paper p-4 text-left transition hover:border-primary/40 hover:bg-cta-green-soft",
+                    "rounded-lg border bg-background p-5 text-left transition hover:border-primary/40 hover:bg-cta-green-soft",
                     state.templateSlug === SEMI_FINAL_TEMPLATE_SLUG
                       ? "border-primary ring-1 ring-primary/20"
                       : undefined,
@@ -1090,10 +1062,10 @@ export function NewPoolWizardStart({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold text-brand-ink">
-                        {semiFinalTemplate?.name ?? "Semi-final Pool"}
-                      </p>
-                      <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                      <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
+                        {semiFinalTemplate?.name ?? "Semi-Final Pool"}
+                      </h2>
+                      <p className="mt-3 text-sm font-normal leading-6 text-muted-foreground">
                         Correct bracket paths, three preset props, and a July 14 lock before the first semi-final.
                       </p>
                     </div>
@@ -1104,6 +1076,26 @@ export function NewPoolWizardStart({
                     )}
                   </div>
                 </button>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 rounded-lg border border-dashed bg-muted/35 px-5 py-4">
+                  <div className="flex min-w-0 items-start gap-3">
+                    <FileText
+                      className="mt-0.5 size-5 shrink-0 text-muted-foreground"
+                      aria-hidden="true"
+                    />
+                    <div>
+                      <h2 className="text-lg font-semibold text-brand-ink">
+                        Need another format?
+                      </h2>
+                      <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                        Browse the full template library for more options.
+                      </p>
+                    </div>
+                  </div>
+                  <Button asChild variant="outline">
+                    <Link href="/dashboard/templates">Browse templates</Link>
+                  </Button>
+                </div>
 
                 {!validation.template ? (
                   <FieldError>

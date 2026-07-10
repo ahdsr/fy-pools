@@ -8,7 +8,11 @@ import {
   UsersRound,
 } from "lucide-react";
 
-import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
+import {
+  CollapsibleLedgerPanel,
+  LedgerRow,
+  LedgerRows,
+} from "@/components/app/ledger";
 import { StatusBadge } from "@/components/app/pool-public-widgets";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
@@ -27,15 +31,16 @@ export function EntryMovementPanel({
   if (!digest) return null;
 
   return (
-    <LedgerPanel
+    <CollapsibleLedgerPanel
       title="Race movement"
       description="Current rank pressure, nearby rivals, and the outcomes that can move this entry."
+      defaultOpen={false}
     >
       <RaceSnapshot digest={digest} />
       <WinPathPanel digest={digest} />
       <BigDeciders digest={digest} />
       <CloseRivals digest={digest} />
-    </LedgerPanel>
+    </CollapsibleLedgerPanel>
   );
 }
 
@@ -192,54 +197,52 @@ function BigDeciders({ digest }: { digest: EntryMovementDigest }) {
 
   return (
     <div className="border-t px-5 py-5">
-      <div className="rounded-lg border bg-background p-4">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="min-w-0">
-            <h3 className="text-lg font-semibold tracking-normal text-brand-ink">
-              Big deciders
-            </h3>
-            <p className="mt-1 text-sm leading-5 text-muted-foreground">
-              The matches where one result helps, hurts, or clarifies the path.
-              Each lane starts from the current leaderboard spot and finishes at
-              the projected result.
-            </p>
-          </div>
-          <StatusBadge
-            tone={digest.matchDeciders.length ? "helpful" : "neutral"}
-            label={`${digest.matchDeciders.length} match${digest.matchDeciders.length === 1 ? "" : "es"}`}
-          />
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="min-w-0">
+          <h3 className="text-lg font-semibold tracking-normal text-brand-ink">
+            Big deciders
+          </h3>
+          <p className="mt-1 text-sm leading-5 text-muted-foreground">
+            The matches where one result helps, hurts, or clarifies the path.
+            Each lane starts from the current leaderboard spot and finishes at
+            the projected result.
+          </p>
         </div>
-
-        {digest.matchDeciders.length ? (
-          <div className="mt-4 overflow-hidden rounded-md border bg-surface-paper">
-            {dateGroups.map((group) => (
-              <section key={group.key} className="[&+&]:border-t">
-                <div className="flex flex-wrap items-center justify-between gap-2 border-b bg-surface-ledger/70 px-4 py-2">
-                  <h4 className="text-sm font-semibold text-brand-ink">
-                    {group.label}
-                  </h4>
-                  <Badge variant="outline">
-                    {group.items.length} match{group.items.length === 1 ? "" : "es"}
-                  </Badge>
-                </div>
-                <div className="divide-y">
-                  {group.items.map((decider) => (
-                    <MatchDeciderRow
-                      key={decider.id}
-                      currentRank={digest.target.rank}
-                      decider={decider}
-                    />
-                  ))}
-                </div>
-              </section>
-            ))}
-          </div>
-        ) : (
-          <div className="mt-4 rounded-md border bg-surface-paper px-4 py-3 text-sm leading-6 text-muted-foreground">
-            {digest.emptyState}
-          </div>
-        )}
+        <StatusBadge
+          tone={digest.matchDeciders.length ? "helpful" : "neutral"}
+          label={`${digest.matchDeciders.length} match${digest.matchDeciders.length === 1 ? "" : "es"}`}
+        />
       </div>
+
+      {digest.matchDeciders.length ? (
+        <div className="mt-5 border-y">
+          {dateGroups.map((group) => (
+            <section key={group.key} className="[&+&]:border-t">
+              <div className="flex flex-wrap items-center justify-between gap-2 bg-surface-ledger/70 px-4 py-2">
+                <h4 className="text-sm font-semibold text-brand-ink">
+                  {group.label}
+                </h4>
+                <Badge variant="outline">
+                  {group.items.length} match{group.items.length === 1 ? "" : "es"}
+                </Badge>
+              </div>
+              <div className="divide-y">
+                {group.items.map((decider) => (
+                  <MatchDeciderRow
+                    key={decider.id}
+                    currentRank={digest.target.rank}
+                    decider={decider}
+                  />
+                ))}
+              </div>
+            </section>
+          ))}
+        </div>
+      ) : (
+        <p className="mt-4 border-l-2 border-brand-rule py-1 pl-3 text-sm leading-6 text-muted-foreground">
+          {digest.emptyState}
+        </p>
+      )}
     </div>
   );
 }
@@ -351,19 +354,19 @@ function OutcomeLane({
   return (
     <div
       className={cn(
-        "rounded-lg border p-3",
+        "border-l-2 py-3 pl-4",
         isDanger
-          ? "border-destructive/20 bg-destructive/5"
+          ? "border-destructive bg-destructive/5"
           : isNeutral
-            ? "bg-background"
-            : "border-brand-mark/20 bg-cta-green-soft/70",
+            ? "border-brand-rule"
+            : "border-brand-success bg-cta-green-soft/70",
       )}
     >
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_8.5rem] lg:items-stretch">
-        <div className="relative min-h-[5.75rem] overflow-hidden rounded-md border bg-surface-paper px-3 py-3">
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_8.5rem] lg:items-center">
+        <div className="relative min-h-16 overflow-hidden px-1 py-2">
           <div
             className={cn(
-              "absolute left-4 right-4 top-1/2 h-1 -translate-y-1/2 rounded-full",
+              "absolute left-5 right-2 top-1/2 h-px -translate-y-1/2",
               isDanger
                 ? "bg-destructive/20"
                 : isNeutral
@@ -382,7 +385,7 @@ function OutcomeLane({
             >
               <Icon className="size-4" />
             </span>
-            <div className="min-w-0 rounded-md border bg-background px-3 py-2 shadow-sm">
+            <div className="min-w-0 bg-surface-paper px-3 py-2 shadow-sm ring-1 ring-border">
               <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
                 {outcome.label}
               </p>
@@ -436,7 +439,7 @@ function LanePost({
   note?: string;
 }) {
   return (
-    <div className="flex min-h-16 items-center justify-between gap-3 rounded-md border bg-surface-paper px-3 py-2 lg:flex-col lg:items-start lg:justify-center">
+    <div className="flex min-h-16 items-center justify-between gap-3 border-t pt-3 lg:flex-col lg:items-start lg:justify-center lg:border-l lg:border-t-0 lg:pl-4 lg:pt-0">
       <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
         {label}
       </p>

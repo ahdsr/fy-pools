@@ -54,20 +54,42 @@ export function PublicPoolShell({
           {meta ? <aside className="grid gap-3">{meta}</aside> : null}
         </section>
         {children}
-        {liveScoreMatchDates ? (
-          <LiveScoreRefresh matchDates={liveScoreMatchDates} />
-        ) : null}
-        {scoreRefreshLabel ? (
-          <div className="pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70">
-            <p>
-              Scores updated {scoreRefreshLabel}
-              {scoreRefreshSource ? ` from ${scoreRefreshSource}` : ""}
-            </p>
-          </div>
-        ) : null}
+        <PublicPoolScoreRefresh
+          liveScoreMatchDates={liveScoreMatchDates}
+          scoreRefreshLabel={scoreRefreshLabel}
+          scoreRefreshSource={scoreRefreshSource}
+        />
       </div>
       <SiteFooter />
     </main>
+  );
+}
+
+type PublicPoolScoreRefreshProps = {
+  scoreRefreshLabel?: string;
+  scoreRefreshSource?: string;
+  liveScoreMatchDates?: string[];
+};
+
+export function PublicPoolScoreRefresh({
+  scoreRefreshLabel,
+  scoreRefreshSource,
+  liveScoreMatchDates,
+}: PublicPoolScoreRefreshProps) {
+  return (
+    <>
+      {liveScoreMatchDates ? (
+        <LiveScoreRefresh matchDates={liveScoreMatchDates} />
+      ) : null}
+      {scoreRefreshLabel ? (
+        <div className="pb-2 text-center text-[0.6875rem] font-normal leading-4 text-muted-foreground/70">
+          <p>
+            Scores updated {scoreRefreshLabel}
+            {scoreRefreshSource ? ` from ${scoreRefreshSource}` : ""}
+          </p>
+        </div>
+      ) : null}
+    </>
   );
 }
 
