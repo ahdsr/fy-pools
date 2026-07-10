@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import {
   AlertCircle,
   ArrowRight,
@@ -36,6 +37,8 @@ import { formatDateTime } from "@/lib/date-time";
 import { DraftPoolRows } from "./draft-pool-rows";
 import { DeletePoolButton } from "./pools/delete-pool-button";
 import { ShareLinkButton } from "./share-link-button";
+
+export const unstable_instant = { prefetch: "runtime", samples: [{}] };
 
 function formatAuditEventType(value: string) {
   return value
@@ -243,13 +246,7 @@ function AuditEventRow({ event }: { event: CommissionerAuditEvent }) {
   );
 }
 
-export default async function DashboardPage() {
-  const [pools, notifications, auditEvents] = await Promise.all([
-    getCommissionerPoolSummaries(),
-    getCommissionerNotifications(),
-    getCommissionerAuditEvents(),
-  ]);
-
+export default function DashboardPage() {
   return (
     <PageShell
       eyebrow="Pool admin"
@@ -265,6 +262,22 @@ export default async function DashboardPage() {
         </Button>
       }
     >
+      <Suspense fallback={<DashboardWorkspaceSkeleton />}>
+        <DashboardWorkspaceContent />
+      </Suspense>
+    </PageShell>
+  );
+}
+
+async function DashboardWorkspaceContent() {
+  const [pools, notifications, auditEvents] = await Promise.all([
+    getCommissionerPoolSummaries(),
+    getCommissionerNotifications(),
+    getCommissionerAuditEvents(),
+  ]);
+
+  return (
+    <>
       <LedgerPanel
         title="Current pools"
         description="Pools owned by this commissioner, including invite status, submissions, deadlines, and scoring state."
@@ -408,6 +421,28 @@ export default async function DashboardPage() {
           },
         ]}
       />
-    </PageShell>
+    </>
+  );
+}
+
+function DashboardWorkspaceSkeleton() {
+  return (
+    <div className="grid gap-5" aria-busy="true" aria-live="polite">
+      <LedgerPanel
+        title="Current pools"
+        description="Loading your pool operations."
+      >
+        <div className="grid gap-4 p-5 md:grid-cols-2">
+          <div className="h-52 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-52 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+      <LedgerPanel title="Commissioner inbox" description="Loading recent activity.">
+        <div className="grid gap-3 p-5">
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
+    </div>
   );
 }

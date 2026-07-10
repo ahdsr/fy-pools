@@ -128,6 +128,8 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
   const [supabase] = React.useState<ReturnType<
     typeof createSupabaseBrowserClient
   > | null>(() => {
+    if (typeof window === "undefined") return null;
+
     try {
       return createSupabaseBrowserClient();
     } catch {
@@ -135,7 +137,9 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     }
   });
   const [user, setUser] = React.useState<MockUser | null>(null);
-  const [hydrated, setHydrated] = React.useState(() => !supabase);
+  const [hydrated, setHydrated] = React.useState(
+    () => typeof window !== "undefined" && !supabase,
+  );
 
   const refreshUser = React.useCallback(async () => {
     if (!supabase) return;
@@ -702,7 +706,18 @@ export function HeaderAccountControls({
   const router = useRouter();
   const { user, hydrated } = useMockUser();
 
-  if (!hydrated || !user) {
+  if (!hydrated) {
+    return (
+      <div className={cn("flex items-center gap-2", className)} aria-busy="true">
+        <span
+          aria-label="Checking account"
+          className="grid size-9 place-items-center rounded-full border border-white/18 bg-white/12"
+        />
+      </div>
+    );
+  }
+
+  if (!user) {
     return (
       <div className={cn("flex items-center gap-2", className)}>
         <Button

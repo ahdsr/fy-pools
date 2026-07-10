@@ -1,11 +1,7 @@
-import { redirect } from "next/navigation";
-
 import { AuthSplitLayout } from "@/components/app/auth-split-layout";
 import { MockSignUpForm } from "@/components/app/mock-auth";
 import { SignUpValueCarousel } from "@/components/app/sign-up-value-carousel";
 import { safeNextPath } from "@/lib/auth/paths";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getSupabaseUser } from "@/lib/supabase/server";
 
 type SignUpPageProps = {
   searchParams: Promise<{ next?: string }>;
@@ -14,12 +10,6 @@ type SignUpPageProps = {
 export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const { next } = await searchParams;
   const nextPath = safeNextPath(next);
-
-  if (isSupabaseConfigured()) {
-    const user = await getSupabaseUser();
-
-    if (user) redirect(nextPath);
-  }
 
   return (
     <AuthSplitLayout

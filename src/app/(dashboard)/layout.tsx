@@ -1,12 +1,11 @@
-import { redirect } from "next/navigation";
-import { connection } from "next/server";
-import { Suspense } from "react";
-
-import { DashboardLoadingScreen } from "@/components/app/dashboard-loading-screen";
 import { DashboardHeader } from "@/components/app/mock-auth";
-import { getSupabaseUser } from "@/lib/supabase/server";
 
-export default async function DashboardLayout({
+// The proxy handles route entry for this authenticated area. Individual data
+// access functions still verify the user and pool ownership before returning
+// or mutating private data.
+export const unstable_instant = false;
+
+export default function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
@@ -14,24 +13,7 @@ export default async function DashboardLayout({
   return (
     <>
       <DashboardHeader />
-      <Suspense fallback={<DashboardLoadingScreen />}>
-        <AuthenticatedDashboard>{children}</AuthenticatedDashboard>
-      </Suspense>
+      {children}
     </>
   );
-}
-
-async function AuthenticatedDashboard({
-  children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
-  await connection();
-  const user = await getSupabaseUser();
-
-  if (!user) {
-    redirect("/sign-in");
-  }
-
-  return children;
 }

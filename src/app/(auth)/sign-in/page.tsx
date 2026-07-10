@@ -1,10 +1,6 @@
-import { redirect } from "next/navigation";
-
 import { AuthSplitLayout } from "@/components/app/auth-split-layout";
 import { MockSignInForm } from "@/components/app/mock-auth";
 import { safeNextPath } from "@/lib/auth/paths";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getSupabaseUser } from "@/lib/supabase/server";
 
 type SignInPageProps = {
   searchParams: Promise<{ next?: string }>;
@@ -13,12 +9,6 @@ type SignInPageProps = {
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const { next } = await searchParams;
   const nextPath = safeNextPath(next);
-
-  if (isSupabaseConfigured()) {
-    const user = await getSupabaseUser();
-
-    if (user) redirect(nextPath);
-  }
 
   return (
     <AuthSplitLayout

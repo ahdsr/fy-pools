@@ -46,7 +46,9 @@ const categoryVisuals: Record<string, { label: string; image: string }> = {
   },
 };
 
-export default async function DashboardPoolsPage() {
+export const unstable_instant = { prefetch: "runtime", samples: [{}] };
+
+export default function DashboardPoolsPage() {
   return (
     <PageShell
       eyebrow="Pool management"
