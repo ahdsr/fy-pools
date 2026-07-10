@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   ArrowRight,
@@ -157,6 +158,13 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
             Leaderboard <Trophy />
           </Link>
         </Button>
+        {isActivePool(pool) && pool.makePicksHref ? (
+          <Button asChild variant="outline">
+            <Link href={pool.makePicksHref}>
+              Make picks <ListChecks />
+            </Link>
+          </Button>
+        ) : null}
         {isActivePool(pool) ? (
           <ShareLinkButton href={pool.shareInviteHref} />
         ) : null}
@@ -218,6 +226,10 @@ async function DashboardWorkspaceContent() {
   ]);
   const openPools = sortPoolsByCreation(pools.filter((pool) => !isPastPool(pool)));
   const pastPools = sortPoolsByCreation(pools.filter(isPastPool));
+
+  if (!pools.length) {
+    redirect("/dashboard/pools");
+  }
 
   return (
     <>

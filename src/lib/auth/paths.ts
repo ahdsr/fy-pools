@@ -1,4 +1,4 @@
-export const DEFAULT_AUTH_REDIRECT = "/dashboard/pools";
+export const DEFAULT_AUTH_REDIRECT = "/dashboard";
 
 export function safeNextPath(
   value: FormDataEntryValue | string | null | undefined,

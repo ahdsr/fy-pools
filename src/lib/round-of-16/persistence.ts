@@ -159,6 +159,7 @@ export type CommissionerPoolSummary = {
   poolName: string;
   poolSlug: string;
   shareInviteHref: string;
+  makePicksHref: string;
   status: string;
   templateName: string;
   createdAt: string;
@@ -954,6 +955,8 @@ export async function submitRoundOf16Picks({
     throw new Error("Picks were not submitted.");
   }
 
+  revalidatePath("/dashboard");
+
   return {
     entryId: String(submittedRow.entry_id),
     entryPickId: String(submittedRow.entry_pick_id),
@@ -1045,7 +1048,7 @@ export async function getCommissionerPoolSummaries() {
   const { data: pools, error } = await admin
     .from("pools")
     .select(
-      "id,name,slug,status,settings,created_at,updated_at,template_versions(name),pool_invites(id,email,code,status,expires_at),entries(id,metadata,entry_picks(status,submitted_at))",
+      "id,name,slug,status,settings,created_at,updated_at,template_versions(name),pool_invites(id,email,code,status,expires_at),entries(id,user_id,metadata,entry_picks(status,submitted_at))",
     )
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
@@ -1083,6 +1086,15 @@ export async function getCommissionerPoolSummaries() {
     const shareInvite = invites.find((invite) => !String(invite.email ?? ""));
     const namedInvites = invites.filter((invite) => String(invite.email ?? ""));
     const entries = Array.isArray(pool.entries) ? pool.entries : [];
+    const commissionerEntry = entries.find(
+      (entry) => String(entry.user_id ?? "") === user.id,
+    );
+    const commissionerEntryPick = Array.isArray(commissionerEntry?.entry_picks)
+      ? commissionerEntry.entry_picks[0]
+      : commissionerEntry?.entry_picks;
+    const commissionerHasSubmittedPicks = ["submitted", "locked"].includes(
+      String(commissionerEntryPick?.status ?? ""),
+    );
     const inviteCounts = namedInvites.reduce(
       (counts, invite) => {
         const status = effectiveInviteStatus({
@@ -1139,6 +1151,10 @@ export async function getCommissionerPoolSummaries() {
       poolName: String(pool.name),
       poolSlug: String(pool.slug),
       shareInviteHref: shareInvite?.code ? `/join/${String(shareInvite.code)}` : "",
+      makePicksHref:
+        shareInvite?.code && !commissionerHasSubmittedPicks
+          ? `/join/${String(shareInvite.code)}`
+          : "",
       status: String(pool.status ?? "draft"),
       templateName: String(templateVersion?.name ?? "Round of 16 Pool"),
       createdAt: String(pool.created_at ?? ""),

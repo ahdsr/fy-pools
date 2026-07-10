@@ -185,26 +185,6 @@ async function JoinPageContent({ params, searchParams }: JoinPageProps) {
             `Make your ${stage.pluralLabel.toLowerCase()} picks before the pool deadline.`
           }
           showHeader={false}
-          heroAction={
-            <div className="flex flex-wrap gap-2">
-              {previewNewEntrant && user ? (
-                <Button asChild variant="outline">
-                  <Link href={`/join/${encodeURIComponent(inviteCode)}`}>
-                    Return to your picks
-                  </Link>
-                </Button>
-              ) : (
-                <>
-                  <Button asChild variant="outline">
-                    <Link href={signUpPathFor(nextPath)}>Create account</Link>
-                  </Button>
-                  <Button asChild variant="ghost">
-                    <Link href={signInPathFor(nextPath)}>Sign in</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          }
         >
           <LedgerPanel
             title="Sign in required"

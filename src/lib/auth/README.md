@@ -13,7 +13,8 @@ participants.
   name and the user is redirected immediately.
 - `/sign-in` signs in with email/password, ensures a matching `profiles` row
   exists, and redirects to a sanitized `next` path, defaulting to
-  `/dashboard/pools`.
+  `/dashboard`. The dashboard routes commissioners with no pools to
+  `/dashboard/pools` to begin setup.
 - Both password forms offer Google sign-in. Google starts PKCE OAuth in the
   browser and returns through `/auth/callback`, which exchanges the code,
   creates the profile when needed, and redirects to the same sanitized

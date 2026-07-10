@@ -130,7 +130,7 @@ export function RoundOf16ViewerEntryPanel({
         )
       }
     >
-      <LedgerRows>
+      <LedgerRows className="divide-y-0">
         <LedgerRow className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           {settings.matchups.map((matchup, index) => (
             <div key={matchup.id} className="min-w-0">
@@ -146,17 +146,22 @@ export function RoundOf16ViewerEntryPanel({
           ))}
         </LedgerRow>
         {bonusProps.length ? (
-          <LedgerRow className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-            {bonusProps.map((prop) => (
-              <div key={prop.id} className="min-w-0">
-                <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
-                  {prop.label}
-                </p>
-                <p className="mt-1 truncate font-semibold text-brand-ink">
-                  {entry.picks.bonusAnswers[prop.id] ?? "No answer"}
-                </p>
-              </div>
-            ))}
+          <LedgerRow className="space-y-4">
+            <h3 className="text-sm font-bold tracking-normal text-brand-ink">
+              Bonus questions
+            </h3>
+            <dl className="grid gap-x-8 gap-y-4 sm:grid-cols-[minmax(0,1fr)_minmax(10rem,0.6fr)]">
+              {bonusProps.map((prop) => (
+                <div key={prop.id} className="contents">
+                  <dt className="min-w-0 text-sm font-medium text-muted-foreground">
+                    {prop.label}
+                  </dt>
+                  <dd className="min-w-0 font-semibold text-brand-ink">
+                    {entry.picks.bonusAnswers[prop.id] ?? "No answer"}
+                  </dd>
+                </div>
+              ))}
+            </dl>
           </LedgerRow>
         ) : null}
       </LedgerRows>

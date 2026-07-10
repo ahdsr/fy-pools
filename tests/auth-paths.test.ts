@@ -8,11 +8,11 @@ import {
 } from "@/lib/auth/paths";
 
 describe("auth redirect paths", () => {
-  it("defaults to the pools dashboard and rejects unsafe destinations", () => {
-    expect(DEFAULT_AUTH_REDIRECT).toBe("/dashboard/pools");
-    expect(safeNextPath(null)).toBe("/dashboard/pools");
-    expect(safeNextPath("https://attacker.example")).toBe("/dashboard/pools");
-    expect(safeNextPath("//attacker.example")).toBe("/dashboard/pools");
+  it("defaults to the workspace dashboard and rejects unsafe destinations", () => {
+    expect(DEFAULT_AUTH_REDIRECT).toBe("/dashboard");
+    expect(safeNextPath(null)).toBe("/dashboard");
+    expect(safeNextPath("https://attacker.example")).toBe("/dashboard");
+    expect(safeNextPath("//attacker.example")).toBe("/dashboard");
     expect(safeNextPath("/dashboard/pools?filter=live")).toBe(
       "/dashboard/pools?filter=live",
     );
@@ -30,7 +30,7 @@ describe("auth redirect paths", () => {
     expect(
       authCallbackUrlFor("https://fy-pools.vercel.app", "https://attacker.example"),
     ).toBe(
-      "https://fy-pools.vercel.app/auth/callback?next=%2Fdashboard%2Fpools",
+      "https://fy-pools.vercel.app/auth/callback?next=%2Fdashboard",
     );
   });
 
