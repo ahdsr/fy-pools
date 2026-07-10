@@ -96,4 +96,17 @@ describe("Supabase route proxy", () => {
       "refreshed-session",
     );
   });
+
+  it("refreshes the session on public routes so shared navigation sees it", async () => {
+    mocks.refreshCookie = true;
+    mocks.getUser.mockResolvedValue({ data: { user: { id: "user-1" } } });
+
+    const response = await updateSupabaseSession(request("/"));
+
+    expect(response.status).toBe(200);
+    expect(mocks.getUser).toHaveBeenCalledOnce();
+    expect(response.cookies.get("sb-test-auth-token")?.value).toBe(
+      "refreshed-session",
+    );
+  });
 });

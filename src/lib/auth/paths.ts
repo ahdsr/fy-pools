@@ -1,4 +1,4 @@
-export const DEFAULT_AUTH_REDIRECT = "/dashboard";
+export const DEFAULT_AUTH_REDIRECT = "/dashboard/pools";
 
 export function safeNextPath(
   value: FormDataEntryValue | string | null | undefined,
@@ -57,4 +57,11 @@ export function resetPasswordPathFor(nextPath: string) {
   return safePath === DEFAULT_AUTH_REDIRECT
     ? "/reset-password"
     : `/reset-password?next=${encodeURIComponent(safePath)}`;
+}
+
+export function signInErrorPathFor(nextPath: string) {
+  const signInPath = signInPathFor(nextPath);
+  const separator = signInPath.includes("?") ? "&" : "?";
+
+  return `${signInPath}${separator}auth_error=callback`;
 }

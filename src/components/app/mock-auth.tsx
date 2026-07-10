@@ -17,6 +17,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { type AuthUser, authUserFromSupabase } from "@/lib/auth/user";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_AUTH_REDIRECT,
@@ -33,12 +35,6 @@ import {
   updatePasswordAction,
 } from "@/lib/auth/actions";
 
-type MockUser = {
-  name: string;
-  email: string;
-  role: string;
-};
-
 type HeaderAccountControlsProps = {
   className?: string;
 };
@@ -54,6 +50,7 @@ type HeaderBrandWordmarkProps = {
 
 type MockAuthFormProps = {
   nextPath?: string | null;
+  initialMessage?: string;
 };
 
 export type PublicPoolNavKey =
@@ -91,28 +88,11 @@ const adminNavItems = [
 ] as const;
 
 type MockAuthContextValue = {
-  user: MockUser | null;
+  user: AuthUser | null;
   hydrated: boolean;
 };
 
 const MockAuthContext = React.createContext<MockAuthContextValue | null>(null);
-
-function userFromSupabase(user: {
-  email?: string;
-  user_metadata?: { display_name?: string; name?: string };
-} | null): MockUser | null {
-  if (!user?.email) return null;
-
-  return {
-    name:
-      user.user_metadata?.display_name ??
-      user.user_metadata?.name ??
-      user.email.split("@")[0] ??
-      "Pool user",
-    email: user.email,
-    role: "Pool user",
-  };
-}
 
 function useMockUser() {
   const context = React.useContext(MockAuthContext);
@@ -124,7 +104,14 @@ function useMockUser() {
   return context;
 }
 
-export function MockAuthProvider({ children }: { children: React.ReactNode }) {
+export function MockAuthProvider({
+  children,
+  initialUser,
+}: {
+  children: React.ReactNode;
+  initialUser: AuthUser | null;
+}) {
+  const pathname = usePathname();
   const [supabase] = React.useState<ReturnType<
     typeof createSupabaseBrowserClient
   > | null>(() => {
@@ -136,17 +123,15 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
       return null;
     }
   });
-  const [user, setUser] = React.useState<MockUser | null>(null);
-  const [hydrated, setHydrated] = React.useState(
-    () => typeof window !== "undefined" && !supabase,
-  );
+  const [user, setUser] = React.useState<AuthUser | null>(initialUser);
+  const [hydrated, setHydrated] = React.useState(true);
 
   const refreshUser = React.useCallback(async () => {
     if (!supabase) return;
 
     try {
       const { data } = await supabase.auth.getUser();
-      setUser(userFromSupabase(data.user));
+      setUser(authUserFromSupabase(data.user));
     } finally {
       setHydrated(true);
     }
@@ -154,7 +139,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
 
   React.useEffect(() => {
     void refreshUser();
-  }, [refreshUser]);
+  }, [pathname, refreshUser]);
 
   React.useEffect(() => {
     if (!supabase) {
@@ -164,7 +149,7 @@ export function MockAuthProvider({ children }: { children: React.ReactNode }) {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(userFromSupabase(session?.user ?? null));
+      setUser(authUserFromSupabase(session?.user));
       setHydrated(true);
     });
 
@@ -400,7 +385,70 @@ function MobilePublicPoolNav({
   );
 }
 
-export function MockSignInForm({ nextPath }: MockAuthFormProps) {
+function GoogleAuthButton({ nextPath }: { nextPath: string }) {
+  const [pending, setPending] = React.useState(false);
+  const [message, setMessage] = React.useState<string | null>(null);
+
+  async function signInWithGoogle() {
+    setPending(true);
+    setMessage(null);
+
+    try {
+      const callbackUrl = new URL("/auth/callback", window.location.origin);
+      callbackUrl.searchParams.set("next", nextPath);
+
+      const supabase = createSupabaseBrowserClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: callbackUrl.toString(),
+        },
+      });
+
+      if (error) {
+        setMessage("Google sign-in could not be started. Please try again.");
+        setPending(false);
+      }
+    } catch {
+      setMessage("Google sign-in is not available right now.");
+      setPending(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <Button
+        className="w-full"
+        type="button"
+        variant="outline"
+        disabled={pending}
+        onClick={() => void signInWithGoogle()}
+      >
+        {pending ? "Connecting to Google..." : "Continue with Google"}
+      </Button>
+      {message ? (
+        <p className="text-sm font-medium leading-5 text-destructive" role="alert">
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function AuthMethodDivider() {
+  return (
+    <div className="flex items-center gap-3 text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
+      <Separator className="flex-1" />
+      <span>or</span>
+      <Separator className="flex-1" />
+    </div>
+  );
+}
+
+export function MockSignInForm({
+  nextPath,
+  initialMessage,
+}: MockAuthFormProps) {
   const redirectPath = safeNextPath(nextPath);
   const [email, setEmail] = React.useState("");
   const [state, formAction, pending] = React.useActionState(
@@ -411,6 +459,8 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
   return (
     <form className="space-y-5" action={formAction}>
       <input type="hidden" name="next" value={redirectPath} />
+      <GoogleAuthButton nextPath={redirectPath} />
+      <AuthMethodDivider />
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -432,9 +482,9 @@ export function MockSignInForm({ nextPath }: MockAuthFormProps) {
           required
         />
       </div>
-      {state.message ? (
+      {state.message ?? initialMessage ? (
         <p className="text-sm font-medium leading-5 text-destructive" role="alert">
-          {state.message}
+          {state.message ?? initialMessage}
         </p>
       ) : null}
       <Button className="w-full" type="submit" disabled={pending}>
@@ -544,8 +594,6 @@ export function MockResetPasswordForm({ nextPath }: MockAuthFormProps) {
 }
 
 export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
-  const router = useRouter();
-  const { user, hydrated } = useMockUser();
   const redirectPath = safeNextPath(nextPath);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
@@ -554,13 +602,11 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
     {},
   );
 
-  function handleContinue() {
-    router.push(redirectPath);
-  }
-
   return (
     <form className="space-y-5" action={formAction}>
       <input type="hidden" name="next" value={redirectPath} />
+      <GoogleAuthButton nextPath={redirectPath} />
+      <AuthMethodDivider />
       <div className="space-y-2">
         <Label htmlFor="signup-name">Name</Label>
         <Input
@@ -609,16 +655,6 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
       >
         {pending ? "Creating account..." : "Create account"}
       </Button>
-      {hydrated && user ? (
-        <Button
-          className="w-full"
-          type="button"
-          variant="outline"
-          onClick={handleContinue}
-        >
-          Continue to setup
-        </Button>
-      ) : null}
       <Button asChild variant="ghost" className="w-full">
         <Link href={signInPathFor(redirectPath)}>Already have an account?</Link>
       </Button>

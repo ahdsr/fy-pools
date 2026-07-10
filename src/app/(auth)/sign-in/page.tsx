@@ -3,11 +3,11 @@ import { MockSignInForm } from "@/components/app/mock-auth";
 import { safeNextPath } from "@/lib/auth/paths";
 
 type SignInPageProps = {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; auth_error?: string }>;
 };
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { next } = await searchParams;
+  const { next, auth_error: authError } = await searchParams;
   const nextPath = safeNextPath(next);
 
   return (
@@ -19,7 +19,14 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       panelTitle="The group chat, but built for game day."
       panelDescription="Bring your people, picks, and scoreboards into one lively pool that is effortless to run."
     >
-      <MockSignInForm nextPath={nextPath} />
+      <MockSignInForm
+        nextPath={nextPath}
+        initialMessage={
+          authError === "callback"
+            ? "We couldn't complete that sign-in. Please try again."
+            : undefined
+        }
+      />
     </AuthSplitLayout>
   );
 }

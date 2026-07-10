@@ -37,10 +37,6 @@ export async function updateSupabaseSession(request: NextRequest) {
   );
   const guestOnlyAuthPath = isGuestOnlyAuthPath(request.nextUrl.pathname);
 
-  if (!protectedDashboardPath && !guestOnlyAuthPath) {
-    return response;
-  }
-
   try {
     const { url, anonKey } = getSupabaseConfig();
     const supabase = createServerClient(url, anonKey, {

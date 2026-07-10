@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 
+import { authCallbackUrlFor } from "@/lib/auth/callback";
 import { resetPasswordPathFor, safeNextPath } from "@/lib/auth/paths";
 import {
   ensureProfileForAuthUser,
@@ -79,6 +80,7 @@ export async function signUpWithPasswordAction(
         data: {
           display_name: name,
         },
+        emailRedirectTo: authCallbackUrlFor(getAppSiteUrl(), nextPath),
       },
     });
 
@@ -104,10 +106,7 @@ export async function signUpWithPasswordAction(
     redirect(nextPath);
   }
 
-  return {
-    message:
-      "Account created. Check your email to confirm it, then sign in to continue.",
-  };
+  redirect("/sign-up/check-email");
 }
 
 export async function requestPasswordResetAction(

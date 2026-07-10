@@ -127,12 +127,14 @@ export default function Home() {
               </div>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <Button asChild variant="primaryGreen" size="lg">
-                  <Link href="/dashboard/pools">
-                    Create pool <ArrowRight />
+                  <Link href="/sign-up?next=%2Fdashboard%2Fpools">
+                    Create an account <ArrowRight />
                   </Link>
                 </Button>
                 <Button asChild variant="outline" size="lg">
-                  <Link href="/upload-your-own">Upload your own</Link>
+                  <Link href="/sign-in?next=%2Fdashboard%2Fpools">
+                    Sign in
+                  </Link>
                 </Button>
               </div>
             </div>
