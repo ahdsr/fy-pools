@@ -72,7 +72,7 @@ export function SignUpValueCarousel() {
       ))}
       <div className="absolute inset-0 bg-linear-to-b from-[#160a2d]/90 via-[#2d1651]/30 to-[#160a2d]/88" />
 
-      <div className="relative flex h-full flex-col justify-between p-8 xl:p-10">
+      <div className="relative flex h-full flex-col justify-between p-8 pt-20 xl:p-10 xl:pt-24">
         <div className="max-w-[26rem]">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-white uppercase backdrop-blur-sm">
             <Trophy className="size-3.5 text-[#b3e802]" aria-hidden="true" />

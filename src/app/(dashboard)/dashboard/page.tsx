@@ -1,16 +1,14 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import {
-  AlertCircle,
   ArrowRight,
   Bell,
   CalendarClock,
-  CheckCircle2,
   ClipboardList,
   Edit,
-  ExternalLink,
   FileSpreadsheet,
   History,
+  Info,
   ListChecks,
   Trophy,
   Users,
@@ -48,154 +46,106 @@ function formatAuditEventType(value: string) {
     .join(" ");
 }
 
-function pluralize(count: number, singular: string, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`;
+function isPastPool(pool: CommissionerPoolSummary) {
+  return ["locked", "completed", "archived"].includes(
+    pool.status.toLowerCase(),
+  );
 }
 
-function getPoolParticipantStatus(pool: CommissionerPoolSummary) {
-  const submittedEntries = pool.entryCounts.submitted + pool.entryCounts.locked;
-  const missingEntries = pool.entryCounts.missing;
-  const pendingInvites = pool.inviteCounts.pending;
-  const acceptedInvites = pool.inviteCounts.accepted;
-  const deadlinePassed = pool.deadlineStatus === "Locked";
+function isActivePool(pool: CommissionerPoolSummary) {
+  return pool.status.toLowerCase() === "open" && pool.deadlineStatus !== "Locked";
+}
 
-  if (deadlinePassed && missingEntries > 0) {
-    return {
-      tone: "warning" as const,
-      title: `${pluralize(missingEntries, "entry", "entries")} missing after deadline`,
-      body: "Review late participants before scoring or lock the pool as-is.",
-    };
-  }
+function sortPoolsByCreation(pools: CommissionerPoolSummary[]) {
+  return [...pools].sort((first, second) => {
+    const firstCreatedAt = Date.parse(first.createdAt) || 0;
+    const secondCreatedAt = Date.parse(second.createdAt) || 0;
 
-  if (missingEntries > 0 && pendingInvites > 0) {
-    return {
-      tone: "warning" as const,
-      title: `${pluralize(missingEntries, "entry", "entries")} still missing`,
-      body: `${pluralize(pendingInvites, "direct invite")} unclaimed. Copy the share link or follow up outside the app.`,
-    };
-  }
-
-  if (missingEntries > 0) {
-    return {
-      tone: "warning" as const,
-      title: `${pluralize(missingEntries, "entry", "entries")} still missing`,
-      body: `${pluralize(acceptedInvites, "direct invite")} claimed. Follow up with players who have not submitted picks.`,
-    };
-  }
-
-  if (pendingInvites > 0) {
-    return {
-      tone: "neutral" as const,
-      title: `${pluralize(pendingInvites, "direct invite")} unclaimed`,
-      body: `${pluralize(submittedEntries, "entry", "entries")} submitted. The general signup link can still cover extra players.`,
-    };
-  }
-
-  if (submittedEntries > 0) {
-    return {
-      tone: "complete" as const,
-      title: "Expected entries are in",
-      body: `${pluralize(submittedEntries, "entry", "entries")} submitted. Refresh scoring when results are ready.`,
-    };
-  }
-
-  return {
-    tone: "neutral" as const,
-    title: "Waiting on first picks",
-    body: "Share the pool link with participants and watch submissions land in the inbox.",
-  };
+    return secondCreatedAt - firstCreatedAt;
+  });
 }
 
 function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
   const submittedEntries = pool.entryCounts.submitted + pool.entryCounts.locked;
-  const expectedEntriesLabel = pool.expectedEntries
-    ? `${submittedEntries}/${pool.expectedEntries} expected`
-    : `${submittedEntries} submitted`;
-  const participantStatus = getPoolParticipantStatus(pool);
-  const ParticipantStatusIcon =
-    participantStatus.tone === "complete" ? CheckCircle2 : AlertCircle;
+  const infoId = `pool-summary-${pool.poolId}`;
+  const poolDetails = `${pool.templateName}. Picks lock ${formatDateTime(pool.pickDeadline)}. Latest standings ${
+    pool.latestStandingsAt
+      ? `refreshed ${formatDateTime(pool.latestStandingsAt)}`
+      : "will update automatically after results are available"
+  }.`;
 
   return (
-    <article className="flex min-h-[16rem] flex-col justify-between gap-5 px-5 py-6 md:[&:nth-child(even)]:border-l">
+    <article className="flex min-h-[16rem] flex-col justify-between gap-5 px-5 py-6">
       <div className="space-y-4">
-        <div className="flex flex-wrap gap-2">
-          <Badge variant="secondary">{pool.status}</Badge>
-          <Badge variant="outline">{pool.deadlineStatus}</Badge>
-          <Badge variant="outline">{expectedEntriesLabel}</Badge>
-          <Badge variant="outline">
-            {pool.inviteCounts.pending} unclaimed invites
-          </Badge>
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="min-w-0 text-xl font-bold tracking-normal text-brand-ink">
+              {pool.poolName}
+            </h2>
+            <button
+              type="button"
+              aria-label={`About ${pool.poolName}`}
+              aria-describedby={infoId}
+              className="group relative inline-flex size-6 shrink-0 items-center justify-center rounded-full border border-border bg-surface-paper text-muted-foreground transition hover:border-primary/35 hover:text-brand-ink focus-visible:border-ring focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25"
+            >
+              <Info className="size-3.5" aria-hidden="true" />
+              <span
+                id={infoId}
+                role="tooltip"
+                className="pointer-events-none absolute left-0 top-[calc(100%+0.5rem)] z-30 w-72 max-w-[calc(100vw-3rem)] rounded-md border bg-popover px-3 py-2 text-left font-sans text-xs font-normal leading-5 tracking-normal text-popover-foreground opacity-0 shadow-lg transition group-hover:opacity-100 group-focus-visible:opacity-100"
+              >
+                {poolDetails}
+              </span>
+            </button>
+            <div className="ml-auto flex shrink-0 items-center gap-1">
+              <Button asChild variant="outline" size="icon-sm">
+                <Link
+                  href={`/dashboard/pools/${pool.poolId}/edit`}
+                  aria-label={`Edit ${pool.poolName}`}
+                  title={`Edit ${pool.poolName}`}
+                >
+                  <Edit />
+                </Link>
+              </Button>
+              <DeletePoolButton poolId={pool.poolId} poolName={pool.poolName} iconOnly />
+            </div>
+          </div>
         </div>
-        <div className="space-y-2">
-          <h2 className="text-xl font-bold tracking-normal text-brand-ink">
-            {pool.poolName}
-          </h2>
-          <p className="text-sm font-normal leading-6 text-muted-foreground">
-            {pool.templateName}. Picks lock {formatDateTime(pool.pickDeadline)}.
-            Latest standings{" "}
-            {pool.latestStandingsAt
-              ? `refreshed ${formatDateTime(pool.latestStandingsAt)}`
-              : "will update automatically after results are available"}
-            .
-          </p>
-        </div>
-        <div className="grid gap-4 sm:grid-cols-3 sm:divide-x">
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4 xl:divide-x">
           <div className="sm:pr-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <Users className="size-3.5" />
-              Invites
+              Direct invites
             </div>
             <p className="mt-1 text-sm font-semibold text-brand-ink">
-              {pool.inviteCounts.accepted} claimed, {pool.inviteCounts.pending} unclaimed
+              {pool.inviteCounts.accepted} of {pool.inviteCounts.total} claimed
             </p>
           </div>
           <div className="sm:px-4">
+            <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
+              <Users className="size-3.5" />
+              Shared link
+            </div>
+            <p className="mt-1 text-sm font-semibold text-brand-ink">
+              {pool.inviteCounts.shareLinkJoins} joined
+            </p>
+          </div>
+          <div className="sm:pr-4 xl:px-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <ListChecks className="size-3.5" />
               Entries
             </div>
             <p className="mt-1 text-sm font-semibold text-brand-ink">
-              {pool.expectedEntries
-                ? `${submittedEntries} submitted of ${pool.expectedEntries} expected`
-                : `${submittedEntries} submitted`}
+              {submittedEntries} submitted
             </p>
           </div>
-          <div className="sm:pl-4">
+          <div className="sm:pl-4 xl:pl-4">
             <div className="flex items-center gap-2 text-xs font-medium uppercase tracking-normal text-muted-foreground">
               <CalendarClock className="size-3.5" />
               Deadline
             </div>
             <p className="mt-1 text-sm font-semibold text-brand-ink">
               {formatDateTime(pool.pickDeadline)}
-            </p>
-          </div>
-        </div>
-        <div
-          className={[
-            "flex gap-3 border-l-2 py-1 pl-3",
-            participantStatus.tone === "warning"
-              ? "border-destructive"
-              : participantStatus.tone === "complete"
-                ? "border-brand-success"
-                : "border-brand-mark",
-          ].join(" ")}
-        >
-          <ParticipantStatusIcon
-            className={[
-              "mt-0.5 size-4 shrink-0",
-              participantStatus.tone === "warning"
-                ? "text-destructive"
-                : participantStatus.tone === "complete"
-                  ? "text-brand-success"
-                  : "text-brand-mark",
-            ].join(" ")}
-          />
-          <div>
-            <p className="text-sm font-semibold text-brand-ink">
-              {participantStatus.title}
-            </p>
-            <p className="mt-0.5 text-xs font-normal leading-5 text-muted-foreground">
-              {participantStatus.body}
             </p>
           </div>
         </div>
@@ -207,18 +157,9 @@ function PoolSummaryCard({ pool }: { pool: CommissionerPoolSummary }) {
             Leaderboard <Trophy />
           </Link>
         </Button>
-        <Button asChild variant="outline">
-          <Link href={`/dashboard/pools/${pool.poolId}/edit`}>
-            Edit <Edit />
-          </Link>
-        </Button>
-        <Button asChild variant="outline">
-          <Link href={`/pools/${pool.poolSlug}`}>
-            Public <ExternalLink />
-          </Link>
-        </Button>
-        <ShareLinkButton href={pool.shareInviteHref} />
-        <DeletePoolButton poolId={pool.poolId} poolName={pool.poolName} />
+        {isActivePool(pool) ? (
+          <ShareLinkButton href={pool.shareInviteHref} />
+        ) : null}
       </div>
     </article>
   );
@@ -275,140 +216,163 @@ async function DashboardWorkspaceContent() {
     getCommissionerNotifications(),
     getCommissionerAuditEvents(),
   ]);
+  const openPools = sortPoolsByCreation(pools.filter((pool) => !isPastPool(pool)));
+  const pastPools = sortPoolsByCreation(pools.filter(isPastPool));
 
   return (
     <>
-      <LedgerPanel
-        title="Current pools"
-        description="Pools owned by this commissioner, including invite status, submissions, deadlines, and scoring state."
-        action={<Badge variant="outline">{pools.length} active</Badge>}
-      >
-        <div className="grid divide-y md:grid-cols-2 md:divide-y-0">
-          {pools.length ? (
-            pools.map((pool) => (
-              <PoolSummaryCard key={pool.poolId} pool={pool} />
-            ))
-          ) : (
-            <LedgerRow className="col-span-full flex items-start gap-3">
-              <ClipboardList className="mt-1 size-5 shrink-0 text-brand-mark" />
-              <div>
-                <p className="font-semibold text-brand-ink">
-                  No published pools yet
-                </p>
-                <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                  Create a quarter-final pool to start inviting participants and
-                  tracking submissions.
-                </p>
-                <Button asChild className="mt-4" variant="primaryGreen">
-                  <Link href="/dashboard/pools/new">
-                    New pool <ArrowRight />
-                  </Link>
-                </Button>
-              </div>
-            </LedgerRow>
-          )}
-          <div className="col-span-full">
-            <DraftPoolRows />
-          </div>
-        </div>
-      </LedgerPanel>
-
-      <LedgerPanel
-        title="Commissioner inbox"
-        description="Participant submissions appear here as soon as picks are stored."
-        action={<Badge variant="outline">{notifications.length} recent</Badge>}
-      >
-        {notifications.length ? (
-          <LedgerRows>
-            {notifications.map((notification) => (
-              <LedgerRow
-                key={notification.id}
-                className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center"
-              >
-                <span className="grid size-9 place-items-center rounded-full border bg-background text-brand-mark">
-                  <Bell className="size-4" />
-                </span>
+      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]">
+        <LedgerPanel
+          title="Current pools"
+          description="Pools owned by this commissioner, including invitations, entries, deadlines, and scoring."
+        >
+          <div className="divide-y">
+            {pools.length ? (
+              <>
+                {[
+                  { title: "Open", pools: openPools },
+                  { title: "Past", pools: pastPools },
+                ].map(
+                  (section) =>
+                    section.pools.length > 0 ? (
+                      <section key={section.title}>
+                        <h3 className="border-b bg-background/65 px-5 py-3 text-sm font-bold tracking-normal text-brand-ink">
+                          {section.title}
+                        </h3>
+                        <div className="divide-y">
+                          {section.pools.map((pool) => (
+                            <PoolSummaryCard key={pool.poolId} pool={pool} />
+                          ))}
+                        </div>
+                      </section>
+                    ) : null,
+                )}
+              </>
+            ) : (
+              <LedgerRow className="flex items-start gap-3">
+                <ClipboardList className="mt-1 size-5 shrink-0 text-brand-mark" />
                 <div>
                   <p className="font-semibold text-brand-ink">
-                    {notification.title}
+                    No published pools yet
                   </p>
                   <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                    {notification.body}
+                    Create a quarter-final pool to start inviting participants and
+                    tracking submissions.
                   </p>
+                  <Button asChild className="mt-4" variant="primaryGreen">
+                    <Link href="/dashboard/pools/new">
+                      New pool <ArrowRight />
+                    </Link>
+                  </Button>
                 </div>
-                <Badge variant="outline">
-                  {new Date(notification.createdAt).toLocaleString()}
-                </Badge>
               </LedgerRow>
-            ))}
-          </LedgerRows>
-        ) : (
-          <LedgerRow className="flex items-start gap-3">
-            <Bell className="mt-1 size-5 shrink-0 text-brand-mark" />
-            <p className="text-sm font-normal leading-6 text-muted-foreground">
-              No submitted picks yet. Once participants submit from their join
-              links, the latest activity will show here.
-            </p>
-          </LedgerRow>
-        )}
-      </LedgerPanel>
+            )}
+            <div>
+              <DraftPoolRows />
+            </div>
+          </div>
+        </LedgerPanel>
 
-      <LedgerPanel
-        title="Recent activity"
-        description="Operating notes for pool publish, invites, lock changes, deadline changes, scoring refreshes, and deletes."
-        action={<Badge variant="outline">{auditEvents.length} recent</Badge>}
-      >
-        {auditEvents.length ? (
-          <LedgerRows>
-            {auditEvents.map((event) => (
-              <AuditEventRow key={event.id} event={event} />
-            ))}
-          </LedgerRows>
-        ) : (
-          <LedgerRow className="flex items-start gap-3">
-            <History className="mt-1 size-5 shrink-0 text-brand-mark" />
-            <p className="text-sm font-normal leading-6 text-muted-foreground">
-              No commissioner activity has been recorded yet. Publish a pool,
-              add invites, change a deadline, lock a pool, or refresh scoring
-              to start the operating log.
-            </p>
-          </LedgerRow>
-        )}
-      </LedgerPanel>
+        <div className="grid gap-5">
+          <LedgerPanel
+            title="Commissioner inbox"
+            description="Participant submissions appear here as soon as picks are stored."
+            action={<Badge variant="outline">{notifications.length} recent</Badge>}
+          >
+            {notifications.length ? (
+              <LedgerRows>
+                {notifications.map((notification) => (
+                  <LedgerRow
+                    key={notification.id}
+                    className="grid gap-3 md:grid-cols-[auto_1fr_auto] md:items-center"
+                  >
+                    <span className="grid size-9 place-items-center rounded-full border bg-background text-brand-mark">
+                      <Bell className="size-4" />
+                    </span>
+                    <div>
+                      <p className="font-semibold text-brand-ink">
+                        {notification.title}
+                      </p>
+                      <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+                        {notification.body}
+                      </p>
+                    </div>
+                    <Badge variant="outline">
+                      {new Date(notification.createdAt).toLocaleString()}
+                    </Badge>
+                  </LedgerRow>
+                ))}
+              </LedgerRows>
+            ) : (
+              <LedgerRow className="flex items-start gap-3">
+                <Bell className="mt-1 size-5 shrink-0 text-brand-mark" />
+                <p className="text-sm font-normal leading-6 text-muted-foreground">
+                  No submitted picks yet. Once participants submit from their join
+                  links, the latest activity will show here.
+                </p>
+              </LedgerRow>
+            )}
+          </LedgerPanel>
 
-      <LedgerPanel
-        title="Workspace"
-        description="Two starting points define the MVP: pool operations and spreadsheet import."
-      >
-        <LedgerFeatureRows
-          items={[
-            {
-              icon: ClipboardList,
-              title: "Pool operations",
-              body: "Create pools, invite players, track entries, and review lock status from this workspace.",
-              action: (
-                <Button asChild>
-                  <Link href="/dashboard/pools">
-                    Start a pool <ArrowRight />
-                  </Link>
-                </Button>
-              ),
-            },
-            {
-              icon: FileSpreadsheet,
-              title: "Spreadsheet import",
-              body: "Bring an Excel pool you already use and turn it into hosted picks, brackets, scoring, and standings.",
-              action: (
-                <Button asChild variant="outline">
-                  <Link href="/upload-your-own">
-                    Upload your own <ArrowRight />
-                  </Link>
-                </Button>
-              ),
-            },
-          ]}
-        />
-      </LedgerPanel>
+          <LedgerPanel
+            title="Recent activity"
+            description="Operating notes for pool publish, invites, lock changes, deadline changes, scoring refreshes, and deletes."
+            action={<Badge variant="outline">{auditEvents.length} recent</Badge>}
+          >
+            {auditEvents.length ? (
+              <LedgerRows>
+                {auditEvents.map((event) => (
+                  <AuditEventRow key={event.id} event={event} />
+                ))}
+              </LedgerRows>
+            ) : (
+              <LedgerRow className="flex items-start gap-3">
+                <History className="mt-1 size-5 shrink-0 text-brand-mark" />
+                <p className="text-sm font-normal leading-6 text-muted-foreground">
+                  No commissioner activity has been recorded yet. Publish a pool,
+                  add invites, change a deadline, lock a pool, or refresh scoring
+                  to start the operating log.
+                </p>
+              </LedgerRow>
+            )}
+          </LedgerPanel>
+
+          <LedgerPanel
+            title="Workspace"
+            description="Two starting points define the MVP: pool operations and spreadsheet import."
+          >
+            <LedgerFeatureRows
+              className="md:grid-cols-1 md:divide-x-0 md:divide-y"
+              items={[
+                {
+                  icon: ClipboardList,
+                  title: "Pool operations",
+                  body: "Create pools, invite players, track entries, and review lock status from this workspace.",
+                  action: (
+                    <Button asChild>
+                      <Link href="/dashboard/pools">
+                        Start a pool <ArrowRight />
+                      </Link>
+                    </Button>
+                  ),
+                },
+                {
+                  icon: FileSpreadsheet,
+                  title: "Spreadsheet import",
+                  body: "Bring an Excel pool you already use and turn it into hosted picks, brackets, scoring, and standings.",
+                  action: (
+                    <Button asChild variant="outline">
+                      <Link href="/upload-your-own">
+                        Upload your own <ArrowRight />
+                      </Link>
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          </LedgerPanel>
+        </div>
+      </div>
       <PlaceholderGrid
         items={[
           {
@@ -427,22 +391,34 @@ async function DashboardWorkspaceContent() {
 
 function DashboardWorkspaceSkeleton() {
   return (
-    <div className="grid gap-5" aria-busy="true" aria-live="polite">
+    <div
+      className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]"
+      aria-busy="true"
+      aria-live="polite"
+    >
       <LedgerPanel
         title="Current pools"
         description="Loading your pool operations."
       >
-        <div className="grid gap-4 p-5 md:grid-cols-2">
+        <div className="grid gap-4 p-5">
           <div className="h-52 animate-pulse rounded-md bg-muted/80" />
           <div className="h-52 animate-pulse rounded-md bg-muted/80" />
         </div>
       </LedgerPanel>
-      <LedgerPanel title="Commissioner inbox" description="Loading recent activity.">
-        <div className="grid gap-3 p-5">
-          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
-          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
-        </div>
-      </LedgerPanel>
+      <div className="grid gap-5">
+        <LedgerPanel title="Commissioner inbox" description="Loading recent activity.">
+          <div className="grid gap-3 p-5">
+            <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+            <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          </div>
+        </LedgerPanel>
+        <LedgerPanel title="Recent activity" description="Loading operating notes.">
+          <div className="grid gap-3 p-5">
+            <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+            <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+          </div>
+        </LedgerPanel>
+      </div>
     </div>
   );
 }

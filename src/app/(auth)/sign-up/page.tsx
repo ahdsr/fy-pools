@@ -16,7 +16,6 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
       eyebrow="Create your pool"
       title="Start the pool everyone wants to join."
       description="Set up your home for friendly competition, invite your people, and make every match more fun."
-      footerCopy="Create once, then let PoolWaffle handle game day."
       panelTitle="More games to care about."
       panelDescription="Create a polished home for your crew’s picks, scores, and bragging rights—without becoming the full-time scorekeeper."
       rightPanel={<SignUpValueCarousel />}

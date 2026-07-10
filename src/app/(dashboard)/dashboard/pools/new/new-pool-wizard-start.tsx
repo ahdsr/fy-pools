@@ -586,101 +586,43 @@ function PublishedPoolPanel({
   ].join("\n");
 
   return (
-    <LedgerPanel
-      title="Pool published"
-      description="Participant links are backed by Supabase invites and can be shared across devices."
-      action={<Badge variant="secondary">Open</Badge>}
-    >
-      <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
-        <div className="space-y-5">
-          <div className="rounded-lg border bg-background p-5">
-            <p className="text-sm font-medium uppercase tracking-normal text-muted-foreground">
-              Published pool
-            </p>
-            <h2 className="mt-3 text-2xl font-bold tracking-[0.005em] text-brand-ink">
+    <LedgerPanel>
+      <div className="space-y-6 p-5 sm:p-7">
+        <div className="flex items-start gap-4">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full border border-brand-success/30 bg-brand-success/10 text-brand-success">
+            <CheckCircle2 className="size-5" aria-hidden="true" />
+          </span>
+          <div>
+            <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
               {published.poolName}
             </h2>
-            <p className="mt-3 font-mono text-sm text-brand-ink">
-              {published.poolHref}
+            <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+              Your pool is live and ready for players.
             </p>
-            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
-              <Button asChild variant="primaryGreen">
-                <Link href={`${published.poolHref}/leaderboard`}>
-                  View leaderboard <Trophy />
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href={published.poolHref}>
-                  Preview pool <ExternalLink />
-                </Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href={published.signupInviteLink.href}>Make my picks</Link>
-              </Button>
-              <Button asChild variant="outline">
-                <Link href="/dashboard/pools/new">Create another</Link>
-              </Button>
-            </div>
-          </div>
-          <div className="rounded-lg border bg-surface-ledger/70 p-4">
-            <div className="flex items-start gap-3">
-              <Copy className="mt-0.5 size-4 shrink-0 text-brand-mark" />
-              <p className="text-sm font-normal leading-6 text-muted-foreground">
-                Share the signup invite when you do not have every email yet.
-                Commissioners can use the same link to submit their own picks in
-                the player flow.
-              </p>
-            </div>
           </div>
         </div>
-
-        <LedgerRows className="overflow-hidden rounded-lg border bg-background">
-          <LedgerRow className="space-y-3">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <p className="font-semibold text-brand-ink">
-                  General signup invite
-                </p>
-                <Badge variant="outline">{published.signupInviteLink.status}</Badge>
-              </div>
-              <p className="mt-1 text-xs font-normal text-muted-foreground">
-                Reusable link for players whose emails are not entered yet.
-              </p>
-              {published.signupInviteLink.expiresAt ? (
-                <p className="mt-1 text-xs font-normal text-muted-foreground">
-                  Expires{" "}
-                  {new Date(published.signupInviteLink.expiresAt).toLocaleString()}
-                </p>
-              ) : null}
-            </div>
-            <CopyInviteLinkButton
-              href={published.signupInviteLink.href}
-              label="Copy signup invite"
-              copyPrefix={inviteMessage}
-            />
-          </LedgerRow>
-          {published.inviteLinks.map((invite) => (
-            <LedgerRow key={invite.code} className="space-y-3">
-              <div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-semibold text-brand-ink">
-                    {invite.displayName || invite.email}
-                  </p>
-                  <Badge variant="outline">{invite.status}</Badge>
-                </div>
-                <p className="text-xs font-normal text-muted-foreground">
-                  {invite.email}
-                </p>
-                {invite.expiresAt ? (
-                  <p className="mt-1 text-xs font-normal text-muted-foreground">
-                    Expires {new Date(invite.expiresAt).toLocaleString()}
-                  </p>
-                ) : null}
-              </div>
-              <CopyInviteLinkButton href={invite.href} label="Copy link" />
-            </LedgerRow>
-          ))}
-        </LedgerRows>
+        <div className="flex flex-wrap gap-3">
+          <CopyInviteLinkButton
+            compact
+            href={published.signupInviteLink.href}
+            label="Copy signup invite"
+            copyPrefix={inviteMessage}
+            variant="primaryGreen"
+          />
+          <Button asChild variant="outline">
+            <Link href={`${published.poolHref}/leaderboard`}>
+              View leaderboard <Trophy />
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={published.poolHref}>
+              Preview pool <ExternalLink />
+            </Link>
+          </Button>
+          <Button asChild variant="outline">
+            <Link href={published.signupInviteLink.href}>Make my picks</Link>
+          </Button>
+        </div>
       </div>
     </LedgerPanel>
   );
@@ -690,10 +632,14 @@ function CopyInviteLinkButton({
   href,
   label = "Copy link",
   copyPrefix,
+  compact = false,
+  variant = "outline",
 }: {
   href: string;
   label?: string;
   copyPrefix?: string;
+  compact?: boolean;
+  variant?: "outline" | "primaryGreen";
 }) {
   const [copied, setCopied] = React.useState(false);
 
@@ -711,12 +657,23 @@ function CopyInviteLinkButton({
     }
   }
 
+  const copyButton = (
+    <Button
+      type="button"
+      variant={variant}
+      size={compact ? "default" : "sm"}
+      onClick={handleCopy}
+    >
+      <Copy /> {copied ? "Copied" : label}
+    </Button>
+  );
+
+  if (compact) return copyButton;
+
   return (
     <div className="grid gap-2">
       <p className="break-all font-mono text-sm text-brand-ink">{href}</p>
-      <Button type="button" variant="outline" size="sm" onClick={handleCopy}>
-        <Copy /> {copied ? "Copied" : label}
-      </Button>
+      {copyButton}
     </div>
   );
 }
@@ -772,9 +729,6 @@ export function NewPoolWizardStart({
   const createdDraft = React.useMemo(
     () => findDraftInSnapshot(draftStorageSnapshot, effectiveDraftId),
     [draftStorageSnapshot, effectiveDraftId],
-  );
-  const selectedTemplate = templates.find(
-    (template) => template.slug === state.templateSlug,
   );
   const quarterFinalTemplate = templates.find(
     (template) => template.slug === QUARTER_FINAL_TEMPLATE_SLUG,
@@ -933,8 +887,8 @@ export function NewPoolWizardStart({
     return (
       <PageShell
         eyebrow="Pool wizard"
-        title={`${stage.label} pool published`}
-        description="Copy participant links and send them to the people joining this pool."
+        title="You’re all set"
+        description="Your pool is published. Share the signup invite when you’re ready to bring players in."
         showHeader={false}
       >
         <PublishedPoolPanel published={publishState.published} />
@@ -974,28 +928,28 @@ export function NewPoolWizardStart({
             completedSteps={completedSteps}
             onStepSelect={goToStep}
           />
-          <LedgerPanel title={isEditingPool ? "Pool record" : "Draft output"}>
-            <LedgerRows>
-              <LedgerRow>
-                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                  {isEditingPool ? "Status" : "Storage"}
-                </p>
-                <p className="mt-1 font-mono text-sm text-brand-ink">
-                  {isEditingPool ? editPool?.status : "poolwaffle.poolDrafts"}
-                </p>
-              </LedgerRow>
-              <LedgerRow>
-                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                  {isEditingPool ? "Public page" : "Current format"}
-                </p>
-                <p className="mt-1 text-sm font-semibold text-brand-ink">
-                  {isEditingPool
-                    ? `/pools/${editPool?.poolSlug}`
-                    : selectedTemplate?.name ?? "Choose a template"}
-                </p>
-              </LedgerRow>
-            </LedgerRows>
-          </LedgerPanel>
+          {isEditingPool ? (
+            <LedgerPanel title="Pool record">
+              <LedgerRows>
+                <LedgerRow>
+                  <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                    Status
+                  </p>
+                  <p className="mt-1 font-mono text-sm text-brand-ink">
+                    {editPool?.status}
+                  </p>
+                </LedgerRow>
+                <LedgerRow>
+                  <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+                    Public page
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-brand-ink">
+                    /pools/{editPool?.poolSlug}
+                  </p>
+                </LedgerRow>
+              </LedgerRows>
+            </LedgerPanel>
+          ) : null}
         </aside>
 
         <LedgerPanel
@@ -1525,19 +1479,6 @@ export function NewPoolWizardStart({
 
             {currentStepDefinition.key === "review" ? (
               <div className="space-y-5">
-                <div className="rounded-lg border bg-surface-ledger/70 p-4">
-                  <p className="font-semibold text-brand-ink">
-                    {isEditingPool
-                      ? "Save updates to this pool"
-                      : "Publish creates a share link"}
-                  </p>
-                  <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                    {isEditingPool
-                      ? "Changes apply to the existing pool page. New direct invite emails entered here will receive their own join links; existing direct invites stay unchanged."
-                      : "You do not need every player's email now. Publish the pool, copy the signup link, and let players share it with anyone else who should join."}
-                  </p>
-                </div>
-
                 <FieldShell label="Invite note" htmlFor="invite-note">
                   <Textarea
                     id="invite-note"
@@ -1554,26 +1495,14 @@ export function NewPoolWizardStart({
                     }
                   />
                 </FieldShell>
+                <p className="text-sm font-normal leading-6 text-muted-foreground">
+                  {isEditingPool
+                    ? "New direct invite emails receive their own join links; existing pool links remain active."
+                    : "You do not need every player's email now. Publish the pool, copy the signup link, and let players share it with anyone else who should join."}
+                </p>
 
                 <div className="space-y-3">
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div>
-                      <h3 className="font-semibold text-brand-ink">
-                        Direct invites
-                      </h3>
-                      <p className="text-sm font-normal leading-6 text-muted-foreground">
-                        Optional. Add emails only when you want individual join
-                        links in addition to the general signup link.
-                      </p>
-                    </div>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={addParticipantRow}
-                    >
-                      <Plus /> Add direct invite
-                    </Button>
-                  </div>
+                  <h3 className="font-semibold text-brand-ink">Direct invites</h3>
 
                   {state.inviteSettings.participants.length > 0 ? (
                     <LedgerRows className="overflow-hidden rounded-lg border">
@@ -1619,14 +1548,17 @@ export function NewPoolWizardStart({
                       ))}
                     </LedgerRows>
                   ) : (
-                    <LedgerRow className="rounded-lg border bg-background">
-                      <p className="text-sm font-normal leading-6 text-muted-foreground">
-                        {isEditingPool
-                          ? "No new direct invites added. Existing pool links remain active."
-                          : "No direct invites added. The pool can still be published and shared with the general signup link."}
-                      </p>
-                    </LedgerRow>
+                    <p className="text-sm font-normal leading-6 text-muted-foreground">
+                      Add an email only when someone needs their own invite link.
+                    </p>
                   )}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={addParticipantRow}
+                  >
+                    <Plus /> Add more invites
+                  </Button>
                   <FieldError>{inviteError}</FieldError>
                 </div>
               </div>

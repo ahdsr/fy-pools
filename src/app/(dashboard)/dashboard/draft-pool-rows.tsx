@@ -4,14 +4,12 @@ import Link from "next/link";
 import {
   CalendarClock,
   Edit,
-  FileText,
   ListChecks,
   Trash2,
   Users,
 } from "lucide-react";
 import * as React from "react";
 
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   ROUND_OF_16_DRAFT_STORAGE_KEY,
@@ -70,15 +68,8 @@ function DraftPoolRow({ draft }: { draft: RoundOf16PoolDraft }) {
   }
 
   return (
-    <article className="flex min-h-[16rem] flex-col justify-between gap-5 px-5 py-6 md:[&:nth-child(even)]:border-l">
+    <article className="flex min-h-[16rem] flex-col justify-between gap-5 px-5 py-6">
       <div className="min-w-0 space-y-4">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="outline">draft</Badge>
-          <Badge variant="outline">not published</Badge>
-          <Badge variant="outline">
-            saved {formatDateTime(draft.createdAt)}
-          </Badge>
-        </div>
         <div className="space-y-2">
           <h2 className="text-2xl font-bold tracking-[0.005em] text-brand-ink">
             {draft.basics.poolName || "Untitled draft"}
@@ -143,20 +134,20 @@ export function DraftPoolRows() {
   const drafts = React.useMemo(() => {
     if (!draftSnapshot) return [];
 
-    return readRoundOf16Drafts();
+    return readRoundOf16Drafts().sort(
+      (first, second) =>
+        Date.parse(second.createdAt) - Date.parse(first.createdAt),
+    );
   }, [draftSnapshot]);
 
   if (!drafts.length) return null;
 
   return (
-    <section className="border-t border-dashed border-brand-rule">
-      <div className="flex items-center gap-3 px-5 pt-5">
-        <FileText className="size-4 text-brand-mark" />
-        <h3 className="text-lg font-bold tracking-normal text-brand-ink">
-          Saved drafts
-        </h3>
-      </div>
-      <div className="grid divide-y md:grid-cols-2 md:divide-y-0">
+    <section>
+      <h3 className="border-b bg-background/65 px-5 py-3 text-sm font-bold tracking-normal text-brand-ink">
+        Saved drafts
+      </h3>
+      <div className="divide-y">
         {drafts.map((draft) => (
           <DraftPoolRow key={draft.id} draft={draft} />
         ))}

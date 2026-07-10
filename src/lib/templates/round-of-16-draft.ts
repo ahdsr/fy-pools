@@ -84,6 +84,20 @@ export type RoundOf16PickPayload = {
   bonusAnswers: Record<string, string>;
 };
 
+function createDefaultDirectInvites(): RoundOf16InviteInput[] {
+  return Array.from({ length: 5 }, (_, index) => ({
+    id: `participant-${index + 1}`,
+    email: "",
+    displayName: "",
+  }));
+}
+
+function withDefaultDirectInviteRows(participants: RoundOf16InviteInput[]) {
+  const emptyRowsNeeded = Math.max(0, 5 - participants.length);
+
+  return [...participants, ...createDefaultDirectInvites().slice(0, emptyRowsNeeded)];
+}
+
 export type RoundOf16SubmittedEntry = {
   entryId: string;
   entryPickId: string;
@@ -398,13 +412,14 @@ export function createDefaultRoundOf16WizardState(
     inviteSettings: {
       expectedEntries: 0,
       inviteNote: "",
-      participants: [],
+      participants: createDefaultDirectInvites(),
     },
   };
 }
 
 export function createRoundOf16WizardStateFromSettings(
   settings: RoundOf16PoolSettings,
+  participants: RoundOf16InviteInput[] = [],
 ): RoundOf16WizardState {
   const resolvedTemplateSlug = getKnockoutPoolStageDetails(settings).templateSlug;
   const defaults = createDefaultRoundOf16WizardState(resolvedTemplateSlug);
@@ -428,7 +443,7 @@ export function createRoundOf16WizardStateFromSettings(
     inviteSettings: {
       expectedEntries: settings.expectedEntries ?? 0,
       inviteNote: settings.inviteNote ?? "",
-      participants: [],
+      participants: withDefaultDirectInviteRows(participants),
     },
   };
 }
@@ -816,6 +831,23 @@ export function toRoundOf16PoolSettings(
 
 export function getEnabledRoundOf16BonusProps(settings: RoundOf16PoolSettings) {
   return settings.bonusProps.filter((prop) => prop.enabled);
+}
+
+export function getRoundOf16PoolTeams(settings: RoundOf16PoolSettings) {
+  const teams = new Map<string, string>();
+
+  for (const matchup of settings.matchups) {
+    for (const team of [matchup.teamOne, matchup.teamTwo]) {
+      const trimmedTeam = team.trim();
+      const normalizedTeam = trimmedTeam.toLocaleLowerCase();
+
+      if (trimmedTeam && !teams.has(normalizedTeam)) {
+        teams.set(normalizedTeam, trimmedTeam);
+      }
+    }
+  }
+
+  return [...teams.values()];
 }
 
 export function isRoundOf16WizardStateComplete(

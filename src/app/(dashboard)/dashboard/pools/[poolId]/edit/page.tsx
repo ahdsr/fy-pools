@@ -42,7 +42,10 @@ async function EditPoolWizard({ params }: EditPoolPageProps) {
         poolId: pool.poolId,
         poolSlug: pool.poolSlug,
         status: pool.status,
-        initialState: createRoundOf16WizardStateFromSettings(pool.settings),
+        initialState: createRoundOf16WizardStateFromSettings(
+          pool.settings,
+          pool.directInvites,
+        ),
       }}
     />
   );

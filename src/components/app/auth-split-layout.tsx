@@ -10,7 +10,7 @@ type AuthSplitLayoutProps = {
   eyebrow: string;
   title: string;
   description: ReactNode;
-  footerCopy: string;
+  footerCopy?: string;
   panelTitle: string;
   panelDescription: string;
   rightPanel?: ReactNode;
@@ -42,10 +42,9 @@ export function AuthSplitLayout({
   rightPanel,
 }: AuthSplitLayoutProps) {
   return (
-    <main className="grid min-h-[100dvh] bg-surface-paper lg:grid-cols-[minmax(0,0.95fr)_minmax(32rem,1.05fr)]">
-      <section className="flex min-w-0 flex-col px-6 py-6 sm:px-10 sm:py-8 lg:min-h-[100dvh] lg:px-[clamp(3rem,7vw,8.5rem)] lg:py-[clamp(2.5rem,6vh,5.75rem)]">
-        <div className="flex items-center justify-between gap-4">
-          <BrandWordmark />
+    <main className="grid min-h-[100dvh] bg-surface-paper lg:grid-cols-[2fr_3fr]">
+      <section className="flex min-w-0 flex-col bg-surface-paper px-6 py-6 sm:px-10 sm:py-8 lg:min-h-[100dvh] lg:px-[clamp(3rem,7vw,8.5rem)] lg:py-[clamp(2.5rem,6vh,5.75rem)]">
+        <div className="flex justify-end">
           <Link
             href="/"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -54,7 +53,7 @@ export function AuthSplitLayout({
           </Link>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center py-14 lg:mx-0 lg:py-8">
+        <div className="mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center py-14 lg:py-8">
           <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-hot uppercase">
             {eyebrow}
           </p>
@@ -70,13 +69,19 @@ export function AuthSplitLayout({
           </div>
         </div>
 
-        <p className="hidden text-xs leading-5 text-muted-foreground lg:block">
-          {footerCopy}
-        </p>
+        {footerCopy ? (
+          <p className="hidden text-xs leading-5 text-muted-foreground lg:block">
+            {footerCopy}
+          </p>
+        ) : null}
       </section>
 
-      <aside className="relative hidden overflow-hidden bg-[#1d102f] p-5 lg:block xl:p-7">
+      <aside className="relative hidden overflow-hidden bg-[#1d102f] p-5 lg:z-10 lg:-ml-12 lg:block lg:rounded-l-[3.5rem] xl:p-7">
         <div className="relative h-full min-h-[42rem] overflow-hidden rounded-[1.8rem] bg-[#2d1651] shadow-2xl">
+          <BrandWordmark
+            variant="light"
+            className="absolute top-8 left-8 z-20 xl:top-10 xl:left-10"
+          />
           {rightPanel ?? (
             <DefaultAuthPanel
               panelTitle={panelTitle}
@@ -105,7 +110,7 @@ function DefaultAuthPanel({
       />
       <div className="absolute inset-0 bg-linear-to-b from-[#2d1651]/88 via-[#2d1651]/26 to-[#170d28]/82" />
 
-      <div className="relative flex h-full flex-col justify-between p-8 xl:p-10">
+      <div className="relative flex h-full flex-col justify-between p-8 pt-20 xl:p-10 xl:pt-24">
         <div className="max-w-[25rem]">
           <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/12 px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-white uppercase backdrop-blur-sm">
             <Trophy className="size-3.5 text-[#b3e802]" aria-hidden="true" />

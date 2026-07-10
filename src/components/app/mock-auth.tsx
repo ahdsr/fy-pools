@@ -459,8 +459,6 @@ export function MockSignInForm({
   return (
     <form className="space-y-5" action={formAction}>
       <input type="hidden" name="next" value={redirectPath} />
-      <GoogleAuthButton nextPath={redirectPath} />
-      <AuthMethodDivider />
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <Input
@@ -490,6 +488,8 @@ export function MockSignInForm({
       <Button className="w-full" type="submit" disabled={pending}>
         {pending ? "Signing in..." : "Sign in"}
       </Button>
+      <AuthMethodDivider />
+      <GoogleAuthButton nextPath={redirectPath} />
       <Button asChild variant="ghost" className="w-full">
         <Link href={forgotPasswordPathFor(redirectPath)}>
           Forgot your password?

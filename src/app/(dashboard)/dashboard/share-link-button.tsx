@@ -29,7 +29,7 @@ export function ShareLinkButton({ href }: { href: string }) {
       onClick={handleCopy}
       disabled={!href}
     >
-      {copied ? "Copied" : "Share link"} <Copy />
+      {copied ? "Copied" : "Copy invite link"} <Copy />
     </Button>
   );
 }
