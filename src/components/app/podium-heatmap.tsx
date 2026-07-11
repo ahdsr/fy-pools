@@ -76,7 +76,7 @@ function HeatCell({
       title={`${count} ${count === 1 ? "entry" : "entries"} selected ${team} for ${label}${eliminated ? "; eliminated" : ""}`}
     >
       <span
-        className={`flex min-h-12 items-center justify-center px-3 py-2 text-sm font-semibold leading-tight ${
+        className={`flex items-center justify-center px-3 py-2.5 text-sm font-semibold leading-tight sm:px-2 sm:py-2 ${
           eliminated ? "bg-muted text-muted-foreground line-through decoration-2" : "text-brand-ink"
         }`}
         style={{
@@ -98,37 +98,37 @@ export function PodiumHeatmap({
 }: PodiumHeatmapProps) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-[46rem] w-full border-collapse text-sm">
+      <table className="min-w-[46rem] w-full border-collapse text-[0.9375rem] sm:text-sm">
         <caption className="sr-only">
           World Cup podium predictions ranked by current pool points. Darker cells
           show selections shared by more entries.
         </caption>
         <thead>
           <tr className="bg-surface-ledger">
-            <th className="border-b px-4 py-3 text-left text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            <th className="h-10 border-b px-3 text-left align-middle text-xs font-semibold uppercase tracking-normal text-muted-foreground first:pl-4 sm:px-2 sm:first:pl-5">
               Rank
             </th>
-            <th className="border-b border-l border-border/80 px-4 py-3 text-left text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            <th className="h-10 border-b border-l border-border/80 px-3 text-left align-middle text-xs font-semibold uppercase tracking-normal text-muted-foreground sm:px-2">
               Entry
             </th>
-            <th className="border-b border-l border-border/80 px-4 py-3 text-right text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+            <th className="h-10 border-b border-l border-border/80 px-3 text-right align-middle text-xs font-semibold uppercase tracking-normal text-muted-foreground sm:px-2">
               Points
             </th>
             <th
-              className="border-b border-l border-border/80 bg-cta-green px-4 py-3 text-center text-sm font-bold uppercase tracking-wide text-cta-green-foreground"
+              className="h-10 border-b border-l border-border/80 bg-cta-green px-3 text-center align-middle text-sm font-bold uppercase tracking-wide text-cta-green-foreground sm:px-2"
               colSpan={PODIUM_COLUMNS.length}
             >
               World Cup predictions
             </th>
           </tr>
           <tr className="bg-background/65">
-            <th className="border-b px-4 py-2" />
-            <th className="border-b border-l border-border/80 px-4 py-2" />
-            <th className="border-b border-l border-border/80 px-4 py-2" />
+            <th className="h-10 border-b px-3 first:pl-4 sm:px-2 sm:first:pl-5" />
+            <th className="h-10 border-b border-l border-border/80 px-3 sm:px-2" />
+            <th className="h-10 border-b border-l border-border/80 px-3 sm:px-2" />
             {PODIUM_COLUMNS.map((column) => (
               <th
                 key={column.key}
-                className="border-b border-l border-border/80 px-4 py-2 text-center text-xs font-bold uppercase tracking-normal text-brand-ink"
+                className="h-10 border-b border-l border-border/80 px-3 text-center align-middle text-xs font-bold uppercase tracking-normal text-brand-ink sm:px-2"
               >
                 {column.label}
               </th>
@@ -138,10 +138,10 @@ export function PodiumHeatmap({
         <tbody>
           {entries.map((entry) => (
             <tr key={entry.id} className="bg-surface-paper/70 hover:bg-background">
-              <td className="border-b px-4 py-3 font-semibold tabular-nums text-muted-foreground">
+              <td className="border-b px-3 py-2.5 font-semibold tabular-nums text-muted-foreground first:pl-4 sm:p-2 sm:first:pl-5">
                 {entry.rank}
               </td>
-              <td className="border-b border-l border-border/80 px-4 py-3">
+              <td className="border-b border-l border-border/80 px-3 py-2.5 sm:p-2">
                 <Link
                   href={`/pools/${poolSlug}/entry/${entry.id}`}
                   className="font-semibold text-brand-ink transition hover:text-brand-hot focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -149,7 +149,7 @@ export function PodiumHeatmap({
                   {entry.name}
                 </Link>
               </td>
-              <td className="border-b border-l border-border/80 px-4 py-3 text-right font-bold tabular-nums text-brand-ink">
+              <td className="border-b border-l border-border/80 px-3 py-2.5 text-right font-bold tabular-nums text-brand-ink sm:p-2">
                 {entry.points}
               </td>
               {PODIUM_COLUMNS.map((column) => {
@@ -171,7 +171,7 @@ export function PodiumHeatmap({
           ))}
         </tbody>
       </table>
-      <p className="border-t bg-background/55 px-4 py-3 text-xs leading-5 text-muted-foreground">
+      <p className="border-t bg-background/55 px-3 py-2.5 text-xs leading-5 text-muted-foreground sm:px-2 sm:py-2">
         Green marks Champion calls, blue marks Runner-up calls, and coral marks
         Third-place calls. More shared picks are more saturated; crossed-out
         teams can no longer finish in that position. Select an entry name to

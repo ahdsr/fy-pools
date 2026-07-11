@@ -3,7 +3,9 @@ import { describe, expect, it } from "vitest";
 import { authCallbackUrlFor } from "@/lib/auth/callback";
 import {
   DEFAULT_AUTH_REDIRECT,
+  postAuthRedirectPath,
   safeNextPath,
+  signInPathFor,
   signInErrorPathFor,
 } from "@/lib/auth/paths";
 
@@ -16,6 +18,8 @@ describe("auth redirect paths", () => {
     expect(safeNextPath("/dashboard/pools?filter=live")).toBe(
       "/dashboard/pools?filter=live",
     );
+    expect(postAuthRedirectPath("/dashboard/pools")).toBe("/dashboard");
+    expect(signInPathFor("/dashboard/pools")).toBe("/sign-in");
   });
 
   it("builds a callback URL with only a safe internal destination", () => {

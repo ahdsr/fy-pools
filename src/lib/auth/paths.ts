@@ -27,8 +27,19 @@ export function safeNextPath(
   }
 }
 
+// A direct visit to the pool-creation route can leave a stale `next` value in
+// an auth URL. Send that flow through the workspace so it can decide whether
+// onboarding is needed based on the commissioner's actual pools.
+export function postAuthRedirectPath(
+  value: FormDataEntryValue | string | null | undefined,
+) {
+  const safePath = safeNextPath(value);
+
+  return safePath === "/dashboard/pools" ? DEFAULT_AUTH_REDIRECT : safePath;
+}
+
 export function signInPathFor(nextPath: string) {
-  const safePath = safeNextPath(nextPath);
+  const safePath = postAuthRedirectPath(nextPath);
 
   return safePath === DEFAULT_AUTH_REDIRECT
     ? "/sign-in"
@@ -36,7 +47,7 @@ export function signInPathFor(nextPath: string) {
 }
 
 export function signUpPathFor(nextPath: string) {
-  const safePath = safeNextPath(nextPath);
+  const safePath = postAuthRedirectPath(nextPath);
 
   return safePath === DEFAULT_AUTH_REDIRECT
     ? "/sign-up"

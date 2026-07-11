@@ -15,14 +15,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
   formatList,
   getPublicPoolRouteInfo,
   liveScoreMatchDates,
@@ -30,17 +22,17 @@ import {
   scoreRefreshSourceLabel,
 } from "@/lib/world-cup-pool/data";
 import type { PoolAnalyticsRow } from "@/lib/world-cup-pool/leaderboard";
-import { findEntryScenarioProjection } from "@/lib/world-cup-pool/opponent-paths";
+import {
+  findEntryScenarioProjection,
+  splitProjectedPayout,
+} from "@/lib/world-cup-pool/opponent-paths";
 import type {
   EntryScenarioProjection,
   ScenarioEventScore,
 } from "@/lib/world-cup-pool/opponent-paths";
 import { preferredSelectedEntryId } from "@/lib/world-cup-pool/projection-selection";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
-import type { LeaderboardRow } from "@/lib/world-cup-pool/types";
-
-const projectionNote =
-  "This is not a probability model. Each path scores the same result across every entry, so shared picks can still leave an entry behind.";
+import type { EntriesConfig, LeaderboardRow } from "@/lib/world-cup-pool/types";
 
 type ProjectionsPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -65,7 +57,7 @@ function projectionRows(rows: PoolAnalyticsRow[]) {
   });
 }
 
-function routeLabel(projection?: EntryScenarioProjection) {
+export function routeLabel(projection?: EntryScenarioProjection) {
   if (!projection) return "No projection";
   if (projection.eventCount === 0 && projection.projectedRank === 1) {
     return "Current #1";
@@ -75,86 +67,6 @@ function routeLabel(projection?: EntryScenarioProjection) {
   return `Projects #${projection.projectedRank}${tieLabel} · +${projection.routeCovered}`;
 }
 
-function statusBadge(label: string, active: boolean) {
-  return (
-    <Badge
-      variant={active ? "secondary" : "outline"}
-      className={
-        active ? "border-cta-green/25 bg-cta-green-soft text-brand-ink" : undefined
-      }
-    >
-      {label}
-    </Badge>
-  );
-}
-
-function ProjectionRow({
-  row,
-  publicSlug,
-  selected,
-  projection,
-}: {
-  row: PoolAnalyticsRow;
-  publicSlug: string;
-  selected: boolean;
-  projection?: EntryScenarioProjection;
-}) {
-  const canFinishFirst = Boolean(selected && projection?.canFinishFirst);
-  const statusLabel = selected
-    ? projection
-      ? canFinishFirst
-        ? "Can finish #1"
-        : "Capped"
-      : "Calculating"
-    : "Select";
-
-  return (
-    <TableRow>
-      <TableCell className="w-14 font-semibold text-brand-ink">
-        #{row.rank}
-      </TableCell>
-      <TableCell>
-        <Link
-          href={`/pools/${publicSlug}/entry/${row.id}`}
-          className="inline-flex items-center font-medium text-brand-ink hover:text-brand-hot"
-        >
-          <span>{row.name}</span>
-        </Link>
-      </TableCell>
-      <TableCell className="font-semibold">
-        {row.currentTotal}
-      </TableCell>
-      <TableCell>
-        <div className="min-w-28">
-          {statusBadge(
-            statusLabel,
-            canFinishFirst,
-          )}
-          {selected && projection ? (
-            <p className="mt-1 text-xs leading-4 text-muted-foreground">
-              {routeLabel(projection)}
-            </p>
-          ) : selected ? (
-            <p className="mt-1 text-xs leading-4 text-muted-foreground">
-              The full path is calculating above.
-            </p>
-          ) : (
-            <p className="mt-1 text-xs leading-4 text-muted-foreground">
-              Choose this entry above to calculate the full path.
-            </p>
-          )}
-        </div>
-      </TableCell>
-      <TableCell>
-        {statusBadge(
-          row.canReachPayout ? "In reach" : "Out",
-          row.canReachPayout,
-        )}
-      </TableCell>
-    </TableRow>
-  );
-}
-
 function leaderName({ leaderNames }: { leaderNames: string[] }) {
   const label = formatList(leaderNames) || "The leader";
   return label;
@@ -162,6 +74,16 @@ function leaderName({ leaderNames }: { leaderNames: string[] }) {
 
 function leaderNote({ leaderTotal }: { leaderTotal: number }) {
   return `${leaderTotal} pts now`;
+}
+
+function formatProjectedPayout(cents: number, currencyPrefix: string) {
+  const fractionDigits = cents % 100 === 0 ? 0 : 2;
+  const value = new Intl.NumberFormat("en-CA", {
+    minimumFractionDigits: fractionDigits,
+    maximumFractionDigits: 2,
+  }).format(cents / 100);
+
+  return currencyPrefix === "$" ? `$${value}` : `${currencyPrefix} ${value}`;
 }
 
 function alsoHelpsLabel(event: ScenarioEventScore, selectedId: string) {
@@ -225,12 +147,14 @@ function FocusedWinPath({
   selectedId,
   leader,
   routes,
+  payouts,
 }: {
   rows: PoolAnalyticsRow[];
   publicSlug: string;
   selectedId: string;
   leader?: LeaderboardRow;
   routes: Map<string, EntryScenarioProjection>;
+  payouts: EntriesConfig["payouts"];
 }) {
   const selected = rows.find((row) => row.id === selectedId) ?? rows[0];
   if (!selected) return null;
@@ -244,6 +168,21 @@ function FocusedWinPath({
   const projectedRank = route?.projectedRank ?? selected.rank;
   const projectedTotal = route?.projectedTotal ?? selected.currentTotal;
   const blockers = route?.blockers ?? [];
+  const tiedEntries = route?.tiedEntries ?? [];
+  const tied = tiedEntries.length > 1;
+  const tiedEntryNames = tiedEntries
+    .filter((entry) => entry.id !== selected.id)
+    .map((entry) => entry.name);
+  const entriesAhead = blockers.filter(
+    (entry) => entry.projectedTotal > projectedTotal,
+  );
+  const payout = route
+    ? splitProjectedPayout({
+        rank: projectedRank,
+        tiedEntryCount: Math.max(1, tiedEntries.length),
+        payouts,
+      })
+    : null;
 
   return (
     <LedgerPanel
@@ -265,10 +204,10 @@ function FocusedWinPath({
           {isLeader
             ? "Currently #1"
             : canWin
-              ? route?.tiedForFirst
+              ? tied
                 ? "Can tie #1"
                 : "Can finish #1"
-              : `Projects #${projectedRank}`}
+              : `Projects #${projectedRank}${tied ? " tied" : ""}`}
         </Badge>
       }
     >
@@ -344,8 +283,13 @@ function FocusedWinPath({
               </p>
               <p className="mt-2 text-2xl font-semibold leading-none text-brand-ink">
                 #{projectedRank}
-                {route?.tiedForFirst ? " tied" : ""}
+                {tied ? " tied" : ""}
               </p>
+              {tiedEntryNames.length ? (
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Tied with {formatList(tiedEntryNames)}
+                </p>
+              ) : null}
             </div>
             <div className="text-left sm:text-right">
               <p className="text-sm font-semibold text-brand-ink">
@@ -354,12 +298,37 @@ function FocusedWinPath({
               <p className="mt-1 text-sm text-muted-foreground">
                 after scoring every matching entry
               </p>
+              {payout ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                    Projected payout
+                  </p>
+                  <p className="mt-1 text-sm font-semibold text-brand-ink">
+                    {formatProjectedPayout(payout.shareCents, payout.currencyPrefix)}
+                    {tied ? " each" : ""}
+                  </p>
+                  <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                    {tied
+                      ? `Splits ${formatList(payout.placeLabels)}.`
+                      : `${payout.placeLabels[0]} prize.`}
+                  </p>
+                </div>
+              ) : route ? (
+                <div className="mt-3">
+                  <p className="text-xs font-semibold uppercase tracking-normal text-muted-foreground">
+                    Projected payout
+                  </p>
+                  <p className="mt-1 text-sm text-muted-foreground">
+                    Outside the configured payout places
+                  </p>
+                </div>
+              ) : null}
             </div>
           </div>
-          {!canWin && blockers.length ? (
+          {!canWin && entriesAhead.length ? (
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Still blocked by {formatList(blockers.slice(0, 4).map((row) => row.name))}
-              {blockers.length > 4 ? ` and ${blockers.length - 4} more` : ""}.
+              Still behind {formatList(entriesAhead.slice(0, 4).map((row) => row.name))}
+              {entriesAhead.length > 4 ? ` and ${entriesAhead.length - 4} more` : ""}.
             </p>
           ) : null}
         </div>
@@ -376,7 +345,7 @@ function FocusedWinPath({
                   These are the smallest unique scoring events currently found.
                   If they hit, the full-pool projection puts this entry at
                   #{projectedRank}
-                  {route?.tiedForFirst ? " tied" : ""}.
+                  {tied ? " tied" : ""}.
                 </p>
               </div>
             </div>
@@ -387,7 +356,8 @@ function FocusedWinPath({
             <p className="mt-1 text-sm leading-6 text-muted-foreground">
               Current remaining unique picks do not cover the gap to #1. This
               can change after new results, but the best path currently found
-              projects this entry to #{projectedRank}.
+              projects this entry to #{projectedRank}
+              {tied ? " tied" : ""}.
             </p>
           </div>
         )}
@@ -485,8 +455,6 @@ async function WorldCupProjectionDetails({
     leaderId: leader?.id,
     defaultEntryId: pool.entriesConfig.defaultEntryId,
   });
-  const scenarioRoutes = new Map<string, EntryScenarioProjection>();
-
   return (
     <>
       <LedgerPanel>
@@ -526,48 +494,6 @@ async function WorldCupProjectionDetails({
         />
       </Suspense>
 
-      <LedgerPanel
-        title="Pool projections"
-        description="Select an entry to calculate its full-pool path. The selected path is scored against every matching entry."
-        action={
-          <div className="flex flex-wrap justify-start gap-2 sm:justify-end">
-            {statusBadge("Live projection", true)}
-            <Badge variant="outline">{rows.length} entries</Badge>
-          </div>
-        }
-      >
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
-                <TableHead className="w-14">
-                  <span className="sr-only">Current rank</span>
-                </TableHead>
-                <TableHead>Entry</TableHead>
-                <TableHead>Current pts</TableHead>
-                <TableHead>Best path</TableHead>
-                <TableHead>Top {analytics.payoutPlaces}</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <ProjectionRow
-                  key={row.id}
-                  row={row}
-                  publicSlug={publicSlug}
-                  selected={row.id === selectedId}
-                  projection={
-                    row.id === selectedId ? scenarioRoutes.get(row.id) : undefined
-                  }
-                />
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-        <div className="border-t px-5 py-4 text-sm leading-6 text-muted-foreground">
-          {projectionNote}
-        </div>
-      </LedgerPanel>
       <PublicPoolScoreRefresh
         liveScoreMatchDates={liveScoreMatchDates(pool)}
         scoreRefreshLabel={scoreRefreshLabel(pool)}
@@ -642,6 +568,7 @@ async function FocusedWinPathStream({
       selectedId={selectedId}
       leader={leader}
       routes={scenarioRoutes}
+      payouts={standings.pool.entriesConfig.payouts}
     />
   );
 }

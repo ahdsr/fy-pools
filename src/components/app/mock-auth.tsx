@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import {
   DEFAULT_AUTH_REDIRECT,
   forgotPasswordPathFor,
+  postAuthRedirectPath,
   safeNextPath,
   signInPathFor,
   signUpPathFor,
@@ -449,7 +450,7 @@ export function MockSignInForm({
   nextPath,
   initialMessage,
 }: MockAuthFormProps) {
-  const redirectPath = safeNextPath(nextPath);
+  const redirectPath = postAuthRedirectPath(nextPath);
   const [email, setEmail] = React.useState("");
   const [state, formAction, pending] = React.useActionState(
     signInWithPasswordAction,
@@ -594,7 +595,7 @@ export function MockResetPasswordForm({ nextPath }: MockAuthFormProps) {
 }
 
 export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
-  const redirectPath = safeNextPath(nextPath);
+  const redirectPath = postAuthRedirectPath(nextPath);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [state, formAction, pending] = React.useActionState(

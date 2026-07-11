@@ -1,7 +1,7 @@
 import { AuthSplitLayout } from "@/components/app/auth-split-layout";
 import { MockSignUpForm } from "@/components/app/mock-auth";
 import { SignUpValueCarousel } from "@/components/app/sign-up-value-carousel";
-import { safeNextPath } from "@/lib/auth/paths";
+import { postAuthRedirectPath } from "@/lib/auth/paths";
 
 type SignUpPageProps = {
   searchParams: Promise<{ next?: string }>;
@@ -9,7 +9,7 @@ type SignUpPageProps = {
 
 export default async function SignUpPage({ searchParams }: SignUpPageProps) {
   const { next } = await searchParams;
-  const nextPath = safeNextPath(next);
+  const nextPath = postAuthRedirectPath(next);
 
   return (
     <AuthSplitLayout

@@ -1,6 +1,6 @@
 import { AuthSplitLayout } from "@/components/app/auth-split-layout";
 import { MockSignInForm } from "@/components/app/mock-auth";
-import { safeNextPath } from "@/lib/auth/paths";
+import { postAuthRedirectPath } from "@/lib/auth/paths";
 
 type SignInPageProps = {
   searchParams: Promise<{ next?: string; auth_error?: string }>;
@@ -8,7 +8,7 @@ type SignInPageProps = {
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
   const { next, auth_error: authError } = await searchParams;
-  const nextPath = safeNextPath(next);
+  const nextPath = postAuthRedirectPath(next);
 
   return (
     <AuthSplitLayout

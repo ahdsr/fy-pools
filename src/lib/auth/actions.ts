@@ -3,7 +3,11 @@
 import { redirect } from "next/navigation";
 
 import { authCallbackUrlFor } from "@/lib/auth/callback";
-import { resetPasswordPathFor, safeNextPath } from "@/lib/auth/paths";
+import {
+  postAuthRedirectPath,
+  resetPasswordPathFor,
+  safeNextPath,
+} from "@/lib/auth/paths";
 import {
   ensureProfileForAuthUser,
   upsertProfile,
@@ -21,7 +25,7 @@ export async function signInWithPasswordAction(
 ): Promise<AuthActionState> {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const nextPath = safeNextPath(formData.get("next"));
+  const nextPath = postAuthRedirectPath(formData.get("next"));
 
   if (!email || !password) {
     return { message: "Email and password are required." };
@@ -60,7 +64,7 @@ export async function signUpWithPasswordAction(
   const name = String(formData.get("name") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
-  const nextPath = safeNextPath(formData.get("next"));
+  const nextPath = postAuthRedirectPath(formData.get("next"));
   let shouldRedirect = false;
 
   if (!name || !email || !password) {

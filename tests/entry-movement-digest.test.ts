@@ -620,6 +620,16 @@ describe("buildEntryMovementDigest", () => {
       eventCount: 1,
       canFinishFirst: false,
       tiedForFirst: false,
+      tiedEntries: [
+        {
+          id: "target",
+          name: "Player",
+          currentTotal: 10,
+          projectedTotal: 25,
+          delta: 15,
+          rank: 2,
+        },
+      ],
       events: [
         {
           id: "event-1",

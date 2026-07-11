@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import { LeaderboardTable } from "@/components/app/leaderboard-table";
+import { TournamentRace } from "@/components/app/tournament-race";
 import {
   LatestUpdatesPanel,
   PayoutPanel,
@@ -195,11 +196,6 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
           }
           description="Every entry is ranked by live scoring, with group, knockout, finals, and bonus subtotals kept visible for quick auditing."
         >
-          <div className="border-b bg-background/65 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            Live group-stage scores can move the table while matches are in
-            progress. Finalized matches will stay stable after the provider
-            marks them complete.
-          </div>
           <LeaderboardTable rows={rows} poolSlug={publicSlug} />
         </LedgerPanel>
 
@@ -217,6 +213,14 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
         scoreRefreshLabel={scoreRefreshLabel(pool)}
         scoreRefreshSource={scoreRefreshSourceLabel(pool)}
       />
+      {referencePicks ? (
+        <TournamentRace
+          entriesConfig={pool.entriesConfig}
+          picksByPath={Array.from(pool.picksByPath.entries())}
+          results={pool.results}
+          referencePicks={referencePicks}
+        />
+      ) : null}
     </>
   );
 }
