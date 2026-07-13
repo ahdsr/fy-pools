@@ -112,10 +112,60 @@ export type EntryScenarioProjection = {
   eventCount: number;
   canFinishFirst: boolean;
   tiedForFirst: boolean;
+  tiedEntries: ScenarioStanding[];
   events: ScenarioEventScore[];
   standings: ScenarioStanding[];
   blockers: ScenarioStanding[];
 };
+
+export type ProjectedPayoutSplit = {
+  placeLabels: string[];
+  currencyPrefix: string;
+  totalCents: number;
+  shareCents: number;
+};
+
+function payoutAmountInCents(value: string) {
+  const normalized = value.replace(/[^\d.,-]/g, "").replace(/,/g, "");
+  const amount = Number(normalized);
+
+  return Number.isFinite(amount) ? Math.round(amount * 100) : null;
+}
+
+export function splitProjectedPayout({
+  rank,
+  tiedEntryCount,
+  payouts,
+}: {
+  rank: number;
+  tiedEntryCount: number;
+  payouts: EntriesConfig["payouts"];
+}): ProjectedPayoutSplit | null {
+  if (!payouts?.length || rank < 1 || tiedEntryCount < 1) return null;
+
+  const applicablePayouts = payouts.slice(
+    rank - 1,
+    rank - 1 + tiedEntryCount,
+  );
+  if (!applicablePayouts.length) return null;
+
+  const amounts = applicablePayouts.map((payout) =>
+    payoutAmountInCents(payout.amount),
+  );
+  if (amounts.some((amount) => amount === null)) return null;
+  const validAmounts = amounts as number[];
+
+  const totalCents = validAmounts.reduce((sum, amount) => sum + amount, 0);
+  const currencyPrefix =
+    applicablePayouts[0]?.amount.match(/[^\d\s.,-]+/)?.[0] ?? "$";
+
+  return {
+    placeLabels: applicablePayouts.map((payout) => payout.place),
+    currencyPrefix,
+    totalCents,
+    shareCents: Math.round(totalCents / tiedEntryCount),
+  };
+}
 
 const KNOCKOUT_STAGES = [
   { key: "roundOf16", label: "Round of 16" },
@@ -967,6 +1017,9 @@ export function projectEntryScenario({
   if (!selectedStanding) return null;
 
   const firstPlaceEntries = standings.filter((row) => row.rank === 1);
+  const tiedEntries = standings.filter(
+    (row) => row.projectedTotal === selectedStanding.projectedTotal,
+  );
   const blockers = standings.filter(
     (row) =>
       row.id !== entryId &&
@@ -984,6 +1037,7 @@ export function projectEntryScenario({
     eventCount: events.length,
     canFinishFirst: selectedStanding.rank === 1,
     tiedForFirst: selectedStanding.rank === 1 && firstPlaceEntries.length > 1,
+    tiedEntries,
     events: scoredEvents,
     standings,
     blockers,

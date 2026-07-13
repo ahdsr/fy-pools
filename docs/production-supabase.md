@@ -62,15 +62,19 @@ provider failure cannot overwrite the last known scores. Apply the
    password changes, and set the minimum password length to at least 8
    characters.
 3. Add production auth redirect URLs:
-   - `https://<production-domain>/auth/callback`
-   - `https://<production-domain>/sign-in`
-   - `https://<production-domain>/sign-up`
-   - `https://<production-domain>/join/*` when wildcard redirects are allowed.
+   - `https://<production-domain>/auth/callback?next=**`
+   - matching `/auth/callback?next=**` URLs for localhost and approved Vercel
+     preview domains.
+   - The callback URL is the only application redirect target used by password
+     confirmation, recovery, and Google OAuth; the app sanitizes `next` before
+     redirecting internally.
 4. Configure the site URL to the production domain.
-5. Verify that confirmation and password-recovery email template links route
-   back through `/auth/callback`.
-6. Keep provider OAuth settings disabled unless they are intentionally added in a
-   later auth-readiness pass.
+5. Verify that the confirmation and password-recovery templates use
+   `{{ .ConfirmationURL }}` and route back through `/auth/callback`.
+6. Enable Google in Supabase Auth. Configure a Google OAuth web client with the
+   production and local JavaScript origins and the Supabase project's
+   `/auth/v1/callback` URL as its authorized redirect URI, then add its client
+   ID and secret to the Supabase Google provider settings.
 
 ## Migration Application
 

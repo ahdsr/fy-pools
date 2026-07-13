@@ -11,8 +11,11 @@ import {
   buildLeaderboardRows,
   buildPoolAnalytics,
 } from "@/lib/world-cup-pool/leaderboard";
-import { buildOpponentPathsReport } from "@/lib/world-cup-pool/opponent-paths";
-import { findEntryScenarioProjection } from "@/lib/world-cup-pool/opponent-paths";
+import {
+  buildOpponentPathsReport,
+  findEntryScenarioProjection,
+  splitProjectedPayout,
+} from "@/lib/world-cup-pool/opponent-paths";
 import {
   teamCanStillEarnFinalPosition,
   teamIsStillAlive,
@@ -144,6 +147,45 @@ function fullFixture() {
 }
 
 describe("World Cup projection eligibility", () => {
+  it("splits the prizes occupied by a tied projected rank", () => {
+    const split = splitProjectedPayout({
+      rank: 2,
+      tiedEntryCount: 2,
+      payouts: [
+        { place: "1st Place", amount: "$800" },
+        { place: "2nd Place", amount: "$400" },
+        { place: "3rd Place", amount: "$200" },
+        { place: "4th Place", amount: "$100" },
+      ],
+    });
+
+    expect(split).toMatchObject({
+      placeLabels: ["2nd Place", "3rd Place"],
+      currencyPrefix: "$",
+      totalCents: 60000,
+      shareCents: 30000,
+    });
+  });
+
+  it("splits the final paid place when a tie extends beyond it", () => {
+    const split = splitProjectedPayout({
+      rank: 4,
+      tiedEntryCount: 2,
+      payouts: [
+        { place: "1st Place", amount: "$800" },
+        { place: "2nd Place", amount: "$400" },
+        { place: "3rd Place", amount: "$200" },
+        { place: "4th Place", amount: "$100" },
+      ],
+    });
+
+    expect(split).toMatchObject({
+      placeLabels: ["4th Place"],
+      totalCents: 10000,
+      shareCents: 5000,
+    });
+  });
+
   it("does not use eliminated teams in leader route events", () => {
     const { entriesConfig, picksByPath, results } = fixture();
     const report = buildOpponentPathsReport({

@@ -1,36 +1,32 @@
-import { redirect } from "next/navigation";
-
 import { AuthSplitLayout } from "@/components/app/auth-split-layout";
 import { MockSignInForm } from "@/components/app/mock-auth";
-import { safeNextPath } from "@/lib/auth/paths";
-import { isSupabaseConfigured } from "@/lib/supabase/config";
-import { getSupabaseUser } from "@/lib/supabase/server";
+import { postAuthRedirectPath } from "@/lib/auth/paths";
 
 type SignInPageProps = {
-  searchParams: Promise<{ next?: string }>;
+  searchParams: Promise<{ next?: string; auth_error?: string }>;
 };
 
 export default async function SignInPage({ searchParams }: SignInPageProps) {
-  const { next } = await searchParams;
-  const nextPath = safeNextPath(next);
-
-  if (isSupabaseConfigured()) {
-    const user = await getSupabaseUser();
-
-    if (user) redirect(nextPath);
-  }
+  const { next, auth_error: authError } = await searchParams;
+  const nextPath = postAuthRedirectPath(next);
 
   return (
     <AuthSplitLayout
       eyebrow="Your pool headquarters"
       title="Welcome back."
       description="Sign in to manage your pools, see the latest picks, and keep the friendly competition moving."
-      footerCopy="PoolWaffle makes every match day easier to run."
       panelTitle="The group chat, but built for game day."
       panelDescription="Bring your people, picks, and scoreboards into one lively pool that is effortless to run."
       centerContent
     >
-      <MockSignInForm nextPath={nextPath} />
+      <MockSignInForm
+        nextPath={nextPath}
+        initialMessage={
+          authError === "callback"
+            ? "We couldn't complete that sign-in. Please try again."
+            : undefined
+        }
+      />
     </AuthSplitLayout>
   );
 }

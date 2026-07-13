@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 
 import { LedgerPanel } from "@/components/app/ledger";
 import { LeaderboardTable } from "@/components/app/leaderboard-table";
+import { TournamentRace } from "@/components/app/tournament-race";
 import {
   LatestUpdatesPanel,
   PayoutPanel,
@@ -212,6 +213,14 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
         scoreRefreshLabel={scoreRefreshLabel(pool)}
         scoreRefreshSource={scoreRefreshSourceLabel(pool)}
       />
+      {referencePicks ? (
+        <TournamentRace
+          entriesConfig={pool.entriesConfig}
+          picksByPath={Array.from(pool.picksByPath.entries())}
+          results={pool.results}
+          referencePicks={referencePicks}
+        />
+      ) : null}
     </>
   );
 }

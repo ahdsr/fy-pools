@@ -39,7 +39,7 @@ export function SiteFooter({ className, ...props }: SiteFooterProps) {
   return (
     <footer
       className={cn(
-        "relative z-10 border-t border-brand-rule/45 bg-surface-paper/92",
+        "relative z-10 shrink-0 border-t border-brand-rule/45 bg-surface-paper/92",
         className,
       )}
       {...props}

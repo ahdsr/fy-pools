@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
 
 import { LedgerPanel, LedgerRow } from "@/components/app/ledger";
@@ -16,6 +17,16 @@ import { RoundOf16PickForm } from "./round-of-16-pick-form";
 type JoinPageProps = {
   params: Promise<{ inviteCode: string }>;
   searchParams: Promise<{ preview?: string }>;
+};
+
+export const unstable_instant = {
+  prefetch: "runtime",
+  samples: [
+    {
+      params: { inviteCode: "instant-navigation-sample" },
+      searchParams: { preview: null },
+    },
+  ],
 };
 
 function UnavailableInvite({
@@ -48,7 +59,15 @@ function UnavailableInvite({
   );
 }
 
-export default async function JoinPage({ params, searchParams }: JoinPageProps) {
+export default function JoinPage(props: JoinPageProps) {
+  return (
+    <Suspense fallback={<JoinPageSkeleton />}>
+      <JoinPageContent {...props} />
+    </Suspense>
+  );
+}
+
+async function JoinPageContent({ params, searchParams }: JoinPageProps) {
   const { inviteCode } = await params;
   const { preview } = await searchParams;
 
@@ -348,6 +367,25 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
         poolSlug={joinData.pool.slug}
         settings={joinData.pool.settings}
       />
+    </PageShell>
+  );
+}
+
+function JoinPageSkeleton() {
+  return (
+    <PageShell
+      eyebrow="Pool invite"
+      title="Pool invite"
+      description="Checking invite details and preparing your picks."
+      showHeader={false}
+    >
+      <LedgerPanel title="Loading invite" description="Preparing your pool entry.">
+        <div className="grid gap-3 p-5" aria-busy="true" aria-live="polite">
+          <div className="h-10 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-52 animate-pulse rounded-md bg-muted/80" />
+          <div className="h-12 animate-pulse rounded-md bg-muted/80" />
+        </div>
+      </LedgerPanel>
     </PageShell>
   );
 }

@@ -1,8 +1,11 @@
 import type { Metadata } from "next";
 import { Geist_Mono } from "next/font/google";
 import localFont from "next/font/local";
+import { Suspense } from "react";
 
 import { MockAuthProvider } from "@/components/app/mock-auth";
+import { authUserFromSupabase } from "@/lib/auth/user";
+import { getSupabaseUser } from "@/lib/supabase/server";
 import "./globals.css";
 
 const momoTrustSans = localFont({
@@ -79,8 +82,28 @@ export default function RootLayout({
       className={`${momoTrustSans.variable} ${momoTrustDisplay.variable} ${geistMono.variable} ${momoTrustSans.className} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
-        <MockAuthProvider>{children}</MockAuthProvider>
+        <Suspense
+          fallback={<AuthShellFallback />}
+        >
+          <AuthSessionProvider>{children}</AuthSessionProvider>
+        </Suspense>
       </body>
     </html>
   );
+}
+
+async function AuthSessionProvider({ children }: { children: React.ReactNode }) {
+  let initialUser = null;
+
+  try {
+    initialUser = authUserFromSupabase(await getSupabaseUser());
+  } catch {
+    // Keep the shell usable when local Supabase configuration is absent.
+  }
+
+  return <MockAuthProvider initialUser={initialUser}>{children}</MockAuthProvider>;
+}
+
+function AuthShellFallback() {
+  return <main className="min-h-screen bg-background" aria-busy="true" />;
 }

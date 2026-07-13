@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import {
   getKnockoutPoolStageDetails,
   getEnabledRoundOf16BonusProps,
+  getRoundOf16PoolTeams,
   slugifyPoolName,
   validateRoundOf16InviteInputs,
   validateRoundOf16PoolSettings,
@@ -151,6 +152,7 @@ export type CommissionerRoundOf16AdminPool = {
   poolSlug: string;
   status: string;
   settings: RoundOf16PoolSettings;
+  directInvites: RoundOf16InviteInput[];
 };
 
 export type CommissionerPoolSummary = {
@@ -158,6 +160,7 @@ export type CommissionerPoolSummary = {
   poolName: string;
   poolSlug: string;
   shareInviteHref: string;
+  makePicksHref: string;
   status: string;
   templateName: string;
   createdAt: string;
@@ -171,6 +174,7 @@ export type CommissionerPoolSummary = {
     accepted: number;
     revoked: number;
     expired: number;
+    shareLinkJoins: number;
   };
   entryCounts: {
     total: number;
@@ -286,10 +290,7 @@ function sanitizeRoundOf16PickPayload({
     sanitized.winners[matchup.id] = winner;
   }
 
-  const poolTeams = settings.matchups.flatMap((matchup) => [
-    matchup.teamOne,
-    matchup.teamTwo,
-  ]);
+  const poolTeams = getRoundOf16PoolTeams(settings);
   for (const key of Object.keys(bonusAnswers)) {
     if (!allowedBonusIds.has(key) && normalizePickValue(bonusAnswers[key])) {
       return { payload: sanitized, error: "Submitted picks include an unknown bonus prop." };
@@ -934,6 +935,8 @@ async function saveRoundOf16Submission({
     throw new Error("Picks were not submitted.");
   }
 
+  revalidatePath("/dashboard");
+
   return {
     entryId: String(submittedRow.entry_id),
     entryPickId: String(submittedRow.entry_pick_id),
@@ -1109,7 +1112,7 @@ export async function getCommissionerPoolSummaries() {
   const { data: pools, error } = await admin
     .from("pools")
     .select(
-      "id,name,slug,status,settings,created_at,updated_at,template_versions(name),pool_invites(id,email,code,status,expires_at),entries(id,entry_picks(status,submitted_at))",
+      "id,name,slug,status,settings,created_at,updated_at,template_versions(name),pool_invites(id,email,code,status,expires_at),entries(id,user_id,metadata,entry_picks(status,submitted_at))",
     )
     .eq("owner_id", user.id)
     .order("created_at", { ascending: false });
@@ -1147,6 +1150,15 @@ export async function getCommissionerPoolSummaries() {
     const shareInvite = invites.find((invite) => !String(invite.email ?? ""));
     const namedInvites = invites.filter((invite) => String(invite.email ?? ""));
     const entries = Array.isArray(pool.entries) ? pool.entries : [];
+    const commissionerEntry = entries.find(
+      (entry) => String(entry.user_id ?? "") === user.id,
+    );
+    const commissionerEntryPick = Array.isArray(commissionerEntry?.entry_picks)
+      ? commissionerEntry.entry_picks[0]
+      : commissionerEntry?.entry_picks;
+    const commissionerHasSubmittedPicks = ["submitted", "locked"].includes(
+      String(commissionerEntryPick?.status ?? ""),
+    );
     const inviteCounts = namedInvites.reduce(
       (counts, invite) => {
         const status = effectiveInviteStatus({
@@ -1164,8 +1176,16 @@ export async function getCommissionerPoolSummaries() {
         accepted: 0,
         revoked: 0,
         expired: 0,
+        shareLinkJoins: 0,
       },
     );
+    inviteCounts.shareLinkJoins = shareInvite
+      ? entries.filter((entry) => {
+          const metadata = entry.metadata as { inviteCode?: unknown } | null;
+
+          return String(metadata?.inviteCode ?? "") === String(shareInvite.code);
+        }).length
+      : 0;
     const entryCounts = entries.reduce(
       (counts, entry) => {
         const entryPick = Array.isArray(entry.entry_picks)
@@ -1195,6 +1215,10 @@ export async function getCommissionerPoolSummaries() {
       poolName: String(pool.name),
       poolSlug: String(pool.slug),
       shareInviteHref: shareInvite?.code ? `/join/${String(shareInvite.code)}` : "",
+      makePicksHref:
+        shareInvite?.code && !commissionerHasSubmittedPicks
+          ? `/join/${String(shareInvite.code)}`
+          : "",
       status: String(pool.status ?? "draft"),
       templateName: String(templateVersion?.name ?? "Round of 16 Pool"),
       createdAt: String(pool.created_at ?? ""),
@@ -1526,7 +1550,7 @@ export async function getCommissionerRoundOf16AdminPool(poolId: string) {
   const admin = createSupabaseAdminClient();
   const { data: pool, error } = await admin
     .from("pools")
-    .select("id,name,slug,status,owner_id,settings")
+    .select("id,name,slug,status,owner_id,settings,pool_invites(id,email,display_name)")
     .eq("id", poolId)
     .maybeSingle();
 
@@ -1539,6 +1563,13 @@ export async function getCommissionerRoundOf16AdminPool(poolId: string) {
   const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
     .roundOf16;
   if (!settings) return null;
+  const directInvites = (Array.isArray(pool.pool_invites) ? pool.pool_invites : [])
+    .filter((invite) => String(invite.email ?? "").trim())
+    .map((invite) => ({
+      id: `invite-${String(invite.id)}`,
+      email: String(invite.email ?? ""),
+      displayName: String(invite.display_name ?? ""),
+    }));
 
   return {
     poolId: String(pool.id),
@@ -1546,6 +1577,7 @@ export async function getCommissionerRoundOf16AdminPool(poolId: string) {
     poolSlug: String(pool.slug),
     status: String(pool.status ?? "open"),
     settings,
+    directInvites,
   } satisfies CommissionerRoundOf16AdminPool;
 }
 

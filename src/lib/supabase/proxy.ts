@@ -1,11 +1,31 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-import { signInPathFor } from "@/lib/auth/paths";
+import { safeNextPath, signInPathFor } from "@/lib/auth/paths";
 import { getSupabaseConfig } from "@/lib/supabase/config";
 
-function isProtectedDashboardPath(pathname: string) {
+export function isProtectedDashboardPath(pathname: string) {
   return pathname === "/dashboard" || pathname.startsWith("/dashboard/");
+}
+
+export function isGuestOnlyAuthPath(pathname: string) {
+  return pathname === "/sign-in" || pathname === "/sign-up";
+}
+
+function copySessionCookies(from: NextResponse, to: NextResponse) {
+  from.cookies.getAll().forEach((cookie) => to.cookies.set(cookie));
+  return to;
+}
+
+function redirectWithSessionCookies(
+  request: NextRequest,
+  pathname: string,
+  response: NextResponse,
+) {
+  return copySessionCookies(
+    response,
+    NextResponse.redirect(new URL(pathname, request.url)),
+  );
 }
 
 export async function updateSupabaseSession(request: NextRequest) {
@@ -15,10 +35,7 @@ export async function updateSupabaseSession(request: NextRequest) {
   const protectedDashboardPath = isProtectedDashboardPath(
     request.nextUrl.pathname,
   );
-
-  if (!protectedDashboardPath) {
-    return response;
-  }
+  const guestOnlyAuthPath = isGuestOnlyAuthPath(request.nextUrl.pathname);
 
   try {
     const { url, anonKey } = getSupabaseConfig();
@@ -45,21 +62,29 @@ export async function updateSupabaseSession(request: NextRequest) {
       data: { user },
     } = await supabase.auth.getUser();
 
-    if (!user) {
-      return NextResponse.redirect(
-        new URL(
-          signInPathFor(`${request.nextUrl.pathname}${request.nextUrl.search}`),
-          request.url,
-        ),
+    if (protectedDashboardPath && !user) {
+      return redirectWithSessionCookies(
+        request,
+        signInPathFor(`${request.nextUrl.pathname}${request.nextUrl.search}`),
+        response,
+      );
+    }
+
+    if (guestOnlyAuthPath && user) {
+      return redirectWithSessionCookies(
+        request,
+        safeNextPath(request.nextUrl.searchParams.get("next")),
+        response,
       );
     }
   } catch {
-    return NextResponse.redirect(
-      new URL(
+    if (protectedDashboardPath) {
+      return redirectWithSessionCookies(
+        request,
         signInPathFor(`${request.nextUrl.pathname}${request.nextUrl.search}`),
-        request.url,
-      ),
-    );
+        response,
+      );
+    }
   }
 
   return response;

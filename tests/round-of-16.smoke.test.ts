@@ -6,8 +6,10 @@ import { scoreRoundOf16Entry } from "@/lib/round-of-16/scoring";
 import { pickPayloadAndItemIdsFromItems } from "@/lib/round-of-16/persistence";
 import {
   createDefaultRoundOf16WizardState,
+  createRoundOf16WizardStateFromSettings,
   getEnabledRoundOf16BonusProps,
   getKnockoutPoolStageDetails,
+  getRoundOf16PoolTeams,
   isRoundOf16WizardStateComplete,
   QUARTER_FINAL_TEMPLATE_SLUG,
   SEMI_FINAL_TEMPLATE_SLUG,
@@ -103,6 +105,14 @@ describe("Round of 16 launch smoke coverage", () => {
       "qf-3",
       "qf-4",
     ]);
+    expect(getRoundOf16PoolTeams(settings)).toEqual([
+      "Spain",
+      "Belgium",
+      "Argentina",
+      "Switzerland",
+      "Norway",
+      "England",
+    ]);
     expect(validateRoundOf16PoolSettings(settings)).toBeNull();
     expect(score.lines[0]?.key).toBe("qf_1_winner");
     expect(itemIds.get("qf_1_winner")).toBe("pick-item-quarter-final-1");
@@ -139,6 +149,36 @@ describe("Round of 16 launch smoke coverage", () => {
     expect(validateRoundOf16PoolSettings(settings)).toBeNull();
     expect(validateRoundOf16InviteInputs(state.inviteSettings.participants)).toBeNull();
     expect(isRoundOf16WizardStateComplete(state)).toBe(true);
+  });
+
+  it("restores direct invites when editing a pool and leaves room for new ones", () => {
+    const { settings } = createLaunchReadySettings();
+    const restored = createRoundOf16WizardStateFromSettings(settings, [
+      {
+        id: "invite-alice",
+        email: "alice@example.com",
+        displayName: "Alice",
+      },
+      {
+        id: "invite-bob",
+        email: "bob@example.com",
+        displayName: "Bob",
+      },
+    ]);
+
+    expect(restored.inviteSettings.participants).toHaveLength(5);
+    expect(restored.inviteSettings.participants.slice(0, 2)).toEqual([
+      {
+        id: "invite-alice",
+        email: "alice@example.com",
+        displayName: "Alice",
+      },
+      {
+        id: "invite-bob",
+        email: "bob@example.com",
+        displayName: "Bob",
+      },
+    ]);
   });
 
   it("rejects duplicate participant emails and duplicate matchup teams before publish", () => {

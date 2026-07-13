@@ -31,6 +31,7 @@ import { cn } from "@/lib/utils";
 import {
   getEnabledRoundOf16BonusProps,
   getKnockoutPoolStageDetails,
+  getRoundOf16PoolTeams,
   type RoundOf16PickPayload,
   type RoundOf16PoolSettings,
   type RoundOf16MatchupDraft,
@@ -70,16 +71,6 @@ function formatPickDeadline(settings: RoundOf16PoolSettings) {
     hour: "numeric",
     minute: "2-digit",
   });
-}
-
-function roundOf16Teams(settings: RoundOf16PoolSettings) {
-  return Array.from(
-    new Set(
-      settings.matchups.flatMap((matchup) =>
-        [matchup.teamOne, matchup.teamTwo].filter(Boolean),
-      ),
-    ),
-  );
 }
 
 function matchupSide(index: number) {
@@ -331,7 +322,7 @@ export function RoundOf16PickForm({
   );
   const enabledBonusProps = getEnabledRoundOf16BonusProps(settings);
   const stage = getKnockoutPoolStageDetails(settings);
-  const teamOptions = React.useMemo(() => roundOf16Teams(settings), [settings]);
+  const teamOptions = React.useMemo(() => getRoundOf16PoolTeams(settings), [settings]);
   const hasExistingSubmission = Boolean(existingSubmittedAt || state.submitted);
   const joinPath = `/join/${encodeURIComponent(inviteCode)}`;
   const publicPoolPath = `/pools/${poolSlug}`;
