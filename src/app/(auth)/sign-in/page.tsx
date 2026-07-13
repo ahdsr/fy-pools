@@ -28,6 +28,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       footerCopy="PoolWaffle makes every match day easier to run."
       panelTitle="The group chat, but built for game day."
       panelDescription="Bring your people, picks, and scoreboards into one lively pool that is effortless to run."
+      centerContent
     >
       <MockSignInForm nextPath={nextPath} />
     </AuthSplitLayout>

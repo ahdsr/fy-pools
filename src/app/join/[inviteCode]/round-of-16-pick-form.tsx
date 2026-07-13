@@ -370,7 +370,7 @@ export function RoundOf16PickForm({
             <DialogTitle>Picks submitted</DialogTitle>
             <DialogDescription>
               {testGuestMode
-                ? "Your picks are tied to the email you entered. Create or sign in with that same email to claim and update them later."
+                ? "Your local test entry was saved and will appear in the pool standings."
                 : `Your picks for ${poolName} were saved. You can update them until ${formatPickDeadline(settings)}.`}
             </DialogDescription>
           </DialogHeader>
@@ -382,14 +382,13 @@ export function RoundOf16PickForm({
           <DialogFooter>
             {testGuestMode ? (
               <>
-                <Button asChild variant="ghost">
-                  <Link href={publicPoolPath}>View pool</Link>
-                </Button>
                 <Button asChild variant="outline">
-                  <Link href={signInPathFor(joinPath)}>Sign in</Link>
+                  <Link href={`${joinPath}?preview=test`}>
+                    Create another test entrant
+                  </Link>
                 </Button>
                 <Button asChild variant="primaryGreen">
-                  <Link href={signUpPathFor(joinPath)}>Create account to claim</Link>
+                  <Link href={publicPoolPath}>View pool</Link>
                 </Button>
               </>
             ) : (
@@ -408,42 +407,14 @@ export function RoundOf16PickForm({
         </DialogContent>
       </Dialog>
 
-      {state.submitted ? (
-        <LedgerPanel
-          title="Picks submitted"
-          description={`You can resubmit changes until ${formatPickDeadline(settings)}.`}
-          action={<CheckCircle2 className="size-5 text-brand-success" />}
-        >
-          <LedgerRow>
-            <p className="font-semibold text-brand-ink">{poolName}</p>
-            <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-              Submitted at {new Date(state.submitted.submittedAt).toLocaleString()}.
-            </p>
-          </LedgerRow>
-        </LedgerPanel>
-      ) : existingSubmittedAt ? (
-        <LedgerPanel
-          title="Editing submitted picks"
-          description={`Your saved picks are loaded. Changes are open until ${formatPickDeadline(settings)}.`}
-          action={<CheckCircle2 className="size-5 text-brand-success" />}
-        >
-          <LedgerRow>
-            <p className="font-semibold text-brand-ink">{poolName}</p>
-            <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-              Last submitted at {new Date(existingSubmittedAt).toLocaleString()}.
-            </p>
-          </LedgerRow>
-        </LedgerPanel>
-      ) : null}
-
       <form action={formAction} className="space-y-5">
         <input type="hidden" name="inviteCode" value={inviteCode} />
         <input type="hidden" name="payload" value={JSON.stringify(payload)} />
 
         {testGuestMode ? (
           <LedgerPanel
-            title="Entry details"
-            description="Use one email per entry. If that email already has picks, sign in or create an account with it to claim them."
+            title="Test entrant details"
+            description="Use a unique email address for each local test entrant."
           >
             <LedgerRow className="grid gap-3 md:grid-cols-2">
               <div className="space-y-2">

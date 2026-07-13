@@ -44,21 +44,10 @@ export function SiteFooter({ className, ...props }: SiteFooterProps) {
       )}
       {...props}
     >
-      <div className="mx-auto grid w-full max-w-[1268px] gap-8 px-6 py-8 md:grid-cols-[minmax(0,1fr)_auto] md:py-10">
-        <div className="max-w-xl space-y-4">
-          <BrandWordmark />
-          <p className="text-sm font-normal leading-6 text-muted-foreground">
-            Private sports pool hosting for commissioners who need clean picks,
-            locked entries, trusted scoring, and public standings.
-          </p>
-          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-            Copyright 2026 PoolWaffle
-          </p>
-        </div>
-
+      <div className="mx-auto flex w-full max-w-[1268px] flex-col gap-8 px-6 py-8 md:py-10">
         <nav
           aria-label="Footer navigation"
-          className="grid gap-8 sm:grid-cols-2 md:min-w-[24rem]"
+          className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3"
         >
           {footerGroups.map((group) => (
             <div key={group.title} className="space-y-3">
@@ -91,6 +80,17 @@ export function SiteFooter({ className, ...props }: SiteFooterProps) {
             </div>
           ))}
         </nav>
+
+        <div className="max-w-xl space-y-4 border-t border-brand-rule/45 pt-8">
+          <BrandWordmark />
+          <p className="text-sm font-normal leading-6 text-muted-foreground">
+            Private sports pool hosting for commissioners who need clean picks,
+            locked entries, trusted scoring, and public standings.
+          </p>
+          <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
+            Copyright 2026 PoolWaffle
+          </p>
+        </div>
       </div>
     </footer>
   );

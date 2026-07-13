@@ -115,6 +115,36 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
   const effectiveExistingSubmission = previewNewEntrant
     ? undefined
     : joinData.existingSubmission;
+  const localTestEntrantMode =
+    process.env.NODE_ENV === "development" &&
+    joinData.invite.isShareLink &&
+    preview === "test";
+
+  if (localTestEntrantMode) {
+    return (
+      <PageShell
+        eyebrow="Local testing"
+        title={`Add an entry to ${joinData.pool.name}`}
+        description="Create an additional test entry without signing out. This mode is only available locally."
+        showHeader={false}
+        heroAction={
+          <Button asChild variant="outline">
+            <Link href={`/join/${encodeURIComponent(inviteCode)}`}>
+              Return to my picks
+            </Link>
+          </Button>
+        }
+      >
+        <RoundOf16PickForm
+          inviteCode={inviteCode}
+          poolName={joinData.pool.name}
+          poolSlug={joinData.pool.slug}
+          settings={joinData.pool.settings}
+          testGuestMode
+        />
+      </PageShell>
+    );
+  }
 
   if (
     !joinData.invite.isShareLink &&
@@ -166,26 +196,6 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
             `Make your ${stage.pluralLabel.toLowerCase()} picks before the pool deadline.`
           }
           showHeader={false}
-          heroAction={
-            <div className="flex flex-wrap gap-2">
-              {previewNewEntrant && user ? (
-                <Button asChild variant="outline">
-                  <Link href={`/join/${encodeURIComponent(inviteCode)}`}>
-                    Return to your picks
-                  </Link>
-                </Button>
-              ) : (
-                <>
-                  <Button asChild variant="outline">
-                    <Link href={signUpPathFor(nextPath)}>Create account</Link>
-                  </Button>
-                  <Button asChild variant="ghost">
-                    <Link href={signInPathFor(nextPath)}>Sign in</Link>
-                  </Button>
-                </>
-              )}
-            </div>
-          }
         >
           <LedgerPanel
             title="Sign in required"
@@ -290,40 +300,23 @@ export default async function JoinPage({ params, searchParams }: JoinPageProps) 
   if (effectiveExistingSubmission) {
     return (
       <PageShell
-        eyebrow="Pool invite"
+        eyebrow="My pool picks"
         title={joinData.pool.name}
-        description="Your picks have been submitted. You can update them until the deadline."
+        description={`Your submitted picks were last updated ${new Date(effectiveExistingSubmission.submittedAt).toLocaleString()}. You can update them until the deadline.`}
         showHeader={false}
         heroAction={
-          <Badge variant="outline" className="h-auto py-1.5">
-            <LockKeyhole />{" "}
-            {joinData.invite.isShareLink ? "Signup link" : joinData.invite.email}
-          </Badge>
+          process.env.NODE_ENV === "development" &&
+          joinData.invite.isShareLink ? (
+            <Button asChild variant="outline">
+              <Link
+                href={`/join/${encodeURIComponent(inviteCode)}?preview=test`}
+              >
+                Create test entrant
+              </Link>
+            </Button>
+          ) : undefined
         }
       >
-        <LedgerPanel
-          title="Entry submitted"
-          action={<ShieldCheck className="size-5 text-brand-success" />}
-        >
-          <LedgerRow>
-            <p className="font-semibold text-brand-ink">
-              Last submitted{" "}
-              {new Date(effectiveExistingSubmission.submittedAt).toLocaleString()}
-            </p>
-            <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-              Make changes below and submit again before the deadline.
-            </p>
-            {joinData.invite.isShareLink ? (
-              <Button asChild variant="outline" className="mt-4">
-                <Link
-                  href={`/join/${encodeURIComponent(inviteCode)}?preview=new`}
-                >
-                  Preview as new entrant
-                </Link>
-              </Button>
-            ) : null}
-          </LedgerRow>
-        </LedgerPanel>
         <RoundOf16PickForm
           inviteCode={inviteCode}
           poolName={joinData.pool.name}

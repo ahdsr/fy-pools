@@ -58,6 +58,7 @@ type MockAuthFormProps = {
 
 export type PublicPoolNavKey =
   | "overview"
+  | "rules"
   | "projections"
   | "heatmap"
   | "bracket"
@@ -77,6 +78,7 @@ const signedOutNavItems = [
 
 const publicPoolNavItems = [
   { key: "overview", label: "Pool", href: "" },
+  { key: "rules", label: "Rules", href: "/rules" },
   { key: "projections", label: "Projections", href: "/projections" },
   { key: "heatmap", label: "Heatmap", href: "/heatmap" },
   { key: "bracket", label: "Bracket", href: "/bracket" },
@@ -224,6 +226,7 @@ export function DashboardHeader() {
 }
 
 function getPublicPoolActiveRoute(pathname: string): PublicPoolNavKey {
+  if (pathname.includes("/rules")) return "rules";
   if (pathname.includes("/projections")) return "projections";
   if (pathname.includes("/heatmap")) return "heatmap";
   if (pathname.includes("/bracket")) return "bracket";

@@ -245,6 +245,11 @@ function MatchUpdatesSection({
                     {match.detail}
                   </p>
                 ) : null}
+                {isUpcomingMatch(match) ? (
+                  <p className="mb-2 text-sm font-medium text-muted-foreground">
+                    {formatScheduledMatchTime(match.date)}
+                  </p>
+                ) : null}
                 <MatchupLine
                   homeTeam={match.homeTeam}
                   awayTeam={match.awayTeam}
@@ -275,6 +280,18 @@ function isUpcomingMatch(match: MatchResult) {
 
 function shouldShowScore(match: MatchResult) {
   return match.completed || match.state === "in";
+}
+
+function formatScheduledMatchTime(value: string) {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "Time TBD";
+
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Toronto",
+    hour: "numeric",
+    minute: "2-digit",
+    timeZoneName: "short",
+  }).format(date);
 }
 
 export function StatusBadge({

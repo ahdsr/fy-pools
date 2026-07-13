@@ -273,7 +273,7 @@ export function RoundOf16EntrantsPanel({
         {entries.map((entry) => (
           <LedgerRow
             key={entry.entryId}
-            className="flex items-center justify-between gap-4"
+            className="block"
           >
             <div className="min-w-0">
               {entry.picksVisible ? (
@@ -292,9 +292,6 @@ export function RoundOf16EntrantsPanel({
                 Submitted {formatDateTime(entry.submittedAt)}
               </p>
             </div>
-            <Badge variant="outline">
-              {entry.picksVisible ? "Viewable" : "Locked"}
-            </Badge>
           </LedgerRow>
         ))}
         {entries.length === 0 ? (
@@ -330,13 +327,13 @@ export function RoundOf16BracketPanel({
 
           return (
             <LedgerRow key={matchup.id} className="space-y-3">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-baseline justify-between gap-3">
                 <p className="font-semibold text-brand-ink">
                   Match {index + 1}
                 </p>
-                <Badge variant={result ? "secondary" : "outline"}>
-                  {result ? "Final" : "Pending"}
-                </Badge>
+                <p className="text-xs font-normal text-muted-foreground">
+                  Starts {formatDateTime(settings.basics.picksLockAt)}
+                </p>
               </div>
               <div className="divide-y rounded-md border bg-background">
                 {[matchup.teamOne, matchup.teamTwo].map((team) => {

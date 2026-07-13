@@ -30,6 +30,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
       panelTitle="More games to care about."
       panelDescription="Create a polished home for your crew’s picks, scores, and bragging rights—without becoming the full-time scorekeeper."
       rightPanel={<SignUpValueCarousel />}
+      centerContent
     >
       <MockSignUpForm nextPath={nextPath} />
     </AuthSplitLayout>

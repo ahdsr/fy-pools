@@ -4,6 +4,7 @@ import { ChartNoAxesCombined, Trophy, UsersRound } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { BrandWordmark } from "@/components/app/brand";
+import { cn } from "@/lib/utils";
 
 type AuthSplitLayoutProps = {
   children: ReactNode;
@@ -14,6 +15,7 @@ type AuthSplitLayoutProps = {
   panelTitle: string;
   panelDescription: string;
   rightPanel?: ReactNode;
+  centerContent?: boolean;
 };
 
 const benefits = [
@@ -40,11 +42,17 @@ export function AuthSplitLayout({
   panelTitle,
   panelDescription,
   rightPanel,
+  centerContent = false,
 }: AuthSplitLayoutProps) {
   return (
     <main className="grid min-h-[100dvh] bg-surface-paper lg:grid-cols-[minmax(0,0.95fr)_minmax(32rem,1.05fr)]">
-      <section className="flex min-w-0 flex-col px-6 py-6 sm:px-10 sm:py-8 lg:min-h-[100dvh] lg:px-[clamp(3rem,7vw,8.5rem)] lg:py-[clamp(2.5rem,6vh,5.75rem)]">
-        <div className="flex items-center justify-between gap-4">
+      <section
+        className={cn(
+          "flex min-w-0 flex-col px-6 py-6 sm:px-10 sm:py-8 lg:min-h-[100dvh] lg:px-[clamp(3rem,7vw,8.5rem)] lg:py-[clamp(2.5rem,6vh,5.75rem)]",
+          centerContent && "lg:relative",
+        )}
+      >
+        <div className="relative z-10 flex items-center justify-between gap-4">
           <BrandWordmark />
           <Link
             href="/"
@@ -54,23 +62,31 @@ export function AuthSplitLayout({
           </Link>
         </div>
 
-        <div className="mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center py-14 lg:mx-0 lg:py-8">
-          <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-hot uppercase">
-            {eyebrow}
-          </p>
-          <h1 className="font-heading text-4xl leading-[0.98] text-foreground sm:text-5xl">
-            {title}
-          </h1>
-          <p className="mt-4 max-w-sm text-[0.9375rem] leading-6 text-muted-foreground">
-            {description}
-          </p>
+        <div
+          className={cn(
+            "mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center py-14 lg:mx-0 lg:py-8",
+            centerContent &&
+              "lg:absolute lg:inset-0 lg:mx-0 lg:max-w-none lg:items-center lg:justify-center lg:px-8 lg:py-0",
+          )}
+        >
+          <div className={cn("w-full", centerContent && "lg:max-w-[26rem]")}>
+            <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-hot uppercase">
+              {eyebrow}
+            </p>
+            <h1 className="font-heading text-4xl leading-[0.98] text-foreground sm:text-5xl">
+              {title}
+            </h1>
+            <p className="mt-4 max-w-sm text-[0.9375rem] leading-6 text-muted-foreground">
+              {description}
+            </p>
 
-          <div className="mt-8 border-t border-border pt-7 sm:mt-10">
-            {children}
+            <div className="mt-8 border-t border-border pt-7 sm:mt-10">
+              {children}
+            </div>
           </div>
         </div>
 
-        <p className="hidden text-xs leading-5 text-muted-foreground lg:block">
+        <p className="relative z-10 hidden text-xs leading-5 text-muted-foreground lg:block">
           {footerCopy}
         </p>
       </section>
@@ -96,7 +112,7 @@ function DefaultAuthPanel({
   return (
     <>
       <Image
-        src="/illustrations/poolwaffle-sign-in-community.png"
+        src="/illustrations/poolwaffle-sign-in-community.png?v=black-v2"
         alt="Friends enjoying game day and comparing their pool brackets"
         fill
         priority

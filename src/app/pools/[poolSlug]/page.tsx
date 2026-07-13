@@ -195,11 +195,6 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
           }
           description="Every entry is ranked by live scoring, with group, knockout, finals, and bonus subtotals kept visible for quick auditing."
         >
-          <div className="border-b bg-background/65 px-4 py-3 text-sm leading-6 text-muted-foreground">
-            Live group-stage scores can move the table while matches are in
-            progress. Finalized matches will stay stable after the provider
-            marks them complete.
-          </div>
           <LeaderboardTable rows={rows} poolSlug={publicSlug} />
         </LedgerPanel>
 

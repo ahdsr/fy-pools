@@ -51,6 +51,10 @@ export async function submitRoundOf16TestPicksAction(
   _state: SubmitRoundOf16PicksState,
   formData: FormData,
 ): Promise<SubmitRoundOf16PicksState> {
+  if (process.env.NODE_ENV !== "development") {
+    return { message: "Test entries are only available in local development." };
+  }
+
   const inviteCode = String(formData.get("inviteCode") ?? "");
 
   try {
@@ -59,14 +63,14 @@ export async function submitRoundOf16TestPicksAction(
       { winners: {}, bonusAnswers: {} },
       "Pick",
     );
-    await submitRoundOf16TestPicks({
+    const submitted = await submitRoundOf16TestPicks({
       inviteCode,
       displayName: String(formData.get("displayName") ?? ""),
       email: String(formData.get("email") ?? ""),
       payload,
     });
 
-    return {};
+    return { submitted };
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Test picks could not be submitted.";

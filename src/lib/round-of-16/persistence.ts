@@ -1,5 +1,6 @@
 import "server-only";
 
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 
 import {
@@ -835,42 +836,25 @@ export async function getJoinPoolData(inviteCode: string) {
   } satisfies JoinPoolData;
 }
 
-export async function submitRoundOf16Picks({
+async function saveRoundOf16Submission({
   inviteCode,
   payload,
+  joinData,
+  userId,
+  displayName,
+  entryEmail,
+  localTestEntrant = false,
 }: {
   inviteCode: string;
   payload: RoundOf16PickPayload;
+  joinData: JoinPoolData;
+  userId: string;
+  displayName: string;
+  entryEmail: string;
+  localTestEntrant?: boolean;
 }) {
-  const user = await requireSupabaseUser();
   const admin = createSupabaseAdminClient();
-  const joinData = await getJoinPoolData(inviteCode);
-
-  if (!joinData) throw new Error("Invite not found.");
-  if (joinData.invite.status === "revoked" || joinData.invite.status === "expired") {
-    throw new Error("This invite is no longer available.");
-  }
-  if (
-    !joinData.invite.isShareLink &&
-    joinData.invite.status === "accepted" &&
-    joinData.invite.acceptedBy &&
-    joinData.invite.acceptedBy !== user.id
-  ) {
-    throw new Error("This invite has already been accepted.");
-  }
-
   const settings = joinData.pool.settings;
-  if (!joinData.invite.isShareLink) {
-    const inviteEmail = normalizeEmailAddress(joinData.invite.email);
-    const userEmail = normalizeEmailAddress(user.email ?? "");
-    if (!inviteEmail || !userEmail || inviteEmail !== userEmail) {
-      throw new Error("Sign in with the email address this invite was sent to.");
-    }
-    if (!userHasConfirmedEmail(user)) {
-      throw new Error("Confirm your email address before submitting invited picks.");
-    }
-  }
-
   if (pickDeadlineHasPassed(settings)) {
     throw new Error("The pick deadline has passed.");
   }
@@ -883,12 +867,7 @@ export async function submitRoundOf16Picks({
   if (sanitized.error) throw new Error(sanitized.error);
   const validPayload = sanitized.payload;
 
-  const displayName =
-    user.user_metadata?.display_name ??
-    (joinData.invite.isShareLink ? undefined : joinData.invite.displayName) ??
-    user.email?.split("@")[0] ??
-    "Participant";
-  await ensureProfile({ userId: user.id, displayName });
+  await ensureProfile({ userId, displayName });
 
   const submittedAt = new Date().toISOString();
   const fieldMap = await ensureRoundOf16PickFields({
@@ -924,7 +903,7 @@ export async function submitRoundOf16Picks({
     "submit_round_of_16_picks_transaction",
     {
       p_pool_id: joinData.pool.id,
-      p_user_id: user.id,
+      p_user_id: userId,
       p_template_version_id: joinData.pool.templateVersionId,
       p_invite_id: joinData.invite.id,
       p_accept_invite: !joinData.invite.isShareLink,
@@ -932,8 +911,9 @@ export async function submitRoundOf16Picks({
       p_entry_number: 1,
       p_entry_metadata: {
         inviteCode,
-        entryEmail: normalizeEmailAddress(user.email ?? ""),
+        entryEmail,
         inviteEmail: joinData.invite.email,
+        ...(localTestEntrant ? { localTestEntrant: true } : {}),
       },
       p_submitted_at: submittedAt,
       p_pick_items: pickItems.map((item) => ({
@@ -961,6 +941,56 @@ export async function submitRoundOf16Picks({
   };
 }
 
+export async function submitRoundOf16Picks({
+  inviteCode,
+  payload,
+}: {
+  inviteCode: string;
+  payload: RoundOf16PickPayload;
+}) {
+  const user = await requireSupabaseUser();
+  const joinData = await getJoinPoolData(inviteCode);
+
+  if (!joinData) throw new Error("Invite not found.");
+  if (joinData.invite.status === "revoked" || joinData.invite.status === "expired") {
+    throw new Error("This invite is no longer available.");
+  }
+  if (
+    !joinData.invite.isShareLink &&
+    joinData.invite.status === "accepted" &&
+    joinData.invite.acceptedBy &&
+    joinData.invite.acceptedBy !== user.id
+  ) {
+    throw new Error("This invite has already been accepted.");
+  }
+
+  if (!joinData.invite.isShareLink) {
+    const inviteEmail = normalizeEmailAddress(joinData.invite.email);
+    const userEmail = normalizeEmailAddress(user.email ?? "");
+    if (!inviteEmail || !userEmail || inviteEmail !== userEmail) {
+      throw new Error("Sign in with the email address this invite was sent to.");
+    }
+    if (!userHasConfirmedEmail(user)) {
+      throw new Error("Confirm your email address before submitting invited picks.");
+    }
+  }
+
+  const displayName =
+    user.user_metadata?.display_name ??
+    (joinData.invite.isShareLink ? undefined : joinData.invite.displayName) ??
+    user.email?.split("@")[0] ??
+    "Participant";
+
+  return saveRoundOf16Submission({
+    inviteCode,
+    payload,
+    joinData,
+    userId: user.id,
+    displayName,
+    entryEmail: normalizeEmailAddress(user.email ?? ""),
+  });
+}
+
 export async function submitRoundOf16TestPicks({
   inviteCode,
   displayName,
@@ -972,12 +1002,46 @@ export async function submitRoundOf16TestPicks({
   email: string;
   payload: RoundOf16PickPayload;
 }) {
-  void inviteCode;
-  void displayName;
-  void email;
-  void payload;
   assertSupabaseConfigured();
-  throw new Error("Guest entries are disabled. Sign in or create an account to submit picks.");
+  if (process.env.NODE_ENV !== "development") {
+    throw new Error("Test entries are only available in local development.");
+  }
+
+  const normalizedEmail = normalizeEmailAddress(email);
+  const normalizedDisplayName = displayName.trim();
+  if (!normalizedDisplayName || !normalizedEmail) {
+    throw new Error("Enter a display name and email address.");
+  }
+
+  const joinData = await getJoinPoolData(inviteCode);
+  if (!joinData) throw new Error("Invite not found.");
+  if (!joinData.invite.isShareLink) {
+    throw new Error("Local test entrants require a signup link.");
+  }
+  if (joinData.invite.status === "revoked" || joinData.invite.status === "expired") {
+    throw new Error("This invite is no longer available.");
+  }
+
+  const admin = createSupabaseAdminClient();
+  const { data, error } = await admin.auth.admin.createUser({
+    email: normalizedEmail,
+    password: randomUUID(),
+    email_confirm: true,
+    user_metadata: { display_name: normalizedDisplayName },
+  });
+  if (error || !data.user) {
+    throw new Error(error?.message ?? "Test user could not be created.");
+  }
+
+  return saveRoundOf16Submission({
+    inviteCode,
+    payload,
+    joinData,
+    userId: data.user.id,
+    displayName: normalizedDisplayName,
+    entryEmail: normalizedEmail,
+    localTestEntrant: true,
+  });
 }
 
 export async function getCommissionerNotifications() {
