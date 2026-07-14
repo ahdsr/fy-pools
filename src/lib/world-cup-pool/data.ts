@@ -26,6 +26,8 @@ import type {
 } from "@/lib/world-cup-pool/types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
+import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
+import { notifyNewPublicPoolLeaders } from "@/lib/world-cup-pool/leader-notifications";
 export { formatDateTime };
 
 export const MARCINS_POOL_SLUG = "marcins-2026-world-cup-pool";
@@ -598,6 +600,8 @@ export async function warmMarcinsWorldCupResults() {
     throw new Error("Reference picks were not found for live result refresh.");
   }
 
+  const previousSnapshot = await readWorldCupResultSnapshot(MARCINS_POOL_SLUG);
+  const previousResults = previousSnapshot?.results ?? staticPool.fallbackResults;
   const { results, sourceSignature } = await buildFreshLiveResults({
     referencePicks,
     aliases: staticPool.aliases,
@@ -614,6 +618,27 @@ export async function warmMarcinsWorldCupResults() {
     results,
     sourceSignature,
   });
+
+  try {
+    await notifyNewPublicPoolLeaders({
+      poolSlug: MARCINS_POOL_SLUG,
+      poolName: staticPool.entriesConfig.poolName,
+      sourceSignature,
+      previousRows: buildLeaderboardRows(
+        staticPool.entriesConfig,
+        staticPool.picksByPath,
+        previousResults,
+      ),
+      currentRows: buildLeaderboardRows(
+        staticPool.entriesConfig,
+        staticPool.picksByPath,
+        results,
+      ),
+    });
+  } catch (error) {
+    // Scores remain live even if the optional notification integration is down.
+    console.error("[fy-pools] Leader notification check failed", error);
+  }
 
   return {
     slug: staticPool.slug,
