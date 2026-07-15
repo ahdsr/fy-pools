@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 
+import { authAppUrlFor } from "@/lib/auth/callback";
 import { postAuthRedirectPath, signInErrorPathFor } from "@/lib/auth/paths";
+import {
+  PENDING_CONFIRMATION_EMAIL_COOKIE,
+  PENDING_CONFIRMATION_NEXT_COOKIE,
+} from "@/lib/auth/confirmation";
 import { ensureProfileForAuthUser } from "@/lib/auth/profiles";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -11,7 +16,7 @@ export async function GET(request: NextRequest) {
 
   if (!code) {
     return NextResponse.redirect(
-      new URL(signInErrorPathFor(next), requestUrl.origin),
+      authAppUrlFor(requestUrl.origin, signInErrorPathFor(next)),
     );
   }
 
@@ -21,16 +26,20 @@ export async function GET(request: NextRequest) {
 
     if (error || !data.user) {
       return NextResponse.redirect(
-        new URL(signInErrorPathFor(next), requestUrl.origin),
+        authAppUrlFor(requestUrl.origin, signInErrorPathFor(next)),
       );
     }
 
     await ensureProfileForAuthUser(data.user);
   } catch {
     return NextResponse.redirect(
-      new URL(signInErrorPathFor(next), requestUrl.origin),
+      authAppUrlFor(requestUrl.origin, signInErrorPathFor(next)),
     );
   }
 
-  return NextResponse.redirect(new URL(next, requestUrl.origin));
+  const response = NextResponse.redirect(authAppUrlFor(requestUrl.origin, next));
+  response.cookies.delete(PENDING_CONFIRMATION_EMAIL_COOKIE);
+  response.cookies.delete(PENDING_CONFIRMATION_NEXT_COOKIE);
+
+  return response;
 }

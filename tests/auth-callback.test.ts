@@ -19,6 +19,10 @@ vi.mock("@/lib/supabase/server", () => ({
 }));
 
 import { GET } from "@/app/auth/callback/route";
+import {
+  PENDING_CONFIRMATION_EMAIL_COOKIE,
+  PENDING_CONFIRMATION_NEXT_COOKIE,
+} from "@/lib/auth/confirmation";
 
 describe("auth callback", () => {
   beforeEach(() => {
@@ -41,6 +45,8 @@ describe("auth callback", () => {
     expect(response.headers.get("location")).toBe(
       "https://poolwaffle.test/join/demo",
     );
+    expect(response.cookies.get(PENDING_CONFIRMATION_EMAIL_COOKIE)?.value).toBe("");
+    expect(response.cookies.get(PENDING_CONFIRMATION_NEXT_COOKIE)?.value).toBe("");
   });
 
   it("uses a generic sign-in failure path when the exchange fails", async () => {

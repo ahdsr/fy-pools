@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 
 const slides = [
   {
-    image: "/illustrations/poolwaffle-sign-up-launch.png?v=black-v2",
+    image: "/illustrations/poolwaffle-sign-up-launch.png",
     imagePosition: "object-[63%_50%]",
     kicker: "Launch in minutes",
     title: "A pool your group will actually want to join.",
@@ -14,7 +14,7 @@ const slides = [
       "Set the rules, invite the crew, and give every match a little more at stake.",
   },
   {
-    image: "/illustrations/poolwaffle-sign-in-community.png?v=black-v2",
+    image: "/illustrations/poolwaffle-sign-in-community.png",
     imagePosition: "object-[61%_50%]",
     kicker: "Bring everyone in",
     title: "Turn one shared link into a full season of banter.",
@@ -22,7 +22,7 @@ const slides = [
       "Players make their picks, follow their friends, and always know where they stand.",
   },
   {
-    image: "/illustrations/poolwaffle-sign-up-standings.png?v=black-v2",
+    image: "/illustrations/poolwaffle-sign-up-standings.png",
     imagePosition: "object-[62%_50%]",
     kicker: "Keep the energy live",
     title: "All the bragging rights. None of the spreadsheet work.",

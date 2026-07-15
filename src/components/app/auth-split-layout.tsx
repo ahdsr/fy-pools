@@ -118,7 +118,7 @@ function DefaultAuthPanel({
   return (
     <>
       <Image
-        src="/illustrations/poolwaffle-sign-in-community.png?v=black-v2"
+        src="/illustrations/poolwaffle-sign-in-community.png"
         alt="Friends enjoying game day and comparing their pool brackets"
         fill
         priority

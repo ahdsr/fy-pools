@@ -34,9 +34,12 @@ FY_POOLS_LOCAL_RESULTS_REFRESH_MS=
 ```
 
 `NEXT_PUBLIC_BASE_PATH` is only needed when the app is served from a path
-prefix. `FY_POOLS_LOCAL_RESULTS_JOB=1` enables the local fixture refresh loop
-for development, and `FY_POOLS_LOCAL_RESULTS_REFRESH_MS` controls that local
-loop interval. Do not enable the local fixture job in production.
+prefix. When it is set, every Supabase redirect allow-list entry must include
+that same prefix (for example,
+`https://<production-domain>/<base-path>/auth/callback?next=**`).
+`FY_POOLS_LOCAL_RESULTS_JOB=1` enables the local fixture refresh loop for
+development, and `FY_POOLS_LOCAL_RESULTS_REFRESH_MS` controls that local loop
+interval. Do not enable the local fixture job in production.
 
 The Stripe and Resend variables in `.env.example` are reserved for later launch
 work. They are not required for the Round of 16 MVP flow unless payments or
@@ -62,7 +65,9 @@ provider failure cannot overwrite the last known scores. Apply the
    password changes, and set the minimum password length to at least 8
    characters.
 3. Add production auth redirect URLs:
-   - `https://<production-domain>/auth/callback?next=**`
+   - `https://<production-domain>/auth/callback?next=**` (or
+     `https://<production-domain>/<base-path>/auth/callback?next=**` when
+     `NEXT_PUBLIC_BASE_PATH` is set)
    - matching `/auth/callback?next=**` URLs for localhost and approved Vercel
      preview domains.
    - The callback URL is the only application redirect target used by password

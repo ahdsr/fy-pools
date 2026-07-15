@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { type AuthUser, authUserFromSupabase } from "@/lib/auth/user";
+import { authCallbackUrlFor } from "@/lib/auth/callback";
 import { cn } from "@/lib/utils";
 import {
   DEFAULT_AUTH_REDIRECT,
@@ -31,6 +32,7 @@ import {
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import {
   requestPasswordResetAction,
+  resendConfirmationEmailAction,
   signInWithPasswordAction,
   signUpWithPasswordAction,
   updatePasswordAction,
@@ -398,14 +400,13 @@ function GoogleAuthButton({ nextPath }: { nextPath: string }) {
     setMessage(null);
 
     try {
-      const callbackUrl = new URL("/auth/callback", window.location.origin);
-      callbackUrl.searchParams.set("next", nextPath);
+      const callbackUrl = authCallbackUrlFor(window.location.origin, nextPath);
 
       const supabase = createSupabaseBrowserClient();
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: callbackUrl.toString(),
+          redirectTo: callbackUrl,
         },
       });
 
@@ -543,6 +544,30 @@ export function MockForgotPasswordForm({ nextPath }: MockAuthFormProps) {
       <Button asChild variant="ghost" className="w-full">
         <Link href={signInPathFor(redirectPath)}>Back to sign in</Link>
       </Button>
+    </form>
+  );
+}
+
+export function ResendConfirmationForm() {
+  const [state, formAction, pending] = React.useActionState(
+    resendConfirmationEmailAction,
+    {},
+  );
+
+  return (
+    <form className="space-y-3" action={formAction}>
+      <Button className="w-full" type="submit" variant="outline" disabled={pending}>
+        {pending ? "Sending confirmation..." : "Resend confirmation email"}
+      </Button>
+      {state.message ? (
+        <p
+          className="text-sm leading-5 text-muted-foreground"
+          role="status"
+          aria-live="polite"
+        >
+          {state.message}
+        </p>
+      ) : null}
     </form>
   );
 }

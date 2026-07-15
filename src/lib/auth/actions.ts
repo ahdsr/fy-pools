@@ -1,8 +1,19 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 
 import { authCallbackUrlFor } from "@/lib/auth/callback";
+import {
+  AUTH_MESSAGES,
+  logAuthActionFailure,
+  messageForAuthActionFailure,
+} from "@/lib/auth/action-feedback";
+import {
+  PENDING_CONFIRMATION_EMAIL_COOKIE,
+  PENDING_CONFIRMATION_NEXT_COOKIE,
+  pendingConfirmationCookieOptions,
+} from "@/lib/auth/confirmation";
 import {
   postAuthRedirectPath,
   resetPasswordPathFor,
@@ -18,6 +29,26 @@ import { createSupabaseServerClient } from "@/lib/supabase/server";
 export type AuthActionState = {
   message?: string;
 };
+
+async function rememberPendingConfirmation(email: string, nextPath: string) {
+  const cookieStore = await cookies();
+  cookieStore.set(
+    PENDING_CONFIRMATION_EMAIL_COOKIE,
+    email,
+    pendingConfirmationCookieOptions,
+  );
+  cookieStore.set(
+    PENDING_CONFIRMATION_NEXT_COOKIE,
+    nextPath,
+    pendingConfirmationCookieOptions,
+  );
+}
+
+async function clearPendingConfirmation() {
+  const cookieStore = await cookies();
+  cookieStore.delete(PENDING_CONFIRMATION_EMAIL_COOKIE);
+  cookieStore.delete(PENDING_CONFIRMATION_NEXT_COOKIE);
+}
 
 export async function signInWithPasswordAction(
   _state: AuthActionState,
@@ -39,18 +70,17 @@ export async function signInWithPasswordAction(
     });
 
     if (error) {
-      return { message: error.message };
+      logAuthActionFailure("sign-in", error);
+      return { message: messageForAuthActionFailure("sign-in", error) };
     }
 
     if (data.user) {
       await ensureProfileForAuthUser(data.user, email);
     }
   } catch (error) {
+    logAuthActionFailure("sign-in", error);
     return {
-      message:
-        error instanceof Error
-          ? error.message
-          : "Sign in is not available right now.",
+      message: messageForAuthActionFailure("sign-in", error),
     };
   }
 
@@ -89,7 +119,8 @@ export async function signUpWithPasswordAction(
     });
 
     if (error) {
-      return { message: error.message };
+      logAuthActionFailure("sign-up", error);
+      return { message: messageForAuthActionFailure("sign-up", error) };
     }
 
     if (data.session && data.user) {
@@ -98,19 +129,61 @@ export async function signUpWithPasswordAction(
 
     shouldRedirect = Boolean(data.session);
   } catch (error) {
+    logAuthActionFailure("sign-up", error);
     return {
-      message:
-        error instanceof Error
-          ? error.message
-          : "Account creation is not available right now.",
+      message: messageForAuthActionFailure("sign-up", error),
     };
   }
 
   if (shouldRedirect) {
-    redirect(nextPath);
+    await clearPendingConfirmation();
+    return redirect(nextPath);
   }
 
+  await rememberPendingConfirmation(email, nextPath);
   redirect("/sign-up/check-email");
+}
+
+export async function resendConfirmationEmailAction(
+  _state: AuthActionState,
+  _formData: FormData,
+): Promise<AuthActionState> {
+  void _state;
+  void _formData;
+
+  const cookieStore = await cookies();
+  const email = cookieStore.get(PENDING_CONFIRMATION_EMAIL_COOKIE)?.value ?? "";
+  const nextPath = postAuthRedirectPath(
+    cookieStore.get(PENDING_CONFIRMATION_NEXT_COOKIE)?.value,
+  );
+
+  if (!email) {
+    return {
+      message:
+        "Start account creation again with your email address to send a new confirmation link.",
+    };
+  }
+
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { error } = await supabase.auth.resend({
+      type: "signup",
+      email,
+      options: {
+        emailRedirectTo: authCallbackUrlFor(getAppSiteUrl(), nextPath),
+      },
+    });
+
+    if (error) {
+      logAuthActionFailure("confirmation-resend", error);
+    }
+  } catch (error) {
+    logAuthActionFailure("confirmation-resend", error);
+  }
+
+  return {
+    message: AUTH_MESSAGES.confirmationResent,
+  };
 }
 
 export async function requestPasswordResetAction(
@@ -126,29 +199,29 @@ export async function requestPasswordResetAction(
 
   try {
     const origin = getAppSiteUrl();
-    const callbackUrl = new URL("/auth/callback", origin);
-    callbackUrl.searchParams.set("next", resetPasswordPathFor(nextPath));
+    const callbackUrl = authCallbackUrlFor(
+      origin,
+      resetPasswordPathFor(nextPath),
+    );
 
     const supabase = await createSupabaseServerClient();
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: callbackUrl.toString(),
+      redirectTo: callbackUrl,
     });
 
     if (error) {
-      return { message: error.message };
+      logAuthActionFailure("password-reset", error);
+      return { message: AUTH_MESSAGES.passwordResetSent };
     }
   } catch (error) {
+    logAuthActionFailure("password-reset", error);
     return {
-      message:
-        error instanceof Error
-          ? error.message
-          : "Password recovery is not available right now.",
+      message: AUTH_MESSAGES.passwordResetSent,
     };
   }
 
   return {
-    message:
-      "If an account exists for that email, a password reset link has been sent.",
+    message: AUTH_MESSAGES.passwordResetSent,
   };
 }
 
@@ -177,18 +250,19 @@ export async function updatePasswordAction(
     const { data, error } = await supabase.auth.updateUser({ password });
 
     if (error) {
-      return { message: error.message };
+      logAuthActionFailure("password-update", error);
+      return {
+        message: messageForAuthActionFailure("password-update", error),
+      };
     }
 
     if (data.user) {
       await ensureProfileForAuthUser(data.user);
     }
   } catch (error) {
+    logAuthActionFailure("password-update", error);
     return {
-      message:
-        error instanceof Error
-          ? error.message
-          : "Password could not be updated right now.",
+      message: messageForAuthActionFailure("password-update", error),
     };
   }
 

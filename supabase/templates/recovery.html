@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+  <body style="margin: 0; padding: 0; background: #f7f7f8; color: #17171b; font-family: Arial, Helvetica, sans-serif;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: #f7f7f8;">
+      <tr>
+        <td align="center" style="padding: 32px 16px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width: 600px; background: #ffffff; border-radius: 16px; overflow: hidden;">
+            <tr>
+              <td style="padding: 32px 32px 8px;">
+                <p style="margin: 0; color: #5b21f4; font-size: 16px; font-weight: 700; letter-spacing: 0.04em;">POOLWAFFLE</p>
+                <h1 style="margin: 20px 0 16px; font-size: 30px; line-height: 1.2;">Reset your password</h1>
+                <p style="margin: 0 0 16px; font-size: 16px; line-height: 1.6;">You received this email because a password reset was requested for the PoolWaffle account using <strong>{{ .Email }}</strong>.</p>
+                <p style="margin: 0 0 24px; font-size: 16px; line-height: 1.6;">Use the button below to choose a new password for your account.</p>
+                <p style="margin: 0 0 28px;"><a href="{{ .ConfirmationURL }}" style="display: inline-block; border-radius: 8px; background: #17171b; color: #ffffff; padding: 14px 20px; font-size: 16px; font-weight: 700; text-decoration: none;">Reset my password</a></p>
+                <p style="margin: 0 0 8px; color: #575761; font-size: 14px; line-height: 1.5;">This link expires in one hour.</p>
+                <p style="margin: 0; color: #575761; font-size: 14px; line-height: 1.5;">Didn't request a password reset? You can safely ignore this email. Your current password will not change.</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding: 24px 32px 32px; color: #777781; font-size: 13px; line-height: 1.5;">PoolWaffle is the home base for your friendly pool competition.</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>
