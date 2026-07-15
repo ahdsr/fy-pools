@@ -5,6 +5,7 @@ import { Suspense } from "react";
 
 import { MockAuthProvider } from "@/components/app/mock-auth";
 import { authUserFromSupabase } from "@/lib/auth/user";
+import { getAppSiteUrl } from "@/lib/supabase/config";
 import { getSupabaseUser } from "@/lib/supabase/server";
 import "./globals.css";
 
@@ -61,6 +62,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getAppSiteUrl()),
   title: {
     default: "PoolWaffle",
     template: "%s | PoolWaffle",
@@ -68,6 +70,18 @@ export const metadata: Metadata = {
   description:
     "Private sports pool hosting for commissioners, with templates, spreadsheet imports, player picks, scoring, projections, and leaderboards.",
   applicationName: "PoolWaffle",
+  openGraph: {
+    siteName: "PoolWaffle",
+    type: "website",
+    locale: "en_CA",
+  },
+  twitter: {
+    card: "summary",
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
 };
 
 export default function RootLayout({

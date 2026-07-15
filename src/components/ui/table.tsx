@@ -7,13 +7,25 @@ import { cn } from "@/lib/utils"
 function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     <div
-      data-slot="table-container"
-      className="relative w-full overflow-x-auto"
+      data-slot="table-frame"
+      className="relative w-full max-w-full"
     >
-      <table
-        data-slot="table"
-        className={cn("w-full caption-bottom text-[0.9375rem] sm:text-sm", className)}
-        {...props}
+      <div
+        data-slot="table-container"
+        className="w-full max-w-full overflow-x-auto overscroll-x-contain [scrollbar-width:thin]"
+        role="region"
+        aria-label="Scrollable data table"
+        tabIndex={0}
+      >
+        <table
+          data-slot="table"
+          className={cn("w-full caption-bottom text-[0.9375rem] sm:text-sm", className)}
+          {...props}
+        />
+      </div>
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface-paper to-transparent sm:hidden"
       />
     </div>
   )

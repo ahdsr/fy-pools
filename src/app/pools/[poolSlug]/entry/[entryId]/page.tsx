@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { CirclePlus } from "lucide-react";
 
 import { FullEntryAuditPanel } from "@/components/app/entry-detail-panels";
@@ -27,6 +28,16 @@ import {
 } from "@/lib/world-cup-pool/opponent-paths";
 import { getEntryAnalysisSnapshot } from "@/lib/world-cup-pool/public-pool";
 import { buildTodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
+
+export const metadata: Metadata = {
+  title: "Entry scorecard",
+  description:
+    "Review an entry's submitted picks, score breakdown, and position in the pool.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 type EntryPageProps = {
   params: Promise<{ poolSlug: string; entryId: string }>;

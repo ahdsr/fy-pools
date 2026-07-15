@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { ArrowLeft } from "lucide-react";
@@ -21,6 +22,16 @@ import {
 import { normalizeName } from "@/lib/world-cup-pool/scoring";
 import type { EntryPicks, LeaderboardRow } from "@/lib/world-cup-pool/types";
 import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
+
+export const metadata: Metadata = {
+  title: "Match room",
+  description:
+    "See the current match context and how pool entries are positioned around it.",
+  robots: {
+    index: false,
+    follow: true,
+  },
+};
 
 type LockerRoomPageProps = {
   params: Promise<{ poolSlug: string }>;

@@ -357,7 +357,7 @@ async function JoinPageContent({ params, searchParams }: JoinPageProps) {
       heroAction={
         <Badge variant="outline" className="h-auto py-1.5">
           <LockKeyhole />{" "}
-          {joinData.invite.isShareLink ? "Signup link" : joinData.invite.email}
+          {joinData.invite.isShareLink ? "Shared invite link" : joinData.invite.email}
         </Badge>
       }
     >

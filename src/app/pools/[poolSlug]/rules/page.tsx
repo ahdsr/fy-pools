@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PublicPoolMetaCard, PublicPoolShell } from "@/components/app/public-pool-shell";
@@ -12,6 +13,12 @@ import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import { getPublicPoolRouteInfo } from "@/lib/world-cup-pool/data";
 import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
 import type { ScoringRules } from "@/lib/world-cup-pool/types";
+
+export const metadata: Metadata = {
+  title: "Pool rules and scoring",
+  description:
+    "Read the pick rules, scoring system, lock time, and standings details for this pool.",
+};
 
 type RulesPageProps = {
   params: Promise<{ poolSlug: string }>;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { Metadata } from "next";
 import {
   ArrowRight,
   Brackets,
@@ -18,6 +19,20 @@ import { PageShell } from "@/components/app/page-shell";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
+export const metadata: Metadata = {
+  title: "Convert a spreadsheet pool",
+  description:
+    "Turn the sports-pool spreadsheet your group already uses into a hosted PoolWaffle pool with online picks, scoring, and standings.",
+  alternates: {
+    canonical: "/upload-your-own",
+  },
+  openGraph: {
+    title: "Convert a spreadsheet pool | PoolWaffle",
+    description:
+      "Bring your existing pool format online without rebuilding its picks, scoring, payouts, or standings from scratch.",
+  },
+};
+
 const conversionSteps = [
   {
     title: "Upload the spreadsheet you already use",
@@ -25,7 +40,7 @@ const conversionSteps = [
   },
   {
     title: "Map it into a hosted pool",
-    body: "FY Pools turns the structure into entry forms, legal pick options, locks, brackets, bonus questions, and scoring rules.",
+    body: "PoolWaffle turns your format into entry forms, valid pick options, lock rules, brackets, bonus questions, and scoring rules.",
   },
   {
     title: "Invite players and publish standings",
@@ -61,7 +76,7 @@ export default function UploadYourOwnPage() {
     <PageShell
       eyebrow="Spreadsheet import"
       title="Upload your spreadsheet. Launch the pool your group already knows."
-      description="If your pool lives in Excel today, FY Pools can turn that workbook into a fully working hosted pool with user picks, brackets, scoring, standings, and commissioner tools."
+      description="If your pool lives in Excel today, PoolWaffle can turn that workbook into a hosted pool with online picks, brackets, scoring, standings, and commissioner tools."
       backHref="/"
       status="Import landing"
     >

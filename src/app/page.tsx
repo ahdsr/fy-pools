@@ -5,10 +5,12 @@ import { ArrowRight } from "lucide-react";
 import {
   HeaderBrandWordmark,
   HeaderAccountControls,
+  MobileSiteHeaderNav,
   SiteHeaderNav,
 } from "@/components/app/mock-auth";
 import { SiteFooter } from "@/components/app/site-footer";
 import { Button } from "@/components/ui/button";
+import { getAppSiteUrl } from "@/lib/supabase/config";
 
 export const metadata: Metadata = {
   title: {
@@ -31,6 +33,15 @@ export const metadata: Metadata = {
     description:
       "Launch private sports pools from templates or spreadsheets, collect clean picks, lock entries, and publish standings players can trust.",
     type: "website",
+  },
+  alternates: {
+    canonical: "/",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "PoolWaffle | Private Sports Pool Hosting",
+    description:
+      "Launch private sports pools, collect picks, lock entries, and share standings players can trust.",
   },
 };
 
@@ -88,12 +99,9 @@ export default function Home() {
     name: "PoolWaffle",
     applicationCategory: "SportsApplication",
     operatingSystem: "Web",
+    url: getAppSiteUrl(),
     description:
       "Private sports pool hosting for commissioners, with templates, spreadsheet imports, player entry locks, scoring, projections, and public standings.",
-    offers: {
-      "@type": "Offer",
-      category: "sports pool hosting",
-    },
   };
 
   return (
@@ -103,10 +111,15 @@ export default function Home() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
       <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-accent text-accent-foreground">
-        <nav className="relative flex h-14 w-full items-center justify-between px-5 md:h-16 md:px-8 lg:px-[43px]">
-          <HeaderBrandWordmark />
+        <nav className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-[43px]">
+          <div className="flex min-w-0 items-center lg:block">
+            <MobileSiteHeaderNav />
+            <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0" />
+          </div>
           <SiteHeaderNav />
-          <HeaderAccountControls />
+          <div className="flex shrink-0 items-center gap-2">
+            <HeaderAccountControls />
+          </div>
         </nav>
       </header>
 
@@ -115,7 +128,7 @@ export default function Home() {
           <div className="grid gap-8 lg:grid-cols-[0.93fr_1.07fr] lg:items-start">
             <div className="space-y-6 pt-1 lg:pt-0">
               <div className="space-y-5">
-                <h1 className="max-w-[650px] text-[clamp(2.125rem,10vw,4.7rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04]">
+                <h1 className="max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
                   Private sports pool hosting for serious commissioners.
                 </h1>
                 <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">
@@ -140,7 +153,7 @@ export default function Home() {
             </div>
 
             <figure
-              aria-label="Generic sports field"
+              aria-label="Night football match on a stadium pitch"
               className="min-h-[360px] overflow-hidden rounded-lg border bg-cover bg-center ring-1 ring-white/5 lg:min-h-[470px]"
               style={{
                 backgroundImage:

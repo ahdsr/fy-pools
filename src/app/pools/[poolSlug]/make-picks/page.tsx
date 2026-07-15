@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { LockKeyhole } from "lucide-react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
@@ -8,10 +9,18 @@ import { Button } from "@/components/ui/button";
 import {
   getPublicPool,
   liveScoreMatchDates,
-  MARCINS_POOL_SLUG,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
 } from "@/lib/world-cup-pool/data";
+
+export const metadata: Metadata = {
+  title: "Player entry",
+  description: "Sign in to create or update your private pool entry.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type MakePicksPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -27,7 +36,7 @@ export default async function MakePicksPage({ params }: MakePicksPageProps) {
       poolName={pool.entriesConfig.poolName}
       eyebrow="Player entry"
       title="Sign in to make picks"
-      description="Marcin's public pool page is read-only for friends. Pick entry belongs behind the player sign-in flow so drafts, locks, and private picks stay controlled."
+      description="This public pool page is read-only. Sign in before creating or editing an entry so drafts, locks, and private picks stay protected."
       scoreRefreshLabel={scoreRefreshLabel(pool)}
       scoreRefreshSource={scoreRefreshSourceLabel(pool)}
       liveScoreMatchDates={liveScoreMatchDates(pool)}
@@ -52,7 +61,7 @@ export default async function MakePicksPage({ params }: MakePicksPageProps) {
               <Link href="/sign-in">Sign in</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`/pools/${MARCINS_POOL_SLUG}`}>Back to pool</Link>
+              <Link href={`/pools/${poolSlug}`}>Back to pool overview</Link>
             </Button>
           </LedgerRow>
         </LedgerRows>

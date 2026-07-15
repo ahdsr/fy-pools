@@ -233,7 +233,7 @@ async function DashboardWorkspaceContent() {
 
   return (
     <>
-      <div className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]">
+      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]">
         <LedgerPanel
           title="Current pools"
           description="Pools owned by this commissioner, including invitations, entries, deadlines, and scoring."
@@ -404,7 +404,7 @@ async function DashboardWorkspaceContent() {
 function DashboardWorkspaceSkeleton() {
   return (
     <div
-      className="grid items-start gap-5 xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]"
+      className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)] xl:grid-cols-[minmax(0,1.35fr)_minmax(22rem,0.85fr)]"
       aria-busy="true"
       aria-live="polite"
     >

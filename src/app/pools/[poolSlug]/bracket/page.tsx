@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { LedgerPanel } from "@/components/app/ledger";
@@ -20,6 +21,12 @@ import {
   scoreRefreshSourceLabel,
 } from "@/lib/world-cup-pool/data";
 import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
+
+export const metadata: Metadata = {
+  title: "Tournament bracket",
+  description:
+    "Follow the recorded knockout path, match results, and route to the final for this pool.",
+};
 
 type BracketPageProps = {
   params: Promise<{ poolSlug: string }>;

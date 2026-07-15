@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ShieldCheck } from "lucide-react";
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
@@ -8,10 +9,18 @@ import { Button } from "@/components/ui/button";
 import {
   getPublicPool,
   liveScoreMatchDates,
-  MARCINS_POOL_SLUG,
   scoreRefreshLabel,
   scoreRefreshSourceLabel,
 } from "@/lib/world-cup-pool/data";
+
+export const metadata: Metadata = {
+  title: "Commissioner controls",
+  description: "Sign in to manage private pool settings, entries, and scoring.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 type CommissionerPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -29,7 +38,7 @@ export default async function CommissionerPage({
       poolName={pool.entriesConfig.poolName}
       eyebrow="Commissioner area"
       title="Commissioner tools require sign-in"
-      description="Admin controls, imports, lock rules, and result overrides live in the signed-in dashboard rather than on Marcin's public share page."
+      description="Admin controls, imports, lock rules, and result overrides are available in the signed-in dashboard, not on this public pool page."
       scoreRefreshLabel={scoreRefreshLabel(pool)}
       scoreRefreshSource={scoreRefreshSourceLabel(pool)}
       liveScoreMatchDates={liveScoreMatchDates(pool)}
@@ -43,9 +52,8 @@ export default async function CommissionerPage({
                 Public viewers cannot administer this pool
               </p>
               <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
-                The public route is designed for friends and entrants. Marcin&apos;s
-                commissioner workflow should stay in the dashboard mock until
-                auth and role checks are wired.
+                Public pool pages are for entrants and viewers. Use the
+                dashboard to manage this pool and its participants.
               </p>
             </div>
           </LedgerRow>
@@ -54,7 +62,7 @@ export default async function CommissionerPage({
               <Link href="/dashboard">Open dashboard</Link>
             </Button>
             <Button asChild variant="outline">
-              <Link href={`/pools/${MARCINS_POOL_SLUG}`}>Back to pool</Link>
+              <Link href={`/pools/${poolSlug}`}>Back to pool overview</Link>
             </Button>
           </LedgerRow>
         </LedgerRows>

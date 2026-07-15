@@ -64,7 +64,7 @@ export function AuthSplitLayout({
 
         <div
           className={cn(
-            "mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center py-14 lg:mx-0 lg:py-8",
+            "mx-auto flex w-full max-w-[26rem] flex-1 flex-col justify-center py-14 md:max-w-[34rem] md:py-16 lg:mx-0 lg:max-w-[26rem] lg:py-8",
             centerContent &&
               "lg:absolute lg:inset-0 lg:mx-0 lg:max-w-none lg:items-center lg:justify-center lg:px-8 lg:py-0",
           )}

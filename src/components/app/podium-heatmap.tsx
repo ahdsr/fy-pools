@@ -97,8 +97,12 @@ export function PodiumHeatmap({
   summaries,
 }: PodiumHeatmapProps) {
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-[46rem] w-full border-collapse text-[0.9375rem] sm:text-sm">
+    <div className="relative">
+      <p className="border-b bg-surface-ledger/55 px-4 py-2 text-xs leading-5 text-muted-foreground sm:hidden">
+        Swipe horizontally to compare each podium prediction.
+      </p>
+      <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+        <table className="min-w-[46rem] w-full border-collapse text-[0.9375rem] sm:text-sm">
         <caption className="sr-only">
           World Cup podium predictions ranked by current pool points. Darker cells
           show selections shared by more entries.
@@ -170,7 +174,12 @@ export function PodiumHeatmap({
             </tr>
           ))}
         </tbody>
-      </table>
+        </table>
+      </div>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-10 right-0 top-8 z-10 w-9 bg-gradient-to-l from-surface-paper to-transparent sm:hidden"
+      />
       <p className="border-t bg-background/55 px-3 py-2.5 text-xs leading-5 text-muted-foreground sm:px-2 sm:py-2">
         Green marks Champion calls, blue marks Runner-up calls, and coral marks
         Third-place calls. More shared picks are more saturated; crossed-out

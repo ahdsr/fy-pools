@@ -12,11 +12,11 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
 
   return (
     <AuthSplitLayout
-      eyebrow="Your pool headquarters"
+      eyebrow="Pool management"
       title="Welcome back."
-      description="Sign in to manage your pools, see the latest picks, and keep the friendly competition moving."
-      panelTitle="The group chat, but built for game day."
-      panelDescription="Bring your people, picks, and scoreboards into one lively pool that is effortless to run."
+      description="Sign in to manage pools, review participant entries, update deadlines, and check standings."
+      panelTitle="Run every pool from one place."
+      panelDescription="Invite players, collect picks, lock entries, and publish standings without moving between spreadsheets and group chats."
       centerContent
     >
       <MockSignInForm

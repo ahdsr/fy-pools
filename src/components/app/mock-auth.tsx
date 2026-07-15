@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, UserRound } from "lucide-react";
+import { LogOut, Menu, Plus, UserRound } from "lucide-react";
 import * as React from "react";
 
 import { BrandWordmark } from "@/components/app/brand";
@@ -203,10 +203,10 @@ export function HeaderBrandWordmark({
 export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
-      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-5 md:px-[43px]">
-        <div className="flex min-w-0 items-center md:block">
+      <nav className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-[43px]">
+        <div className="flex min-w-0 items-center lg:block">
           <MobileSiteHeaderNav />
-          <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0" />
+          <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0" />
         </div>
         <SiteHeaderNav />
         <div className="flex items-center gap-2">
@@ -258,8 +258,8 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
           : "border-border/70 bg-white text-foreground",
         )}
     >
-      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-5 md:grid md:h-auto md:min-h-16 md:grid-cols-[auto_minmax(0,1fr)_auto] md:gap-3 md:px-[43px] md:py-3">
-        <div className="flex min-w-0 items-center md:contents">
+      <nav className="relative flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-5 lg:grid lg:h-auto lg:min-h-16 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-3 lg:px-[43px] lg:py-3">
+        <div className="flex min-w-0 items-center lg:contents">
           {showPoolNav ? (
             <MobilePublicPoolNav
               active={active}
@@ -270,7 +270,7 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
           <BrandWordmark
             href={signedIn ? "/dashboard" : "/"}
             variant={signedIn ? "light" : "dark"}
-            className="absolute left-1/2 -translate-x-1/2 md:static md:translate-x-0"
+            className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0"
           />
         </div>
         {showPoolNav ? (
@@ -280,18 +280,21 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
             signedIn={Boolean(signedIn)}
           />
         ) : (
-          <div className="hidden md:block" />
+          <div className="hidden lg:block" />
         )}
-        <div className="flex shrink-0 items-center justify-end gap-2 md:col-start-3">
+        <div className="flex shrink-0 items-center justify-end gap-2 lg:col-start-3">
           {signedIn ? (
             <HeaderAccountControls />
           ) : (
             <Button
               asChild
               variant="primaryGreen"
-              className="h-9 px-3 text-[0.8125rem] sm:text-sm"
+              className="size-11 px-0 min-[480px]:w-auto min-[480px]:px-3"
             >
-              <Link href="/sign-up">Create your own</Link>
+              <Link href="/sign-up">
+                <Plus className="size-4 min-[480px]:hidden" aria-hidden="true" />
+                <span className="sr-only min-[480px]:not-sr-only">Create your own</span>
+              </Link>
             </Button>
           )}
         </div>
@@ -310,7 +313,7 @@ function PublicPoolNavLinks({
   signedIn: boolean;
 }) {
   return (
-    <div className="hidden min-w-0 md:col-start-2 md:row-start-1 md:flex md:justify-center md:overflow-visible md:px-1">
+    <div className="hidden min-w-0 lg:col-start-2 lg:row-start-1 lg:flex lg:justify-center lg:overflow-visible lg:px-1">
       <div
         className={cn(
           "inline-flex min-w-max rounded-full border p-1 shadow-sm",
@@ -361,7 +364,7 @@ function MobilePublicPoolNav({
           size="icon-lg"
           aria-label="Open pool navigation menu"
           className={cn(
-            "md:hidden",
+            "lg:hidden size-11",
             signedIn
               ? "text-white hover:bg-white/10 hover:text-white"
               : "text-foreground hover:bg-muted hover:text-foreground",
@@ -699,7 +702,7 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   return (
     <div
       className={cn(
-        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 rounded-full border border-white/12 bg-white/9 p-0.5 md:flex",
+        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 rounded-full border border-white/12 bg-white/9 p-0.5 lg:flex",
         className,
       )}
     >
@@ -724,7 +727,7 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   );
 }
 
-function MobileSiteHeaderNav() {
+export function MobileSiteHeaderNav() {
   const pathname = usePathname();
   const { user, hydrated } = useMockUser();
   const items = hydrated && user ? adminNavItems : signedOutNavItems;
@@ -737,7 +740,7 @@ function MobileSiteHeaderNav() {
           variant="ghost"
           size="icon-lg"
           aria-label="Open navigation menu"
-          className="text-white hover:bg-white/10 hover:text-white md:hidden"
+          className="size-11 text-white hover:bg-white/10 hover:text-white lg:hidden"
         >
           <Menu />
         </Button>

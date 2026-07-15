@@ -1,9 +1,16 @@
 import { redirect } from "next/navigation";
+import type { Metadata } from "next";
 
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { RoundOf16Leaderboard } from "@/components/app/round-of-16-public-panels";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { formatDateTime } from "@/lib/world-cup-pool/data";
+
+export const metadata: Metadata = {
+  title: "Pool standings",
+  description:
+    "See the latest recorded standings and scores for this private sports pool.",
+};
 
 type LeaderboardPageProps = {
   params: Promise<{ poolSlug: string }>;

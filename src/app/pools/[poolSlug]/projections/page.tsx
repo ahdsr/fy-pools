@@ -1,5 +1,6 @@
 import Link from "next/link";
 import Form from "next/form";
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 import { Trophy } from "lucide-react";
@@ -33,6 +34,12 @@ import type {
 import { preferredSelectedEntryId } from "@/lib/world-cup-pool/projection-selection";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
 import type { EntriesConfig, LeaderboardRow } from "@/lib/world-cup-pool/types";
+
+export const metadata: Metadata = {
+  title: "Pool projections",
+  description:
+    "Explore the remaining results each entry needs to improve its position in the pool standings.",
+};
 
 type ProjectionsPageProps = {
   params: Promise<{ poolSlug: string }>;

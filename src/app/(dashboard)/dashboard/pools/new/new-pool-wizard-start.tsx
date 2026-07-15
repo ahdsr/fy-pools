@@ -510,7 +510,7 @@ function DraftSuccessPanel({
   return (
     <LedgerPanel
       title="Draft created"
-      description="This mock draft is saved in local storage and is not published to a public pool route yet."
+      description="This draft is saved in this browser only. Publish it when the pool is ready for participants."
       action={<Badge variant="secondary">Draft</Badge>}
     >
       <div className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_22rem]">
@@ -533,7 +533,7 @@ function DraftSuccessPanel({
               </div>
               <div>
                 <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
-                  Mock player link
+                  Pool URL after publishing
                 </p>
                 <p className="mt-1 font-mono text-sm text-brand-ink">
                   /pools/{draft.slug}
@@ -555,8 +555,8 @@ function DraftSuccessPanel({
             <div className="flex items-start gap-3">
               <Copy className="mt-0.5 size-4 shrink-0 text-brand-mark" />
               <p className="text-sm font-normal leading-6 text-muted-foreground">
-                The player link is a placeholder until draft pools are connected
-                to the public `/pools/[poolSlug]` routes.
+                This URL becomes available after you publish the pool. Until
+                then, the draft is only available in this browser.
               </p>
             </div>
           </div>
@@ -901,7 +901,7 @@ export function NewPoolWizardStart({
       <PageShell
         eyebrow="Pool wizard"
         title={`${stage.label} draft`}
-        description="Review the saved mock pool draft before this flow is connected to hosted pool publishing."
+        description="Review the pool details before publishing it and sending invitations."
         showHeader={false}
       >
         <DraftSuccessPanel draft={createdDraft} onEdit={handleEditDraft} />
@@ -1095,7 +1095,7 @@ export function NewPoolWizardStart({
                 >
                   <Input
                     id="commissioner-name"
-                    placeholder="Marcin"
+                    placeholder="e.g., Jamie Lee"
                     value={state.basics.commissionerName}
                     onChange={(event) =>
                       setState((current) => ({
@@ -1132,7 +1132,7 @@ export function NewPoolWizardStart({
                   />
                 </FieldShell>
                 <FieldShell
-                  label="Picks lock at (EST)"
+                  label="Pick lock date and time (Eastern Time)"
                   htmlFor="picks-lock-at"
                   error={
                     state.basics.picksLockAt.trim()
@@ -1159,7 +1159,7 @@ export function NewPoolWizardStart({
                   <FieldShell label="Description" htmlFor="description">
                     <Textarea
                       id="description"
-                      placeholder="Short note shown to invited players."
+                      placeholder="e.g., Submit every pick before the deadline."
                       value={state.basics.description}
                       onChange={(event) =>
                         setState((current) => ({
@@ -1482,7 +1482,7 @@ export function NewPoolWizardStart({
                 <FieldShell label="Invite note" htmlFor="invite-note">
                   <Textarea
                     id="invite-note"
-                    placeholder="Optional note shown with the signup link."
+                    placeholder="e.g., Submit your picks before Friday at 7 PM."
                     value={state.inviteSettings.inviteNote}
                     onChange={(event) =>
                       setState((current) => ({

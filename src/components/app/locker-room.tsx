@@ -1116,7 +1116,7 @@ export function LockerRoom({ match, participants, poolHref }: LockerRoomProps) {
 
       <aside
         className={cn(
-          "absolute bottom-0 right-0 top-0 z-30 flex w-full max-w-[25rem] translate-x-full flex-col border-l border-white/12 bg-[#08130f]/90 text-white shadow-2xl backdrop-blur-xl transition-transform duration-300",
+          "absolute bottom-0 right-0 top-0 z-30 flex w-full max-w-[25rem] translate-x-full flex-col border-l border-white/12 bg-[#08130f]/90 text-white shadow-2xl backdrop-blur-xl transition-transform duration-300 motion-reduce:transition-none",
           menuOpen && "translate-x-0",
         )}
         aria-hidden={!menuOpen}

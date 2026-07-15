@@ -8,26 +8,26 @@ const slides = [
   {
     image: "/illustrations/poolwaffle-sign-up-launch.png",
     imagePosition: "object-[63%_50%]",
-    kicker: "Launch in minutes",
-    title: "A pool your group will actually want to join.",
+    kicker: "Set up your format",
+    title: "Create a pool with clear rules and a clear deadline.",
     description:
-      "Set the rules, invite the crew, and give every match a little more at stake.",
+      "Choose the format, define scoring, and invite participants with one shareable link.",
   },
   {
     image: "/illustrations/poolwaffle-sign-in-community.png",
     imagePosition: "object-[61%_50%]",
-    kicker: "Bring everyone in",
-    title: "Turn one shared link into a full season of banter.",
+    kicker: "Collect picks online",
+    title: "Give every participant one place to submit and review picks.",
     description:
-      "Players make their picks, follow their friends, and always know where they stand.",
+      "Participants can submit before the lock time and return to see their entry and standing.",
   },
   {
     image: "/illustrations/poolwaffle-sign-up-standings.png",
     imagePosition: "object-[62%_50%]",
-    kicker: "Keep the energy live",
-    title: "All the bragging rights. None of the spreadsheet work.",
+    kicker: "Share standings",
+    title: "Keep scores and standings visible as results are recorded.",
     description:
-      "Live standings keep the room talking from kickoff through the final whistle.",
+      "Public pool pages give participants a consistent place to follow the leaderboard.",
   },
 ] as const;
 
@@ -88,7 +88,7 @@ export function SignUpValueCarousel() {
 
         <div className="flex items-end justify-between gap-6">
           <p className="max-w-44 text-sm font-medium leading-5 text-white/82">
-            Built for more than a leaderboard.
+            Built for setup, entry collection, scoring, and standings.
           </p>
           <div className="flex items-center gap-2" aria-label="Sign-up value stories">
             {slides.map((slide, index) => (

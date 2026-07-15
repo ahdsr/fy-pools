@@ -1,4 +1,15 @@
+import type { Metadata } from "next";
+
 import { DashboardHeader } from "@/components/app/mock-auth";
+
+export const metadata: Metadata = {
+  title: "Commissioner workspace",
+  description: "Create, manage, and score private sports pools in PoolWaffle.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 // The proxy handles route entry for this authenticated area. Individual data
 // access functions still verify the user and pool ownership before returning

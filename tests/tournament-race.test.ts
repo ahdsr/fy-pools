@@ -95,6 +95,8 @@ describe("tournament race projections", () => {
       winner: "France",
     });
     expect(thirdPlace).toMatchObject({
+      stage: "thirdPlace",
+      label: "3rd-place match",
       homeTeam: "Spain",
       awayTeam: "England",
       winner: "England",
@@ -106,6 +108,16 @@ describe("tournament race projections", () => {
     });
     expect(model?.selectionCount).toBe(8);
     expect(model?.checkpoints).toHaveLength(9);
+    expect(model?.checkpoints.slice(1).map((checkpoint) => checkpoint.label)).toEqual([
+      "France",
+      "Spain",
+      "England",
+      "Argentina",
+      "France",
+      "Argentina",
+      "England",
+      "France",
+    ]);
   });
 
   it("drops impossible downstream selections until their teams are known", () => {

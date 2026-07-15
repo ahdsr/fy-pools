@@ -12,10 +12,10 @@ import { FilterPill } from "@/components/ui/filter-pill";
 import { TEMPLATE_CATEGORIES } from "@/lib/templates/catalog";
 
 const poolFilters = [
-  { label: "All", variant: "active" },
-  { label: "In flight", variant: "lime" },
-  { label: "Upcoming", variant: "sky" },
-  { label: "Always-on", variant: "coral" },
+  { label: "All formats", variant: "active" },
+  { label: "Current tournaments", variant: "lime" },
+  { label: "Upcoming events", variant: "sky" },
+  { label: "Year-round pools", variant: "coral" },
 ] as const;
 
 const categoryVisuals: Record<string, { label: string; image: string }> = {
@@ -66,7 +66,7 @@ export default function DashboardPoolsPage() {
           <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div className="space-y-4">
               <h2 className="text-[2.875rem] font-normal leading-none tracking-[-0.02em] text-brand-hot">
-                Start a new pool
+                Choose a pool format
               </h2>
               <div className="flex flex-wrap gap-2.5">
                 {poolFilters.map((filter) => (
@@ -77,7 +77,7 @@ export default function DashboardPoolsPage() {
               </div>
             </div>
             <Button asChild variant="secondaryGreen">
-              <Link href="/dashboard/templates">View all templates</Link>
+              <Link href="/dashboard/templates">Browse all templates</Link>
             </Button>
           </div>
           <div className="border-t border-dashed border-brand-rule" />

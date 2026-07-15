@@ -291,58 +291,70 @@ function PlayerTeamHeatmapTable({
   referencePicks?: EntryPicks;
 }) {
   const matrixColumns = {
-    gridTemplateColumns: `minmax(5.5rem,1.55fr) minmax(1.75rem,0.45fr) repeat(${heatmap.entrants.length}, minmax(0,1fr))`,
+    gridTemplateColumns: `minmax(5.5rem,1.55fr) minmax(2.5rem,0.45fr) repeat(${heatmap.entrants.length}, minmax(2rem,1fr))`,
+    minWidth: `${Math.max(46, 8 + heatmap.entrants.length * 2)}rem`,
   };
 
   return (
-    <div className="w-full text-xs">
-      <div
-        className="grid items-end gap-px border-b bg-surface-ledger px-2 py-2"
-        style={matrixColumns}
-      >
-        <div className="font-semibold text-brand-ink">Team</div>
-        <div className="text-center text-[0.6rem] font-semibold uppercase text-muted-foreground">
-          Picked
-        </div>
-        {heatmap.entrants.map((entrant) => (
+    <div className="relative">
+      <p className="border-b bg-surface-ledger/55 px-4 py-2 text-xs leading-5 text-muted-foreground sm:hidden">
+        Swipe horizontally to compare every entrant.
+      </p>
+      <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
+        <div className="w-full text-xs" style={matrixColumns}>
           <div
-            key={entrant.id}
-            className="min-w-0 text-center text-[0.55rem] font-semibold uppercase leading-none text-muted-foreground"
-            title={entrant.name}
-          >
-            {entrantInitials(entrant.name)}
-          </div>
-        ))}
-      </div>
-      <div className="divide-y">
-        {heatmap.playerTeamRows.map((row) => (
-          <div
-            key={row.team}
-            className="grid items-center gap-px px-2 py-1.5"
+            className="grid items-end gap-px border-b bg-surface-ledger px-2 py-2"
             style={matrixColumns}
           >
-            <div className="min-w-0 font-semibold text-brand-ink">
-              <CompactTeamName team={row.team} referencePicks={referencePicks} />
-            </div>
-            <div
-              className="text-center text-[0.6rem] font-semibold text-muted-foreground"
-              title={`${row.picked.count} entrants, ${row.picked.percent}%`}
-            >
-              {row.picked.count}
+            <div className="font-semibold text-brand-ink">Team</div>
+            <div className="text-center text-[0.6rem] font-semibold uppercase text-muted-foreground">
+              Picked
             </div>
             {heatmap.entrants.map((entrant) => (
-              <PlayerTeamCell
+              <div
                 key={entrant.id}
-                cell={row.players[entrant.id]}
-              />
+                className="min-w-0 text-center text-[0.55rem] font-semibold uppercase leading-none text-muted-foreground"
+                title={entrant.name}
+              >
+                {entrantInitials(entrant.name)}
+              </div>
             ))}
           </div>
-        ))}
+          <div className="divide-y">
+            {heatmap.playerTeamRows.map((row) => (
+              <div
+                key={row.team}
+                className="grid items-center gap-px px-2 py-1.5"
+                style={matrixColumns}
+              >
+                <div className="min-w-0 font-semibold text-brand-ink">
+                  <CompactTeamName team={row.team} referencePicks={referencePicks} />
+                </div>
+                <div
+                  className="text-center text-[0.6rem] font-semibold text-muted-foreground"
+                  title={`${row.picked.count} entrants, ${row.picked.percent}%`}
+                >
+                  {row.picked.count}
+                </div>
+                {heatmap.entrants.map((entrant) => (
+                  <PlayerTeamCell
+                    key={entrant.id}
+                    cell={row.players[entrant.id]}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+          <div className="border-t px-2 py-2 text-[0.68rem] leading-4 text-muted-foreground">
+            Player initials use full names on hover. Picked is the number of entrants
+            who selected the team anywhere in the knockout or podium path.
+          </div>
+        </div>
       </div>
-      <div className="border-t px-2 py-2 text-[0.68rem] leading-4 text-muted-foreground">
-        Player initials use full names on hover. Picked is the number of entrants
-        who selected the team anywhere in the knockout or podium path.
-      </div>
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute bottom-0 right-0 top-8 z-10 w-9 bg-gradient-to-l from-surface-paper to-transparent sm:hidden"
+      />
     </div>
   );
 }

@@ -236,11 +236,22 @@ html[data-theme="premium-pools"] {
 
 @layer components {
   .display-heading-xl {
-    @apply text-[clamp(2.125rem,10vw,4.5rem)] font-normal leading-[1.08] tracking-normal text-brand-ink sm:leading-[1.04];
+    @apply text-[clamp(2.125rem,9vw,3rem)] font-normal leading-[1.08] tracking-normal text-brand-ink sm:leading-[1.04] md:text-[clamp(3rem,5vw,4.5rem)];
     font-feature-settings:
       "kern" 1,
       "liga" 1;
     font-kerning: normal;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 

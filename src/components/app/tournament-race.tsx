@@ -157,7 +157,11 @@ function BracketPicker({
   })).filter((group) => group.matches.length);
 
   return (
-    <div className="overflow-x-auto border-b bg-surface-paper">
+    <div className="relative overflow-x-auto overscroll-x-contain border-b bg-surface-paper pb-2 [scrollbar-width:thin]">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 z-10 w-10 bg-gradient-to-l from-surface-paper to-transparent md:hidden"
+      />
       <div className="grid min-w-[58rem] grid-flow-col auto-cols-[14rem] gap-4 p-5">
         {groups.map((group) => (
           <section key={group.stage} className="relative space-y-3">
@@ -246,19 +250,41 @@ function RaceChart({
   entries: TournamentRaceEntry[];
 }) {
   const maxRank = Math.max(10, ...checkpoints.flatMap((checkpoint) => checkpoint.entries.map((entry) => entry.rank)));
-  const width = Math.max(720, 150 + Math.max(0, checkpoints.length - 1) * 160);
+  const participantLabelGutter = Math.min(
+    240,
+    Math.max(152, Math.max(...entries.map((entry) => entry.name.length), 0) * 9 + 20),
+  );
+  const finishLineGutter = Math.min(
+    300,
+    Math.max(180, Math.max(...entries.map((entry) => entry.name.length), 0) * 8 + 82),
+  );
+  const width = Math.max(
+    720,
+    150 +
+      Math.max(0, checkpoints.length - 1) * 160 +
+      (participantLabelGutter - 58) +
+      (finishLineGutter - 98),
+  );
   const height = Math.max(320, 104 + maxRank * 24);
-  const chart = { left: 58, right: 98, top: 32, bottom: 52 };
+  const chart = { left: participantLabelGutter, right: finishLineGutter, top: 54, bottom: 52 };
   const plotWidth = width - chart.left - chart.right;
   const plotHeight = height - chart.top - chart.bottom;
-  const pointFor = (checkpointIndex: number, rank: number) => ({
+  const pointFor = (checkpointIndex: number, rank: number, tieOffset = 0) => ({
     x:
       chart.left +
       (checkpoints.length <= 1
         ? 0
         : (checkpointIndex / (checkpoints.length - 1)) * plotWidth),
-    y: chart.top + ((rank - 1) / Math.max(1, maxRank - 1)) * plotHeight,
+    y: chart.top + ((rank - 1) / Math.max(1, maxRank - 1)) * plotHeight + tieOffset,
   });
+  const tieOffsetFor = (checkpoint: TournamentRaceCheckpoint, racer: TournamentRaceEntry) => {
+    const tiedRacers = checkpoint.entries
+      .filter((entry) => entry.rank === racer.rank)
+      .sort((left, right) => left.id.localeCompare(right.id));
+    const tieIndex = tiedRacers.findIndex((entry) => entry.id === racer.id);
+
+    return tieIndex === -1 ? 0 : (tieIndex - (tiedRacers.length - 1) / 2) * 16;
+  };
 
   return (
     <>
@@ -306,9 +332,12 @@ function RaceChart({
                 />
                 <text
                   x={x}
-                  y={height - 18}
+                  y={chart.top - 18}
                   textAnchor="middle"
-                  className="fill-muted-foreground text-[11px] font-medium"
+                  className="fill-brand-ink"
+                  fontFamily="Arial, Helvetica, sans-serif"
+                  fontSize="12"
+                  fontWeight="600"
                 >
                   {checkpoint.label}
                 </text>
@@ -319,7 +348,11 @@ function RaceChart({
           {entries.map((entry, entryIndex) => {
             const points = checkpoints.map((checkpoint, checkpointIndex) => {
               const racer = checkpoint.entries.find((item) => item.id === entry.id) ?? entry;
-              const point = pointFor(checkpointIndex, racer.rank);
+              const point = pointFor(
+                checkpointIndex,
+                racer.rank,
+                tieOffsetFor(checkpoint, racer),
+              );
               return { ...point, racer };
             });
             const color = RACE_COLORS[entryIndex % RACE_COLORS.length];
@@ -348,12 +381,27 @@ function RaceChart({
                     className="transition-all duration-500 ease-out"
                   />
                 ))}
-                <text x={chart.left - 8} y={points[0].y + 4} textAnchor="end" className="fill-brand-ink text-[11px] font-semibold">
+                <text
+                  x={chart.left - 10}
+                  y={points[0].y + 5}
+                  textAnchor="end"
+                  className="fill-brand-ink"
+                  fontFamily="Arial, Helvetica, sans-serif"
+                  fontSize="13"
+                  fontWeight="600"
+                >
                   {entry.name}
                 </text>
                 {last ? (
-                  <text x={last.x + 10} y={last.y + 4} className="fill-brand-ink text-[11px] font-semibold">
-                    #{last.racer.rank} · {last.racer.total}
+                  <text
+                    x={last.x + 10}
+                    y={last.y + 5}
+                    className="fill-brand-ink"
+                    fontFamily="Arial, Helvetica, sans-serif"
+                    fontSize="12"
+                    fontWeight="600"
+                  >
+                    {entry.name} · #{last.racer.rank} · {last.racer.total}
                   </text>
                 ) : null}
               </g>
@@ -362,8 +410,11 @@ function RaceChart({
         </svg>
       </div>
 
-      <div className="md:hidden">
-        <div className="overflow-x-auto">
+      <div className="relative md:hidden">
+        <p className="border-b bg-background/70 px-4 py-2 text-xs leading-5 text-muted-foreground">
+          Swipe horizontally to compare each projected checkpoint.
+        </p>
+        <div className="overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
           <div className="min-w-max divide-y">
             <div className="grid grid-cols-[10rem_repeat(var(--checkpoint-count),7rem)] border-b bg-background/70" style={{ "--checkpoint-count": checkpoints.length } as React.CSSProperties}>
               <div className="px-4 py-3 text-xs font-semibold uppercase tracking-normal text-muted-foreground">Racer</div>
@@ -392,6 +443,10 @@ function RaceChart({
             ))}
           </div>
         </div>
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute bottom-0 right-0 top-8 z-10 w-9 bg-gradient-to-l from-surface-paper to-transparent"
+        />
       </div>
     </>
   );

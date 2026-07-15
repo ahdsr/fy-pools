@@ -91,7 +91,7 @@ function isKnockoutMatch(match: MatchResult, groupsByTeam: Map<string, string>) 
 
 function matchStage(match: MatchResult): TournamentRaceMatch["stage"] {
   const text = `${match.name ?? ""} ${match.stage ?? ""}`.toLowerCase();
-  if (text.includes("third") || text.includes("play-off")) return "thirdPlace";
+  if (text.includes("third") || text.includes("3rd") || text.includes("play-off")) return "thirdPlace";
   if (text.includes("quarter")) return "quarterFinal";
   if (text.includes("semi")) return "semiFinal";
   if (text.includes("final")) return "final";
@@ -105,7 +105,7 @@ function stageLabel(stage: TournamentRaceMatch["stage"]) {
     case "semiFinal":
       return "Semi-final";
     case "thirdPlace":
-      return "Third-place match";
+      return "3rd-place match";
     case "final":
       return "Final";
     default:
@@ -358,7 +358,7 @@ export function buildTournamentRaceModel({
     checkpoints.push(
       checkpointFor({
         id: selectedMatch.id,
-        label: `${normalizedSelections[selectedMatch.id]} win`,
+        label: normalizedSelections[selectedMatch.id],
         entriesConfig,
         picksByPath,
         results: partialResults,

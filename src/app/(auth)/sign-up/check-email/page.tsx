@@ -31,8 +31,8 @@ export default async function CheckEmailPage() {
           : "Open the confirmation link we sent to activate your account and continue to your pools."
       }
       footerCopy="The confirmation link will sign you in automatically."
-      panelTitle="Your pool is almost ready."
-      panelDescription="Confirm your email, then start a pool, invite your people, and make game day easier to run."
+      panelTitle="Confirm your account to continue."
+      panelDescription="After confirming your email, you can create a pool, send invitations, and manage entries."
     >
       <div className="space-y-4">
         <p className="text-sm leading-6 text-muted-foreground">

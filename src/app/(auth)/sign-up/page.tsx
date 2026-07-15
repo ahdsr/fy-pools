@@ -13,11 +13,11 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
 
   return (
     <AuthSplitLayout
-      eyebrow="Create your pool"
-      title="Start the pool everyone wants to join."
-      description="Set up your home for friendly competition, invite your people, and make every match more fun."
-      panelTitle="More games to care about."
-      panelDescription="Create a polished home for your crew’s picks, scores, and bragging rights—without becoming the full-time scorekeeper."
+      eyebrow="Create an account"
+      title="Set up your next sports pool."
+      description="Create a private pool, invite participants, collect online picks, and keep scoring in one place."
+      panelTitle="A clearer way to run a pool."
+      panelDescription="Set the format, send invitations, track entries, and share standings your group can follow."
       rightPanel={<SignUpValueCarousel />}
       centerContent
     >

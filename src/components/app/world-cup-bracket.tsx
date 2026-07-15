@@ -280,7 +280,11 @@ export function WorldCupBracket({
   const displayRounds = orderRoundsForBracket(rounds);
 
   return (
-    <div className="overflow-x-auto">
+    <div className="relative overflow-x-auto overscroll-x-contain pb-2 [scrollbar-width:thin]">
+      <span
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-y-0 right-0 z-20 w-10 bg-gradient-to-l from-surface-paper to-transparent md:hidden"
+      />
       <div className="min-w-[72rem] p-5 sm:p-6">
         <div
           className="grid grid-cols-[repeat(5,minmax(11.5rem,1fr))] gap-x-6"

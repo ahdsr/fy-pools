@@ -219,39 +219,61 @@ export function RoundOf16Leaderboard({
       description="Latest stored standings snapshot from automatic scoring."
       action={<Badge variant="outline">{rows.length} scored</Badge>}
     >
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
-            <TableHead>Rank</TableHead>
-            <TableHead>Entry</TableHead>
-            <TableHead>Total</TableHead>
-            <TableHead>Max</TableHead>
-            <TableHead>Submitted</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {rows.map((row) => (
-            <TableRow key={row.entryId}>
-              <TableCell className="font-semibold text-brand-ink">
-                {row.rank}
-              </TableCell>
-              <TableCell>
-                <Link
-                  href={`/pools/${poolSlug}/entry/${row.entryId}`}
-                  className="font-medium text-brand-ink hover:text-brand-hot"
-                >
-                  {row.entryName}
-                </Link>
-              </TableCell>
-              <TableCell className="font-semibold text-brand-ink">
-                {row.total}
-              </TableCell>
-              <TableCell>{row.maxPoints}</TableCell>
-              <TableCell>{formatDateTime(row.submittedAt)}</TableCell>
+      <ol className="divide-y sm:hidden" aria-label="Leaderboard">
+        {rows.map((row) => (
+          <li key={row.entryId} className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3">
+            <span className="text-sm font-bold tabular-nums text-brand-ink">{row.rank}</span>
+            <Link
+              href={`/pools/${poolSlug}/entry/${row.entryId}`}
+              className="min-w-0 font-semibold text-brand-ink hover:text-brand-hot focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25"
+            >
+              <span className="block truncate">{row.entryName}</span>
+              <span className="mt-0.5 block text-xs font-normal text-muted-foreground">
+                Max {row.maxPoints} · {formatDateTime(row.submittedAt)}
+              </span>
+            </Link>
+            <div className="text-right">
+              <span className="block text-sm font-bold tabular-nums text-brand-ink">{row.total}</span>
+              <span className="block text-[0.6875rem] font-medium uppercase tracking-normal text-muted-foreground">Total</span>
+            </div>
+          </li>
+        ))}
+      </ol>
+      <div className="hidden sm:block">
+        <Table>
+          <TableHeader>
+            <TableRow className="bg-surface-ledger hover:bg-surface-ledger">
+              <TableHead>Rank</TableHead>
+              <TableHead>Entry</TableHead>
+              <TableHead>Total</TableHead>
+              <TableHead>Max</TableHead>
+              <TableHead>Submitted</TableHead>
             </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+          </TableHeader>
+          <TableBody>
+            {rows.map((row) => (
+              <TableRow key={row.entryId}>
+                <TableCell className="font-semibold text-brand-ink">
+                  {row.rank}
+                </TableCell>
+                <TableCell>
+                  <Link
+                    href={`/pools/${poolSlug}/entry/${row.entryId}`}
+                    className="font-medium text-brand-ink hover:text-brand-hot"
+                  >
+                    {row.entryName}
+                  </Link>
+                </TableCell>
+                <TableCell className="font-semibold text-brand-ink">
+                  {row.total}
+                </TableCell>
+                <TableCell>{row.maxPoints}</TableCell>
+                <TableCell>{formatDateTime(row.submittedAt)}</TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </LedgerPanel>
   );
 }
