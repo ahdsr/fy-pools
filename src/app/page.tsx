@@ -128,7 +128,7 @@ export default function Home() {
           <div className="grid gap-8 lg:grid-cols-[0.93fr_1.07fr] lg:items-start">
             <div className="space-y-6 pt-1 lg:pt-0">
               <div className="space-y-5">
-                <h1 className="max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
+                <h1 className="hero-heading max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
                   Private sports pool hosting for serious commissioners.
                 </h1>
                 <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">

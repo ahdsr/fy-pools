@@ -187,7 +187,7 @@ function isActiveRoute(pathname: string, href: string) {
 
 export function HeaderBrandWordmark({
   className,
-  variant = "light",
+  variant = "dark",
 }: HeaderBrandWordmarkProps) {
   const { user, hydrated } = useMockUser();
 
@@ -251,12 +251,7 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
 
   return (
     <header
-      className={cn(
-        "sticky top-0 z-50 w-full border-b",
-        signedIn
-          ? "border-white/10 bg-accent text-accent-foreground"
-          : "border-border/70 bg-white text-foreground",
-        )}
+      className="sticky top-0 z-50 w-full border-b border-border bg-surface-paper text-foreground"
     >
       <nav className="relative flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-5 lg:grid lg:h-auto lg:min-h-16 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-3 lg:px-[43px] lg:py-3">
         <div className="flex min-w-0 items-center lg:contents">
@@ -264,21 +259,19 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
             <MobilePublicPoolNav
               active={active}
               poolBaseHref={poolBaseHref}
-              signedIn={Boolean(signedIn)}
             />
           ) : null}
           <BrandWordmark
             href={signedIn ? "/dashboard" : "/"}
-            variant={signedIn ? "light" : "dark"}
+            variant="dark"
             className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0"
           />
         </div>
         {showPoolNav ? (
-          <PublicPoolNavLinks
-            active={active}
-            poolBaseHref={poolBaseHref}
-            signedIn={Boolean(signedIn)}
-          />
+            <PublicPoolNavLinks
+              active={active}
+              poolBaseHref={poolBaseHref}
+            />
         ) : (
           <div className="hidden lg:block" />
         )}
@@ -306,20 +299,16 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
 function PublicPoolNavLinks({
   active,
   poolBaseHref,
-  signedIn,
 }: {
   active?: PublicPoolNavKey;
   poolBaseHref: string;
-  signedIn: boolean;
 }) {
   return (
     <div className="hidden min-w-0 lg:col-start-2 lg:row-start-1 lg:flex lg:justify-center lg:overflow-visible lg:px-1">
       <div
         className={cn(
-          "inline-flex min-w-max rounded-full border p-1 shadow-sm",
-          signedIn
-            ? "border-white/12 bg-white/8"
-            : "border-border/80 bg-surface-paper/95",
+          "inline-flex min-w-max border p-1 shadow-none",
+          "border-border bg-surface-paper",
         )}
       >
         {publicPoolNavItems.map((item) => (
@@ -328,14 +317,10 @@ function PublicPoolNavLinks({
             href={`${poolBaseHref}${item.href}`}
             aria-current={active === item.key ? "page" : undefined}
             className={cn(
-              "rounded-full px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
-              signedIn
-                ? "text-white/72 hover:bg-white/10 hover:text-white"
-                : "text-muted-foreground hover:bg-muted hover:text-foreground",
+              "rounded-none px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
+              "text-muted-foreground hover:bg-muted hover:text-foreground",
               active === item.key &&
-                (signedIn
-                  ? "bg-white text-accent shadow-sm hover:bg-white hover:text-accent"
-                  : "bg-accent text-accent-foreground shadow-sm hover:bg-accent hover:text-accent-foreground"),
+                "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground",
             )}
           >
             <span>{item.label}</span>
@@ -349,11 +334,9 @@ function PublicPoolNavLinks({
 function MobilePublicPoolNav({
   active,
   poolBaseHref,
-  signedIn,
 }: {
   active?: PublicPoolNavKey;
   poolBaseHref: string;
-  signedIn: boolean;
 }) {
   return (
     <DropdownMenu>
@@ -365,9 +348,7 @@ function MobilePublicPoolNav({
           aria-label="Open pool navigation menu"
           className={cn(
             "lg:hidden size-11",
-            signedIn
-              ? "text-white hover:bg-white/10 hover:text-white"
-              : "text-foreground hover:bg-muted hover:text-foreground",
+            "text-foreground hover:bg-muted hover:text-foreground",
           )}
         >
           <Menu />
@@ -702,7 +683,7 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   return (
     <div
       className={cn(
-        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 rounded-full border border-white/12 bg-white/9 p-0.5 lg:flex",
+        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 border border-border bg-surface-paper p-0.5 lg:flex",
         className,
       )}
     >
@@ -715,8 +696,8 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "rounded-full px-3 py-1.5 text-[0.8125rem] font-medium leading-none text-white/78 transition-colors hover:bg-white/12 hover:text-white",
-              isActive && "bg-white text-accent shadow-sm hover:bg-white hover:text-accent",
+              "rounded-none px-3 py-1.5 text-[0.8125rem] font-medium leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+              isActive && "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground",
             )}
           >
             {item.label}

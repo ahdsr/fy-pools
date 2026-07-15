@@ -110,7 +110,7 @@ export function PublicPoolMetaCard({
   return (
     <div
       className={cn(
-        "rounded-lg border bg-surface-paper p-4 text-card-foreground",
+        "border border-border/65 bg-surface-paper p-4 text-card-foreground",
         className,
       )}
       {...props}

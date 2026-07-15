@@ -21,13 +21,13 @@ export function LedgerPanel({
   return (
     <section
       className={cn(
-        "overflow-hidden rounded-lg border bg-surface-paper text-card-foreground ring-1 ring-white/5",
+        "border border-border/65 bg-surface-paper text-card-foreground",
         className,
       )}
       {...props}
     >
       {(title || description || action) && (
-        <header className="border-b bg-surface-ledger/90 px-5 py-4">
+        <header className="border-b border-border/65 bg-surface-paper px-5 py-4">
           <SectionHeader
             title={title}
             description={description}
@@ -63,12 +63,12 @@ export function CollapsibleLedgerPanel({
     <details
       open={defaultOpen}
       className={cn(
-        "group overflow-hidden rounded-lg border bg-surface-paper text-card-foreground ring-1 ring-white/5",
+        "group border border-border/65 bg-surface-paper text-card-foreground",
         className,
       )}
       {...props}
     >
-      <summary className="flex cursor-pointer list-none items-start gap-4 border-b bg-surface-ledger/90 px-5 py-4 transition hover:bg-surface-ledger focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25 [&::-webkit-details-marker]:hidden">
+      <summary className="flex cursor-pointer list-none items-start gap-4 border-b border-border/65 bg-surface-paper px-5 py-4 transition hover:bg-surface-ledger focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/25 [&::-webkit-details-marker]:hidden">
         <SectionHeader
           title={title}
           description={description}
@@ -76,7 +76,7 @@ export function CollapsibleLedgerPanel({
           className="min-w-0 flex-1"
         />
         <span
-          className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded-full border bg-surface-paper text-muted-foreground transition group-open:rotate-180 group-hover:border-primary/35 group-hover:text-brand-ink"
+          className="mt-0.5 inline-flex size-8 shrink-0 items-center justify-center border bg-surface-paper text-muted-foreground transition group-open:rotate-180 group-hover:border-primary/35 group-hover:text-brand-ink"
           aria-hidden="true"
         >
           <ChevronDown className="size-4" />
@@ -91,7 +91,7 @@ export function LedgerRows({
   children,
   className,
 }: React.ComponentProps<"div">) {
-  return <div className={cn("divide-y", className)}>{children}</div>;
+  return <div className={cn("divide-y divide-border/65 bg-surface-paper", className)}>{children}</div>;
 }
 
 export function LedgerRow({

@@ -23,10 +23,6 @@ function Table({ className, ...props }: React.ComponentProps<"table">) {
           {...props}
         />
       </div>
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-y-0 right-0 w-8 bg-gradient-to-l from-surface-paper to-transparent sm:hidden"
-      />
     </div>
   )
 }
@@ -69,7 +65,7 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        "border-b border-border/65 transition-colors has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
         className
       )}
       {...props}
@@ -82,7 +78,7 @@ function TableHead({ className, ...props }: React.ComponentProps<"th">) {
     <th
       data-slot="table-head"
       className={cn(
-        "h-10 px-3 text-left align-middle font-medium whitespace-nowrap text-foreground first:pl-4 sm:px-2 sm:first:pl-5 [&:has([role=checkbox])]:pr-0",
+        "h-10 px-3 text-left align-middle font-bold whitespace-nowrap text-foreground first:pl-4 sm:px-5 sm:first:pl-6 [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}
@@ -95,7 +91,7 @@ function TableCell({ className, ...props }: React.ComponentProps<"td">) {
     <td
       data-slot="table-cell"
       className={cn(
-        "px-3 py-2.5 align-middle whitespace-nowrap first:pl-4 sm:p-2 sm:first:pl-5 [&:has([role=checkbox])]:pr-0",
+        "px-3 py-4 align-middle whitespace-nowrap first:pl-4 sm:px-5 sm:py-4 sm:first:pl-6 [&:has([role=checkbox])]:pr-0",
         className
       )}
       {...props}

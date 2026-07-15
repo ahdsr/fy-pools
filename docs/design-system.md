@@ -2,16 +2,17 @@
 
 ## Selected Direction
 
-The product baseline is **Premium Pools**: a calm, premium, list-first interface
-for commissioners and players.
+The product baseline is **FIFA Table**: a crisp, list-first interface for
+commissioners and players, built from hard rectangular surfaces and simple data rows.
 
 ## Brand Principles
 
 - Strong FY Pools wordmark and compact FY mark.
-- Ink-blue primary actions.
-- White paper surfaces and pale ledger backgrounds.
-- Thin bracket-grid rules as the reusable brand motif.
-- Table-first and row-first layouts before decorative cards.
+- Black primary actions with high-contrast labels.
+- Neutral gray page canvases with white paper rows and panels.
+- Thin gray rules and a bold header baseline as the reusable table motif.
+- Table-first and row-first layouts before decorative cards or gradients.
+- Square corners, restrained shadows, and clear whitespace between rows.
 - Large readable titles, short labels, and clear primary actions.
 
 ## Theme Swap Contract
