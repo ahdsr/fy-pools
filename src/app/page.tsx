@@ -1,13 +1,18 @@
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ArrowRight } from "lucide-react";
+import {
+  ArrowRight,
+  Brackets,
+  ChartNoAxesCombined,
+  ClipboardCheck,
+  FileSpreadsheet,
+  LockKeyhole,
+  Trophy,
+  UsersRound,
+} from "lucide-react";
 
 import {
-  HeaderBrandWordmark,
-  HeaderAccountControls,
-  MobileSiteHeaderNav,
-  SiteHeaderNav,
-  ThemeToggle,
+  LandingPageHeader,
 } from "@/components/app/mock-auth";
 import { SiteFooter } from "@/components/app/site-footer";
 import { Button } from "@/components/ui/button";
@@ -52,16 +57,19 @@ export default function Home() {
       label: "01",
       title: "Start from a proven format",
       body: "Launch World Cup predictors, NBA playoff brackets, NFL survivor pools, weekly pick'em, golf majors, tennis draws, or a custom spreadsheet import.",
+      icon: Brackets,
     },
     {
       label: "02",
       title: "Collect clean private entries",
       body: "Share player links, capture valid picks online, track missing entries, and lock each pool before the event starts.",
+      icon: ClipboardCheck,
     },
     {
       label: "03",
       title: "Publish trusted standings",
       body: "Score picks against results, show subtotals, model projections, and give every player a clear public leaderboard.",
+      icon: Trophy,
     },
   ];
 
@@ -69,18 +77,40 @@ export default function Home() {
     {
       title: "Template library",
       body: "Build from sport-specific pool templates with pick fields, lock timing, and scoring structure already mapped.",
+      icon: Brackets,
     },
     {
       title: "Spreadsheet import",
       body: "Bring the workbook your group already uses and convert rules, formulas, brackets, bonuses, and tiebreakers into a hosted pool.",
+      icon: FileSpreadsheet,
     },
     {
       title: "Commissioner controls",
       body: "Keep setup, invites, entry status, locks, results refreshes, and scoring reviews in one operating workspace.",
+      icon: LockKeyhole,
     },
     {
       title: "Player-friendly pool pages",
       body: "Give players read-only standings, score breakdowns, projections, and entry details without sending around manual updates.",
+      icon: ChartNoAxesCombined,
+    },
+  ];
+
+  const poolViews = [
+    {
+      title: "Commissioner view",
+      body: "Set up the format, send invitations, check entry status, and manage locks and scoring.",
+      icon: ClipboardCheck,
+    },
+    {
+      title: "Player view",
+      body: "Submit picks before the deadline, revisit an entry, and follow the latest position.",
+      icon: UsersRound,
+    },
+    {
+      title: "Public view",
+      body: "Share standings, score breakdowns, brackets, and projections from a single pool page.",
+      icon: Trophy,
     },
   ];
 
@@ -106,91 +136,117 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-background">
+    <main className="min-h-screen bg-[#101010]">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <header className="sticky top-0 z-50 w-full border-b border-border bg-accent text-accent-foreground">
-        <nav className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-[43px]">
-          <div className="flex min-w-0 items-center lg:block">
-            <MobileSiteHeaderNav />
-            <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0" />
-          </div>
-          <SiteHeaderNav />
-          <div className="flex shrink-0 items-center gap-2">
-            <ThemeToggle />
-            <HeaderAccountControls />
-          </div>
-        </nav>
-      </header>
+      <LandingPageHeader solid />
 
-      <section className="mx-auto flex w-full max-w-[1268px] flex-col gap-10 px-4 py-5 sm:px-5 md:gap-12 md:px-6 md:py-8">
-        <section className="py-8 md:py-12">
-          <div className="grid gap-8 lg:grid-cols-[0.93fr_1.07fr] lg:items-start">
-            <div className="space-y-6 pt-1 lg:pt-0">
-              <div className="space-y-5">
-                <h1 className="hero-heading max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-brand-ink sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
-                  Private sports pool hosting for serious commissioners.
-                </h1>
-                <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">
-                  PoolWaffle helps you launch polished office pools and private
-                  sports contests, collect clean player picks, lock entries on
-                  schedule, score results, and publish standings everyone can
-                  audit.
-                </p>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button asChild variant="primaryGreen" size="lg">
-                  <Link href="/sign-up?next=%2Fdashboard%2Fpools">
-                    Create an account <ArrowRight />
-                  </Link>
-                </Button>
-                <Button asChild variant="outline" size="lg">
-                  <Link href="/sign-in?next=%2Fdashboard%2Fpools">
-                    Sign in
-                  </Link>
-                </Button>
+      <section className="mx-auto flex w-full max-w-[1268px] flex-col gap-4 px-4 py-5 sm:px-5 md:px-6 md:py-8">
+        <section className="overflow-hidden rounded-[2rem] bg-[#181818] p-3 sm:p-4 md:p-5">
+          <div className="grid gap-3 lg:grid-cols-[0.93fr_1.07fr] lg:items-stretch">
+            <div className="flex flex-col justify-center rounded-[1.5rem] bg-[#101010] p-6 sm:p-8 lg:p-10">
+              <div className="space-y-6">
+                <div className="space-y-5">
+                  <p className="text-xs font-semibold tracking-[0.08em] text-[#b3e802] uppercase">
+                    Better pools, together
+                  </p>
+                  <h1 className="hero-heading max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-white sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
+                    Private sports pool hosting for serious commissioners.
+                  </h1>
+                  <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-white/72 sm:text-[1.05rem] sm:font-light sm:leading-7">
+                    PoolWaffle helps you launch polished office pools and private
+                    sports contests, collect clean player picks, lock entries on
+                    schedule, score results, and publish standings everyone can
+                    audit.
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3 sm:flex-row">
+                  <Button asChild variant="primaryGreen" size="lg">
+                    <Link href="/sign-up?next=%2Fdashboard%2Fpools">
+                      Create an account <ArrowRight />
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant="outline"
+                    size="lg"
+                    className="border-white/25 bg-white/8 text-white hover:border-white/50 hover:bg-white/16 hover:text-white"
+                  >
+                    <Link href="/sign-in?next=%2Fdashboard%2Fpools">
+                      Sign in
+                    </Link>
+                  </Button>
+                </div>
               </div>
             </div>
 
             <figure
               aria-label="Night football match on a stadium pitch"
-              className="min-h-[360px] overflow-hidden rounded-lg border bg-cover bg-center ring-1 ring-white/5 lg:min-h-[470px]"
+              className="relative flex min-h-[360px] flex-col justify-end overflow-hidden rounded-[1.5rem] border border-white/10 bg-cover bg-center p-4 ring-1 ring-white/5 sm:p-6 lg:min-h-[470px]"
               style={{
                 backgroundImage:
                   "linear-gradient(180deg, rgb(0 0 0 / 0.02), rgb(0 0 0 / 0.18)), url(https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1400&q=80)",
               }}
-            />
+            >
+              <div className="absolute inset-0 bg-linear-to-t from-black/80 via-black/22 to-transparent" />
+              <figcaption className="relative grid gap-3">
+                <div className="w-fit rounded-full border border-white/20 bg-black/30 px-3 py-1.5 text-xs font-semibold tracking-[0.08em] text-white uppercase backdrop-blur-sm">
+                  One place to run the pool
+                </div>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {steps.map((step) => {
+                    const Icon = step.icon;
+
+                    return (
+                      <div
+                        key={step.label}
+                        className="rounded-lg border border-white/16 bg-black/38 p-3 text-white backdrop-blur-sm"
+                      >
+                        <Icon className="size-4 text-cta-green" aria-hidden="true" />
+                        <p className="mt-3 text-sm font-semibold leading-5">
+                          {step.title}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </div>
+              </figcaption>
+            </figure>
           </div>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-3">
+        <section className="grid gap-3 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 md:grid-cols-3 md:p-8">
           {steps.map((step) => (
             <div
               key={step.title}
-              className="border-t pt-5"
+              className="rounded-2xl border border-white/10 bg-black/25 p-4 sm:p-5"
             >
-              <p className="text-xs font-semibold text-brand-mark sm:text-sm">
-                {step.label}
-              </p>
-              <h2 className="mt-3 text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
+              <div className="flex items-center gap-2 text-[#b3e802]">
+                <step.icon className="size-4" aria-hidden="true" />
+                <p className="text-xs font-semibold sm:text-sm">{step.label}</p>
+              </div>
+              <h2 className="mt-3 text-lg font-bold tracking-normal text-white sm:text-xl">
                 {step.title}
               </h2>
-              <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
+              <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-sm">
                 {step.body}
               </p>
             </div>
           ))}
         </section>
 
-        <section className="grid gap-8 border-t py-10 lg:grid-cols-[0.82fr_1.18fr]">
+        <section className="grid gap-6 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 lg:grid-cols-[0.82fr_1.18fr] lg:p-8">
           <div className="space-y-3">
-            <h2 className="max-w-[480px] text-2xl font-normal leading-tight text-brand-ink sm:text-3xl">
+            <p className="text-xs font-semibold tracking-[0.08em] text-[#b3e802] uppercase">
+              Built for commissioners
+            </p>
+            <h2 className="max-w-[480px] text-2xl font-normal leading-tight text-white sm:text-3xl">
               Sports pool software built around the way commissioners actually
               run contests.
             </h2>
-            <p className="max-w-[520px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
+            <p className="max-w-[520px] text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-base sm:font-light sm:leading-7">
               Start from a template when the format is common. Upload your own
               spreadsheet when the format is custom. Either way, players get a
               clean private pool page and commissioners keep control of the
@@ -198,25 +254,84 @@ export default function Home() {
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
-            {features.map((feature) => (
-              <article key={feature.title} className="border-t pt-5">
-                <h3 className="text-lg font-bold tracking-normal text-brand-ink sm:text-xl">
-                  {feature.title}
-                </h3>
-                <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
-                  {feature.body}
-                </p>
-              </article>
-            ))}
+            {features.map((feature) => {
+              const Icon = feature.icon;
+
+              return (
+                <article
+                  key={feature.title}
+                  className="rounded-2xl border border-white/10 bg-black/25 p-4 sm:p-5"
+                >
+                  <div className="grid size-9 place-items-center rounded-xl bg-[#b3e802] text-black">
+                    <Icon className="size-4" aria-hidden="true" />
+                  </div>
+                  <h3 className="mt-4 text-lg font-bold tracking-normal text-white sm:text-xl">
+                    {feature.title}
+                  </h3>
+                  <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-sm">
+                    {feature.body}
+                  </p>
+                </article>
+              );
+            })}
           </div>
         </section>
 
-        <section className="grid gap-6 border-t py-10 md:grid-cols-[0.55fr_1fr] md:items-start">
+        <section className="grid gap-6 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 lg:grid-cols-[0.55fr_1fr] lg:items-start lg:p-8">
           <div className="space-y-3">
-            <h2 className="text-2xl font-normal leading-tight text-brand-ink sm:text-3xl">
+            <p className="text-xs font-semibold tracking-[0.08em] text-[#b3e802] uppercase">
+              Clear roles, clear information
+            </p>
+            <h2 className="text-2xl font-normal leading-tight text-white sm:text-3xl">
+              Give every person the right view of the pool.
+            </h2>
+            <p className="text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-base sm:font-light sm:leading-7">
+              Commissioners manage the work. Players submit and follow their
+              entries. Everyone else can check the standings without requesting
+              an update.
+            </p>
+          </div>
+          <div
+            className="relative overflow-hidden rounded-[1.5rem] border border-white/10 bg-cover bg-center p-3 sm:p-4"
+            style={{
+              backgroundImage:
+                "url(/illustrations/poolwaffle-sign-up-standings.png)",
+            }}
+          >
+            <div className="absolute inset-0 bg-black/60" />
+            <div className="relative grid gap-3">
+              {poolViews.map((view) => {
+                const Icon = view.icon;
+
+                return (
+                  <article
+                    key={view.title}
+                    className="grid gap-4 rounded-2xl border border-white/15 bg-black/55 p-4 backdrop-blur-sm sm:grid-cols-[auto_1fr] sm:items-start"
+                  >
+                    <div className="grid size-10 place-items-center rounded-xl bg-[#b3e802] text-black">
+                      <Icon className="size-5" aria-hidden="true" />
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">
+                        {view.title}
+                      </h3>
+                      <p className="mt-1 text-sm leading-6 text-white/72">
+                        {view.body}
+                      </p>
+                    </div>
+                  </article>
+                );
+              })}
+            </div>
+          </div>
+        </section>
+
+        <section className="grid gap-6 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 md:grid-cols-[0.55fr_1fr] md:items-start md:p-8">
+          <div className="space-y-3">
+            <h2 className="text-2xl font-normal leading-tight text-white sm:text-3xl">
               Pool formats covered
             </h2>
-            <p className="text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
+            <p className="text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-base sm:font-light sm:leading-7">
               Use PoolWaffle for tournament brackets, season-long contests,
               party sheets, office pools, family pools, and commissioner-run
               custom formats.
@@ -226,7 +341,7 @@ export default function Home() {
             {formats.map((format) => (
               <li
                 key={format}
-                className="border-t border-brand-rule/70 pt-3 text-[0.9375rem] font-semibold leading-6 text-brand-ink sm:text-sm sm:leading-normal"
+                className="border-t border-white/15 pt-3 text-[0.9375rem] font-semibold leading-6 text-white sm:text-sm sm:leading-normal"
               >
                 {format}
               </li>

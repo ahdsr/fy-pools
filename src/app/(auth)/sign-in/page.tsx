@@ -18,6 +18,8 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
       panelTitle="Run every pool from one place."
       panelDescription="Invite players, collect picks, lock entries, and publish standings without moving between spreadsheets and group chats."
       centerContent
+      centerIntro
+      showLeftBrand={false}
     >
       <MockSignInForm
         nextPath={nextPath}

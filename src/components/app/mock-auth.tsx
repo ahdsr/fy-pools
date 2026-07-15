@@ -44,6 +44,11 @@ type HeaderAccountControlsProps = {
 
 type SiteHeaderNavProps = {
   className?: string;
+  variant?: "default" | "minimal";
+};
+
+type MobileSiteHeaderNavProps = {
+  className?: string;
 };
 
 type HeaderBrandWordmarkProps = {
@@ -72,7 +77,7 @@ type PublicPoolHeaderProps = {
 
 const signedOutNavItems = [
   { label: "Pools", href: "/dashboard/pools" },
-  { label: "Templates", href: "/dashboard/templates" },
+  { label: "Templates", href: "/templates" },
   { label: "Upload", href: "/upload-your-own" },
 ] as const;
 
@@ -259,15 +264,37 @@ export function ThemeToggle() {
 }
 
 export function DashboardHeader() {
+  return <LandingPageHeader />;
+}
+
+export function LandingPageHeader({ solid = false }: { solid?: boolean }) {
+  const [hasScrolled, setHasScrolled] = React.useState(false);
+
+  React.useEffect(() => {
+    const updateScrolledState = () => setHasScrolled(window.scrollY > 16);
+
+    updateScrolledState();
+    window.addEventListener("scroll", updateScrolledState, { passive: true });
+
+    return () => window.removeEventListener("scroll", updateScrolledState);
+  }, []);
+
   return (
-    <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
-      <nav className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-[43px]">
+    <header
+      className={cn(
+        "sticky top-0 z-50 w-full text-foreground transition-[background-color,border-color,box-shadow] duration-300",
+        solid && "border-b border-border/70 bg-surface-paper",
+        hasScrolled &&
+          "border-b border-border/70 bg-surface-paper/95 shadow-[0_1px_0_rgb(0_0_0_/_0.08)] backdrop-blur-sm",
+      )}
+    >
+      <nav className="relative flex h-20 w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-[43px]">
         <div className="flex min-w-0 items-center lg:block">
-          <MobileSiteHeaderNav />
+          <MobileSiteHeaderNav className="text-foreground hover:bg-muted hover:text-foreground" />
           <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0" />
         </div>
-        <SiteHeaderNav />
-        <div className="flex items-center gap-2">
+        <SiteHeaderNav variant="minimal" />
+        <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
           <HeaderAccountControls />
         </div>
@@ -735,7 +762,10 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
   );
 }
 
-export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
+export function SiteHeaderNav({
+  className,
+  variant = "default",
+}: SiteHeaderNavProps) {
   const pathname = usePathname();
   const { user, hydrated } = useMockUser();
   const items = hydrated && user ? adminNavItems : signedOutNavItems;
@@ -743,7 +773,9 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   return (
     <div
       className={cn(
-        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-0.5 border border-border bg-surface-paper p-0.5 lg:flex",
+        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center lg:flex",
+        variant === "default" && "gap-0.5 border border-border bg-surface-paper p-0.5",
+        variant === "minimal" && "gap-7",
         className,
       )}
     >
@@ -756,8 +788,15 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "rounded-none px-3 py-1.5 text-[0.8125rem] font-medium leading-none text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-              isActive && "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground",
+              "rounded-none text-[0.8125rem] font-medium leading-none transition-colors",
+              variant === "default" &&
+                "px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground",
+              variant === "default" &&
+                isActive &&
+                "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground",
+              variant === "minimal" &&
+                "py-2 text-muted-foreground hover:text-foreground",
+              variant === "minimal" && isActive && "text-foreground",
             )}
           >
             {item.label}
@@ -768,7 +807,7 @@ export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   );
 }
 
-export function MobileSiteHeaderNav() {
+export function MobileSiteHeaderNav({ className }: MobileSiteHeaderNavProps) {
   const pathname = usePathname();
   const { user, hydrated } = useMockUser();
   const items = hydrated && user ? adminNavItems : signedOutNavItems;
@@ -781,7 +820,10 @@ export function MobileSiteHeaderNav() {
           variant="ghost"
           size="icon-lg"
           aria-label="Open navigation menu"
-          className="size-11 text-white hover:bg-white/10 hover:text-white lg:hidden"
+          className={cn(
+            "size-11 text-white hover:bg-white/10 hover:text-white lg:hidden",
+            className,
+          )}
         >
           <Menu />
         </Button>
@@ -820,7 +862,7 @@ export function HeaderAccountControls({
       <div className={cn("flex items-center gap-2", className)} aria-busy="true">
         <span
           aria-label="Checking account"
-          className="grid size-9 place-items-center rounded-full border border-white/18 bg-white/12"
+          className="grid size-9 place-items-center rounded-full border border-border bg-surface-paper"
         />
       </div>
     );

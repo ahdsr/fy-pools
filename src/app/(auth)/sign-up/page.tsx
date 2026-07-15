@@ -20,6 +20,8 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
       panelDescription="Set the format, send invitations, track entries, and share standings your group can follow."
       rightPanel={<SignUpValueCarousel />}
       centerContent
+      centerIntro
+      showLeftBrand={false}
     >
       <MockSignUpForm nextPath={nextPath} />
     </AuthSplitLayout>

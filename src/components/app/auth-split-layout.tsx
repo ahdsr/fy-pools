@@ -16,6 +16,8 @@ type AuthSplitLayoutProps = {
   panelDescription: string;
   rightPanel?: ReactNode;
   centerContent?: boolean;
+  centerIntro?: boolean;
+  showLeftBrand?: boolean;
 };
 
 const benefits = [
@@ -43,6 +45,8 @@ export function AuthSplitLayout({
   panelDescription,
   rightPanel,
   centerContent = false,
+  centerIntro = false,
+  showLeftBrand = true,
 }: AuthSplitLayoutProps) {
   return (
     <main className="grid min-h-[100dvh] bg-surface-paper lg:grid-cols-[minmax(0,0.95fr)_minmax(32rem,1.05fr)]">
@@ -53,7 +57,7 @@ export function AuthSplitLayout({
         )}
       >
         <div className="relative z-10 flex items-center justify-between gap-4">
-          <BrandWordmark />
+          {showLeftBrand ? <BrandWordmark /> : null}
           <Link
             href="/"
             className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
@@ -70,15 +74,22 @@ export function AuthSplitLayout({
           )}
         >
           <div className={cn("w-full", centerContent && "lg:max-w-[26rem]")}>
-            <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-hot uppercase">
-              {eyebrow}
-            </p>
-            <h1 className="font-heading text-4xl leading-[0.98] text-foreground sm:text-5xl">
-              {title}
-            </h1>
-            <p className="mt-4 max-w-sm text-[0.9375rem] leading-6 text-muted-foreground">
-              {description}
-            </p>
+            <div className={cn(centerIntro && "text-center")}>
+              <p className="mb-3 text-sm font-semibold tracking-[0.08em] text-brand-hot uppercase">
+                {eyebrow}
+              </p>
+              <h1 className="font-heading text-4xl leading-[0.98] text-foreground sm:text-5xl">
+                {title}
+              </h1>
+              <p
+                className={cn(
+                  "mt-4 max-w-sm text-[0.9375rem] leading-6 text-muted-foreground",
+                  centerIntro && "mx-auto",
+                )}
+              >
+                {description}
+              </p>
+            </div>
 
             <div className="mt-8 border-t border-border pt-7 sm:mt-10">
               {children}
@@ -93,8 +104,8 @@ export function AuthSplitLayout({
         ) : null}
       </section>
 
-      <aside className="relative hidden overflow-hidden bg-[#1d102f] p-5 lg:z-10 lg:-ml-12 lg:block lg:rounded-l-[3.5rem] xl:p-7">
-        <div className="relative h-full min-h-[42rem] overflow-hidden rounded-[1.8rem] bg-[#2d1651] shadow-2xl">
+      <aside className="relative hidden overflow-hidden bg-[#101010] p-5 lg:z-10 lg:-ml-12 lg:block lg:rounded-l-[3.5rem] xl:p-7">
+        <div className="relative h-full min-h-[42rem] overflow-hidden rounded-[1.8rem] bg-[#181818] shadow-2xl">
           <BrandWordmark
             variant="light"
             className="absolute top-8 left-8 z-20 xl:top-10 xl:left-10"
@@ -125,7 +136,7 @@ function DefaultAuthPanel({
         sizes="(min-width: 1280px) 53vw, 48vw"
         className="object-cover object-[61%_50%]"
       />
-      <div className="absolute inset-0 bg-linear-to-b from-[#2d1651]/88 via-[#2d1651]/26 to-[#170d28]/82" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/84 via-black/24 to-black/80" />
 
       <div className="relative flex h-full flex-col justify-between p-8 pt-20 xl:p-10 xl:pt-24">
         <div className="max-w-[25rem]">
@@ -141,7 +152,7 @@ function DefaultAuthPanel({
           </p>
         </div>
 
-        <div className="grid max-w-xl grid-cols-3 gap-2.5 xl:gap-3">
+        <div className="grid w-full grid-cols-3 gap-2.5 xl:gap-3">
           {benefits.map((benefit) => (
             <Benefit key={benefit.label} {...benefit} />
           ))}

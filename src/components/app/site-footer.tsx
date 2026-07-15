@@ -10,7 +10,7 @@ const footerGroups = [
   {
     title: "Build",
     links: [
-      { label: "Pool templates", href: "/dashboard/templates" },
+      { label: "Pool templates", href: "/templates" },
       { label: "Create a pool", href: "/dashboard/pools" },
       { label: "Upload spreadsheet", href: "/upload-your-own" },
     ],

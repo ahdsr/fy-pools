@@ -70,7 +70,7 @@ export function SignUpValueCarousel() {
           }`}
         />
       ))}
-      <div className="absolute inset-0 bg-linear-to-b from-[#160a2d]/90 via-[#2d1651]/30 to-[#160a2d]/88" />
+      <div className="absolute inset-0 bg-linear-to-b from-black/86 via-black/28 to-black/84" />
 
       <div className="relative flex h-full flex-col justify-between p-8 pt-20 xl:p-10 xl:pt-24">
         <div className="max-w-[26rem]">

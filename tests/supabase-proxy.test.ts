@@ -54,6 +54,7 @@ describe("Supabase route proxy", () => {
     expect(isProtectedDashboardPath("/dashboard")).toBe(true);
     expect(isProtectedDashboardPath("/dashboard/pools")).toBe(true);
     expect(isProtectedDashboardPath("/pools/demo")).toBe(false);
+    expect(isProtectedDashboardPath("/templates")).toBe(false);
     expect(isGuestOnlyAuthPath("/sign-in")).toBe(true);
     expect(isGuestOnlyAuthPath("/sign-up")).toBe(true);
     expect(isGuestOnlyAuthPath("/forgot-password")).toBe(false);
@@ -108,5 +109,11 @@ describe("Supabase route proxy", () => {
     expect(response.cookies.get("sb-test-auth-token")?.value).toBe(
       "refreshed-session",
     );
+  });
+
+  it("keeps the public template library available when signed out", async () => {
+    const response = await updateSupabaseSession(request("/templates"));
+
+    expect(response.status).toBe(200);
   });
 });
