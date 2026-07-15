@@ -47,11 +47,19 @@ automated email sending are explicitly added back to the launch scope.
 
 ## World Cup Score Refresh
 
-When a visitor is actively viewing a World Cup pool page, the app refreshes the
-FIFA-backed result snapshot on demand. During a match window, visible tabs ask
-for an update every 30 seconds; Supabase grants only one refresh across all
+GitHub Actions calls `/api/world-cup/results/refresh` every five minutes in
+production. Configure these repository secrets:
+
+- `WORLD_CUP_REFRESH_URL`: `https://fy-pools.vercel.app/api/world-cup/results/refresh`
+- `WORLD_CUP_CRON_SECRET`: the same value as Vercel's production `CRON_SECRET`
+
+The workflow is used because Vercel Hobby only supports daily cron jobs.
+
+When a visitor is actively viewing a World Cup pool page, the app also refreshes
+the FIFA-backed result snapshot on demand. During a match window, visible tabs
+ask for an update every 30 seconds; Supabase grants only one refresh across all
 viewers. Outside a match window, a visit can refresh a snapshot no more than
-once every 15 minutes. This needs no scheduled job or paid data provider.
+once every 15 minutes. This is a fallback, not the production scheduler.
 
 Only a complete FIFA refresh replaces the existing snapshot, so a transient
 provider failure cannot overwrite the last known scores. Apply the

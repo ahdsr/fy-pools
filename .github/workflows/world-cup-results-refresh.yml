@@ -1,0 +1,33 @@
+name: Refresh World Cup results
+
+on:
+  schedule:
+    - cron: "3-58/5 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: world-cup-results-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Refresh the production result snapshot
+        env:
+          REFRESH_URL: ${{ secrets.WORLD_CUP_REFRESH_URL }}
+          CRON_SECRET: ${{ secrets.WORLD_CUP_CRON_SECRET }}
+        run: |
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 1 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 55 \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            "${REFRESH_URL}"

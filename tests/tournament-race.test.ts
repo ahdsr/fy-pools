@@ -137,4 +137,35 @@ describe("tournament race projections", () => {
       selectable: false,
     });
   });
+
+  it("labels a third-place fixture when the provider supplies only loser placeholders", () => {
+    const { entriesConfig, picksByPath, results, referencePicks } = fixture();
+    const productionStyleResults = {
+      ...results,
+      matches: results.matches?.map((match) =>
+        match.id === "400021542"
+          ? {
+              ...match,
+              name: "",
+              stage: "",
+              shortName: "",
+              homeTeam: "Semifinal 1 Loser",
+              awayTeam: "Semifinal 2 Loser",
+            }
+          : match,
+      ),
+    };
+
+    const model = buildTournamentRaceModel({
+      entriesConfig,
+      picksByPath,
+      results: productionStyleResults,
+      referencePicks,
+    });
+
+    expect(model?.matches.find((match) => match.id === "400021542")).toMatchObject({
+      stage: "thirdPlace",
+      label: "3rd-place match",
+    });
+  });
 });

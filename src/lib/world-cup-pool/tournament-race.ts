@@ -90,8 +90,25 @@ function isKnockoutMatch(match: MatchResult, groupsByTeam: Map<string, string>) 
 }
 
 function matchStage(match: MatchResult): TournamentRaceMatch["stage"] {
-  const text = `${match.name ?? ""} ${match.stage ?? ""}`.toLowerCase();
-  if (text.includes("third") || text.includes("3rd") || text.includes("play-off")) return "thirdPlace";
+  const text = [
+    match.name,
+    match.stage,
+    match.shortName,
+    match.homeTeam,
+    match.awayTeam,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  if (
+    text.includes("third") ||
+    text.includes("3rd") ||
+    text.includes("play-off") ||
+    /\b(?:ru\d*|runner[- ]?up|loser)\b/.test(text)
+  ) {
+    return "thirdPlace";
+  }
   if (text.includes("quarter")) return "quarterFinal";
   if (text.includes("semi")) return "semiFinal";
   if (text.includes("final")) return "final";
