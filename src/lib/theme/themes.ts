@@ -14,6 +14,11 @@ export const APP_THEMES = [
     name: "FY Live Table",
     description: "Scoreboard-inspired accents for live pool moments.",
   },
+  {
+    id: "dark-pools",
+    name: "PoolWaffle Dark",
+    description: "Charcoal pool operations with bright, high-contrast data surfaces.",
+  },
 ] as const;
 
 export type AppThemeId = (typeof APP_THEMES)[number]["id"];

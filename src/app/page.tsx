@@ -7,6 +7,7 @@ import {
   HeaderAccountControls,
   MobileSiteHeaderNav,
   SiteHeaderNav,
+  ThemeToggle,
 } from "@/components/app/mock-auth";
 import { SiteFooter } from "@/components/app/site-footer";
 import { Button } from "@/components/ui/button";
@@ -110,7 +111,7 @@ export default function Home() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <header className="sticky top-0 z-50 w-full border-b border-white/10 bg-accent text-accent-foreground">
+      <header className="sticky top-0 z-50 w-full border-b border-border bg-accent text-accent-foreground">
         <nav className="relative flex h-16 w-full items-center justify-between gap-4 px-4 sm:px-5 lg:px-[43px]">
           <div className="flex min-w-0 items-center lg:block">
             <MobileSiteHeaderNav />
@@ -118,6 +119,7 @@ export default function Home() {
           </div>
           <SiteHeaderNav />
           <div className="flex shrink-0 items-center gap-2">
+            <ThemeToggle />
             <HeaderAccountControls />
           </div>
         </nav>

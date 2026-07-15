@@ -29,13 +29,10 @@ export function BrandMark({ className }: BrandMarkProps) {
 export function BrandWordmark({
   className,
   href = "/",
-  variant = "dark",
 }: BrandWordmarkProps) {
   const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-  const logoSrc =
-    variant === "light"
-      ? `${basePath}/brand/poolwaffle-logo-light.png`
-      : `${basePath}/brand/poolwaffle-logo-dark.png`;
+  const darkLogoSrc = `${basePath}/brand/poolwaffle-logo-dark.png`;
+  const lightLogoSrc = `${basePath}/brand/poolwaffle-logo-light.png`;
 
   return (
     <Link
@@ -47,11 +44,22 @@ export function BrandWordmark({
       )}
     >
       <Image
-        src={logoSrc}
+        src={darkLogoSrc}
         alt="PoolWaffle"
         width={628}
         height={104}
         priority
+        data-slot="brand-wordmark-dark"
+        className="h-[21px] w-auto sm:h-6"
+      />
+      <Image
+        src={lightLogoSrc}
+        alt=""
+        aria-hidden="true"
+        width={628}
+        height={104}
+        priority
+        data-slot="brand-wordmark-light"
         className="h-[21px] w-auto sm:h-6"
       />
     </Link>

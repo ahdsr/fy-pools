@@ -202,6 +202,60 @@ html[data-theme="premium-pools"] {
   --radius: 0px;
 }
 
+html[data-theme="dark-pools"] {
+  color-scheme: dark;
+  --background: oklch(0.17 0.004 286);
+  --foreground: oklch(0.94 0.002 286);
+  --card: oklch(0.205 0.004 286);
+  --card-foreground: oklch(0.94 0.002 286);
+  --popover: oklch(0.225 0.004 286);
+  --popover-foreground: oklch(0.94 0.002 286);
+  --primary: oklch(0.94 0.002 286);
+  --primary-foreground: oklch(0.16 0.004 286);
+  --secondary: oklch(0.255 0.004 286);
+  --secondary-foreground: oklch(0.94 0.002 286);
+  --muted: oklch(0.255 0.004 286);
+  --muted-foreground: oklch(0.72 0.004 286);
+  --accent: oklch(0.205 0.004 286);
+  --accent-foreground: oklch(0.94 0.002 286);
+  --destructive: oklch(0.72 0.17 28);
+  --border: oklch(0.33 0.004 286);
+  --input: oklch(0.39 0.004 286);
+  --ring: oklch(0.84 0.13 112);
+  --chart-1: oklch(0.74 0.2 292);
+  --chart-2: oklch(0.82 0.1 37);
+  --chart-3: oklch(0.86 0.1 96);
+  --chart-4: oklch(0.76 0.18 142);
+  --chart-5: oklch(0.73 0.17 25);
+  --sidebar: oklch(0.19 0.004 286);
+  --sidebar-foreground: var(--foreground);
+  --sidebar-primary: var(--primary);
+  --sidebar-primary-foreground: var(--primary-foreground);
+  --sidebar-accent: var(--secondary);
+  --sidebar-accent-foreground: var(--foreground);
+  --sidebar-border: var(--border);
+  --sidebar-ring: var(--ring);
+  --brand-ink: oklch(0.96 0.001 286);
+  --brand-mark: oklch(0.96 0.001 286);
+  --brand-hot: oklch(0.76 0.2 292);
+  --brand-rule: oklch(0.42 0.004 286);
+  --brand-success: oklch(0.78 0.16 142);
+  --brand-warning: oklch(0.85 0.1 96);
+  --brand-coral: oklch(0.79 0.11 37);
+  --brand-lime: oklch(0.84 0.15 112);
+  --brand-sky: oklch(0.78 0.08 230);
+  --cta-green: oklch(0.84 0.15 112);
+  --cta-green-foreground: oklch(0.16 0.004 286);
+  --cta-green-soft: oklch(0.29 0.05 142);
+  --filter-foreground: oklch(0.94 0.002 286);
+  --filter-lime: oklch(0.36 0.1 112);
+  --filter-sky: oklch(0.33 0.06 232);
+  --filter-coral: oklch(0.34 0.06 38);
+  --surface-paper: oklch(0.205 0.004 286);
+  --surface-ledger: oklch(0.235 0.004 286);
+  --radius: 0px;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
@@ -219,7 +273,7 @@ html[data-theme="premium-pools"] {
   h3,
   h4 {
     font-family: var(--font-heading);
-    letter-spacing: -0.025em;
+    letter-spacing: -0.035em;
   }
 }
 
@@ -227,6 +281,7 @@ html[data-theme="premium-pools"] {
   .display-heading-xl {
     @apply text-[clamp(2.125rem,9vw,3rem)] font-normal leading-[1.08] tracking-normal text-brand-ink sm:leading-[1.04] md:text-[clamp(3rem,5vw,4.5rem)];
     font-family: var(--font-momo-trust-display);
+    letter-spacing: -0.025em;
     font-feature-settings:
       "kern" 1,
       "liga" 1;
@@ -235,7 +290,19 @@ html[data-theme="premium-pools"] {
 
   .hero-heading {
     font-family: var(--font-momo-trust-display);
-    letter-spacing: 0;
+    letter-spacing: -0.025em;
+  }
+
+  [data-slot="brand-wordmark-light"] {
+    display: none;
+  }
+
+  html[data-theme="dark-pools"] [data-slot="brand-wordmark-dark"] {
+    display: none;
+  }
+
+  html[data-theme="dark-pools"] [data-slot="brand-wordmark-light"] {
+    display: block;
   }
 
   /* FIFA-inspired table language: crisp, independent white rows on a neutral field. */

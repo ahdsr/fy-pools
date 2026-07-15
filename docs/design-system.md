@@ -29,6 +29,7 @@ Theme blocks in `src/app/globals.css` override semantic CSS variables:
 html[data-theme="premium-pools"] { ... }
 html[data-theme="command-green"] { ... }
 html[data-theme="live-table"] { ... }
+html[data-theme="dark-pools"] { ... }
 ```
 
 Components should use semantic Tailwind tokens such as:

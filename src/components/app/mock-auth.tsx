@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, Plus, UserRound } from "lucide-react";
+import { LogOut, Menu, Moon, Plus, Sun, UserRound } from "lucide-react";
 import * as React from "react";
 
 import { BrandWordmark } from "@/components/app/brand";
@@ -200,6 +200,64 @@ export function HeaderBrandWordmark({
   );
 }
 
+const THEME_STORAGE_KEY = "poolwaffle-theme";
+const THEME_CHANGE_EVENT = "poolwaffle-theme-change";
+const LIGHT_THEME = "premium-pools";
+const DARK_THEME = "dark-pools";
+
+function readStoredTheme() {
+  return window.localStorage.getItem(THEME_STORAGE_KEY) === DARK_THEME
+    ? DARK_THEME
+    : LIGHT_THEME;
+}
+
+function subscribeToTheme(callback: () => void) {
+  window.addEventListener("storage", callback);
+  window.addEventListener(THEME_CHANGE_EVENT, callback);
+
+  return () => {
+    window.removeEventListener("storage", callback);
+    window.removeEventListener(THEME_CHANGE_EVENT, callback);
+  };
+}
+
+export function ThemeToggle() {
+  const theme = React.useSyncExternalStore(
+    subscribeToTheme,
+    readStoredTheme,
+    () => LIGHT_THEME,
+  );
+
+  React.useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+  }, [theme]);
+
+  const isDark = theme === DARK_THEME;
+
+  function toggleTheme() {
+    const nextTheme = isDark ? LIGHT_THEME : DARK_THEME;
+    document.documentElement.dataset.theme = nextTheme;
+    window.localStorage.setItem(THEME_STORAGE_KEY, nextTheme);
+    window.dispatchEvent(new Event(THEME_CHANGE_EVENT));
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="icon"
+      aria-label={isDark ? "Use light theme" : "Use dark theme"}
+      title={isDark ? "Use light theme" : "Use dark theme"}
+      onClick={toggleTheme}
+    >
+      {isDark ? <Sun /> : <Moon />}
+      <span className="sr-only">
+        {isDark ? "Use light theme" : "Use dark theme"}
+      </span>
+    </Button>
+  );
+}
+
 export function DashboardHeader() {
   return (
     <header className="sticky top-0 z-50 w-full bg-accent text-accent-foreground">
@@ -210,6 +268,7 @@ export function DashboardHeader() {
         </div>
         <SiteHeaderNav />
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <HeaderAccountControls />
         </div>
       </nav>
@@ -276,6 +335,7 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
           <div className="hidden lg:block" />
         )}
         <div className="flex shrink-0 items-center justify-end gap-2 lg:col-start-3">
+          <ThemeToggle />
           {signedIn ? (
             <HeaderAccountControls />
           ) : (
@@ -772,7 +832,7 @@ export function HeaderAccountControls({
         <Button
           asChild
           variant="ghost"
-          className="text-white hover:bg-white/10 hover:text-white"
+          className="text-foreground hover:bg-muted hover:text-foreground"
         >
           <Link href={signInPathFor(DEFAULT_AUTH_REDIRECT)}>Sign in</Link>
         </Button>
@@ -798,7 +858,7 @@ export function HeaderAccountControls({
           <button
             type="button"
             aria-label="Open profile menu"
-            className="grid size-9 place-items-center rounded-full border border-white/18 bg-white text-sm font-semibold text-accent shadow-sm transition-transform hover:scale-[1.03] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-white/25"
+            className="grid size-9 place-items-center rounded-full border bg-surface-paper text-sm font-semibold text-foreground shadow-sm transition-transform hover:scale-[1.03] focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/25"
           >
             {getInitials(user.name)}
           </button>
