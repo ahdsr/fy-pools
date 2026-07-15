@@ -12,7 +12,7 @@ import {
 import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import { getPublicPoolRouteInfo } from "@/lib/world-cup-pool/data";
 import { getPublicPoolSnapshot } from "@/lib/world-cup-pool/public-pool";
-import type { ScoringRules } from "@/lib/world-cup-pool/types";
+import type { BonusPick, ScoringRules } from "@/lib/world-cup-pool/types";
 
 export const metadata: Metadata = {
   title: "Pool rules and scoring",
@@ -153,6 +153,8 @@ async function WorldCupRulesContent({
         </LedgerRows>
       </LedgerPanel>
 
+      <BonusScoring rules={rules} bonusPicks={referencePicks.bonus} />
+
       <section className="grid gap-5 lg:grid-cols-2">
         <LedgerPanel title="Reading the leaderboard">
           <LedgerRows>
@@ -193,6 +195,53 @@ async function WorldCupRulesContent({
         </LedgerPanel>
       </section>
     </PublicPoolShell>
+  );
+}
+
+const BONUS_SCORING_DETAILS: Record<string, string> = {
+  mostGoalsScored:
+    "The team with the most goals in FIFA's team statistics.",
+  mostGoalsConceded:
+    "The team with the most goals conceded in FIFA's team statistics.",
+  farthestGoal:
+    "The team that scores the goal from the greatest distance, calculated from FIFA match-timeline coordinates.",
+  bestPassCompletion:
+    "The team with the highest pass-completion rate: completed passes divided by attempted passes.",
+  mostCards:
+    "The team with the highest FIFA Fair Play total: yellow card 1, indirect red 3, direct red 4, and yellow plus direct red 5.",
+};
+
+function BonusScoring({
+  rules,
+  bonusPicks,
+}: {
+  rules: ScoringRules;
+  bonusPicks: BonusPick[];
+}) {
+  return (
+    <LedgerPanel
+      title="Bonus scoring"
+      description={`Each bonus answer is worth ${rules.bonus} points. Results use the latest recorded FIFA statistics and can change while the tournament is in progress.`}
+    >
+      <LedgerRows>
+        {bonusPicks.map((bonus) => (
+          <LedgerRow key={bonus.id}>
+            <p className="font-semibold text-brand-ink">{bonus.label}</p>
+            <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+              {BONUS_SCORING_DETAILS[bonus.id] ??
+                "The team recorded as the leader for this bonus category."}
+            </p>
+          </LedgerRow>
+        ))}
+        <LedgerRow>
+          <p className="font-semibold text-brand-ink">Ties</p>
+          <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
+            If multiple teams are tied for a bonus-category lead, a pick of any
+            tied team earns the full {rules.bonus} points.
+          </p>
+        </LedgerRow>
+      </LedgerRows>
+    </LedgerPanel>
   );
 }
 
