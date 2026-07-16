@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { redirect } from "next/navigation";
 import { Suspense } from "react";
 import {
   ArrowRight,
@@ -205,8 +204,8 @@ export default function DashboardPage() {
       showHeader={false}
       heroAction={
         <Button asChild variant="primaryGreen" size="lg">
-          <Link href="/dashboard/pools/new">
-            New pool <ArrowRight />
+          <Link href="/dashboard/pools">
+            Choose a format <ArrowRight />
           </Link>
         </Button>
       }
@@ -228,7 +227,7 @@ async function DashboardWorkspaceContent() {
   const pastPools = sortPoolsByCreation(pools.filter(isPastPool));
 
   if (!pools.length) {
-    redirect("/dashboard/pools");
+    return <EmptyWorkspace />;
   }
 
   return (
@@ -398,6 +397,72 @@ async function DashboardWorkspaceContent() {
         ]}
       />
     </>
+  );
+}
+
+function EmptyWorkspace() {
+  return (
+    <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,1.2fr)_minmax(18rem,0.8fr)]">
+      <LedgerPanel
+        title="Your workspace is ready"
+        description="Start with a format or bring the spreadsheet your group already uses. This is where entries, deadlines, and scoring will live once your first pool is set up."
+      >
+        <div className="flex flex-col gap-5 px-5 py-6 sm:px-6">
+          <div className="flex items-start gap-3">
+            <span className="grid size-10 shrink-0 place-items-center rounded-full border bg-background text-brand-mark">
+              <ClipboardList className="size-5" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="font-semibold text-brand-ink">No pools yet</p>
+              <p className="mt-1 max-w-xl text-sm font-normal leading-6 text-muted-foreground">
+                Choose a ready-made template to get started quickly, or import
+                the rules and scoring your group already knows.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-col gap-3 sm:flex-row">
+            <Button asChild variant="primaryGreen">
+              <Link href="/dashboard/pools">
+                Choose a format <ArrowRight />
+              </Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href="/upload-your-own">
+                Import a spreadsheet <FileSpreadsheet />
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </LedgerPanel>
+
+      <div className="grid gap-5">
+        <LedgerPanel
+          title="What happens next"
+          description="Set up the pool once, then keep the group moving from one place."
+        >
+          <LedgerFeatureRows
+            className="md:grid-cols-1 md:divide-x-0 md:divide-y"
+            items={[
+              {
+                icon: ClipboardList,
+                title: "Set the rules",
+                body: "Pick a template, confirm the schedule, and tailor scoring before you invite anyone.",
+              },
+              {
+                icon: Users,
+                title: "Invite your group",
+                body: "Share a private link when the pool is ready for players to enter their picks.",
+              },
+              {
+                icon: Trophy,
+                title: "Run the pool",
+                body: "Track entries, lock picks, and publish standings from this workspace.",
+              },
+            ]}
+          />
+        </LedgerPanel>
+      </div>
+    </div>
   );
 }
 

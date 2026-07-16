@@ -57,7 +57,7 @@ export default function DashboardPoolsPage() {
       showHeader={false}
       heroAction={
         <Button asChild variant="secondaryGreen">
-          <Link href="/dashboard">Back to workspace</Link>
+          <Link href="/dashboard">View workspace</Link>
         </Button>
       }
     >

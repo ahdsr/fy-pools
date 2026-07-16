@@ -11,9 +11,7 @@ import {
   UsersRound,
 } from "lucide-react";
 
-import {
-  LandingPageHeader,
-} from "@/components/app/mock-auth";
+import { LandingPageHeader } from "@/components/app/mock-auth";
 import { SiteFooter } from "@/components/app/site-footer";
 import { Button } from "@/components/ui/button";
 import { getAppSiteUrl } from "@/lib/supabase/config";
@@ -136,7 +134,7 @@ export default function Home() {
   };
 
   return (
-    <main className="min-h-screen bg-[#101010]">
+    <main className="min-h-screen bg-background">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -144,18 +142,18 @@ export default function Home() {
       <LandingPageHeader solid />
 
       <section className="mx-auto flex w-full max-w-[1268px] flex-col gap-4 px-4 py-5 sm:px-5 md:px-6 md:py-8">
-        <section className="overflow-hidden rounded-[2rem] bg-[#181818] p-3 sm:p-4 md:p-5">
+        <section className="overflow-hidden rounded-[2rem] border border-border bg-card p-3 sm:p-4 md:p-5">
           <div className="grid gap-3 lg:grid-cols-[0.93fr_1.07fr] lg:items-stretch">
-            <div className="flex flex-col justify-center rounded-[1.5rem] bg-[#101010] p-6 sm:p-8 lg:p-10">
+            <div className="flex flex-col justify-center rounded-[1.5rem] bg-background p-6 sm:p-8 lg:p-10">
               <div className="space-y-6">
                 <div className="space-y-5">
-                  <p className="text-xs font-semibold tracking-[0.08em] text-[#b3e802] uppercase">
+                  <p className="text-xs font-semibold tracking-[0.08em] text-brand-hot uppercase">
                     Better pools, together
                   </p>
-                  <h1 className="hero-heading max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-white sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
+                  <h1 className="hero-heading max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-foreground sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
                     Private sports pool hosting for serious commissioners.
                   </h1>
-                  <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-white/72 sm:text-[1.05rem] sm:font-light sm:leading-7">
+                  <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">
                     PoolWaffle helps you launch polished office pools and private
                     sports contests, collect clean player picks, lock entries on
                     schedule, score results, and publish standings everyone can
@@ -172,7 +170,7 @@ export default function Home() {
                     asChild
                     variant="outline"
                     size="lg"
-                    className="border-white/25 bg-white/8 text-white hover:border-white/50 hover:bg-white/16 hover:text-white"
+                    className="border-border bg-card text-foreground hover:border-foreground/30 hover:bg-muted hover:text-foreground"
                   >
                     <Link href="/sign-in?next=%2Fdashboard%2Fpools">
                       Sign in
@@ -184,7 +182,7 @@ export default function Home() {
 
             <figure
               aria-label="Night football match on a stadium pitch"
-              className="relative flex min-h-[360px] flex-col justify-end overflow-hidden rounded-[1.5rem] border border-white/10 bg-cover bg-center p-4 ring-1 ring-white/5 sm:p-6 lg:min-h-[470px]"
+              className="relative flex min-h-[360px] flex-col justify-end overflow-hidden rounded-[1.5rem] border border-border bg-cover bg-center p-4 ring-1 ring-foreground/5 sm:p-6 lg:min-h-[470px]"
               style={{
                 backgroundImage:
                   "linear-gradient(180deg, rgb(0 0 0 / 0.02), rgb(0 0 0 / 0.18)), url(https://images.unsplash.com/photo-1518091043644-c1d4457512c6?auto=format&fit=crop&w=1400&q=80)",
@@ -217,36 +215,36 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="grid gap-3 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 md:grid-cols-3 md:p-8">
+        <section className="grid gap-3 rounded-[1.75rem] border border-border bg-card p-5 sm:p-6 md:grid-cols-3 md:p-8">
           {steps.map((step) => (
             <div
               key={step.title}
-              className="rounded-2xl border border-white/10 bg-black/25 p-4 sm:p-5"
+              className="rounded-2xl border border-border bg-background p-4 sm:p-5"
             >
-              <div className="flex items-center gap-2 text-[#b3e802]">
+              <div className="flex items-center gap-2 text-brand-hot">
                 <step.icon className="size-4" aria-hidden="true" />
                 <p className="text-xs font-semibold sm:text-sm">{step.label}</p>
               </div>
-              <h2 className="mt-3 text-lg font-bold tracking-normal text-white sm:text-xl">
+              <h2 className="mt-3 text-lg font-bold tracking-normal text-foreground sm:text-xl">
                 {step.title}
               </h2>
-              <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-sm">
+              <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
                 {step.body}
               </p>
             </div>
           ))}
         </section>
 
-        <section className="grid gap-6 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 lg:grid-cols-[0.82fr_1.18fr] lg:p-8">
+        <section className="grid gap-6 rounded-[1.75rem] border border-border bg-card p-5 sm:p-6 lg:grid-cols-[0.82fr_1.18fr] lg:p-8">
           <div className="space-y-3">
-            <p className="text-xs font-semibold tracking-[0.08em] text-[#b3e802] uppercase">
+            <p className="text-xs font-semibold tracking-[0.08em] text-brand-hot uppercase">
               Built for commissioners
             </p>
-            <h2 className="max-w-[480px] text-2xl font-normal leading-tight text-white sm:text-3xl">
+            <h2 className="max-w-[480px] text-2xl font-normal leading-tight text-foreground sm:text-3xl">
               Sports pool software built around the way commissioners actually
               run contests.
             </h2>
-            <p className="max-w-[520px] text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-base sm:font-light sm:leading-7">
+            <p className="max-w-[520px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
               Start from a template when the format is common. Upload your own
               spreadsheet when the format is custom. Either way, players get a
               clean private pool page and commissioners keep control of the
@@ -260,15 +258,15 @@ export default function Home() {
               return (
                 <article
                   key={feature.title}
-                  className="rounded-2xl border border-white/10 bg-black/25 p-4 sm:p-5"
+                  className="rounded-2xl border border-border bg-background p-4 sm:p-5"
                 >
-                  <div className="grid size-9 place-items-center rounded-xl bg-[#b3e802] text-black">
+                  <div className="grid size-9 place-items-center rounded-xl bg-cta-green text-cta-green-foreground">
                     <Icon className="size-4" aria-hidden="true" />
                   </div>
-                  <h3 className="mt-4 text-lg font-bold tracking-normal text-white sm:text-xl">
+                  <h3 className="mt-4 text-lg font-bold tracking-normal text-foreground sm:text-xl">
                     {feature.title}
                   </h3>
-                  <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-sm">
+                  <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm">
                     {feature.body}
                   </p>
                 </article>
@@ -277,15 +275,15 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="grid gap-6 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 lg:grid-cols-[0.55fr_1fr] lg:items-start lg:p-8">
+        <section className="grid gap-6 rounded-[1.75rem] border border-border bg-card p-5 sm:p-6 lg:grid-cols-[0.55fr_1fr] lg:items-start lg:p-8">
           <div className="space-y-3">
-            <p className="text-xs font-semibold tracking-[0.08em] text-[#b3e802] uppercase">
+            <p className="text-xs font-semibold tracking-[0.08em] text-brand-hot uppercase">
               Clear roles, clear information
             </p>
-            <h2 className="text-2xl font-normal leading-tight text-white sm:text-3xl">
+            <h2 className="text-2xl font-normal leading-tight text-foreground sm:text-3xl">
               Give every person the right view of the pool.
             </h2>
-            <p className="text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-base sm:font-light sm:leading-7">
+            <p className="text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
               Commissioners manage the work. Players submit and follow their
               entries. Everyone else can check the standings without requesting
               an update.
@@ -308,7 +306,7 @@ export default function Home() {
                     key={view.title}
                     className="grid gap-4 rounded-2xl border border-white/15 bg-black/55 p-4 backdrop-blur-sm sm:grid-cols-[auto_1fr] sm:items-start"
                   >
-                    <div className="grid size-10 place-items-center rounded-xl bg-[#b3e802] text-black">
+                    <div className="grid size-10 place-items-center rounded-xl bg-cta-green text-cta-green-foreground">
                       <Icon className="size-5" aria-hidden="true" />
                     </div>
                     <div>
@@ -326,12 +324,12 @@ export default function Home() {
           </div>
         </section>
 
-        <section className="grid gap-6 rounded-[1.75rem] border border-white/10 bg-[#181818] p-5 sm:p-6 md:grid-cols-[0.55fr_1fr] md:items-start md:p-8">
+        <section className="grid gap-6 rounded-[1.75rem] border border-border bg-card p-5 sm:p-6 md:grid-cols-[0.55fr_1fr] md:items-start md:p-8">
           <div className="space-y-3">
-            <h2 className="text-2xl font-normal leading-tight text-white sm:text-3xl">
+            <h2 className="text-2xl font-normal leading-tight text-foreground sm:text-3xl">
               Pool formats covered
             </h2>
-            <p className="text-[0.9375rem] font-normal leading-6 text-white/70 sm:text-base sm:font-light sm:leading-7">
+            <p className="text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
               Use PoolWaffle for tournament brackets, season-long contests,
               party sheets, office pools, family pools, and commissioner-run
               custom formats.
@@ -341,7 +339,7 @@ export default function Home() {
             {formats.map((format) => (
               <li
                 key={format}
-                className="border-t border-white/15 pt-3 text-[0.9375rem] font-semibold leading-6 text-white sm:text-sm sm:leading-normal"
+                className="border-t border-border pt-3 text-[0.9375rem] font-semibold leading-6 text-foreground sm:text-sm sm:leading-normal"
               >
                 {format}
               </li>
