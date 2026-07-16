@@ -65,6 +65,26 @@ Only a complete FIFA refresh replaces the existing snapshot, so a transient
 provider failure cannot overwrite the last known scores. Apply the
 `public_result_refresh_leases` migration before deploying this change.
 
+## F1 Event-Catalog Refresh
+
+The Event Catalog prepares commissioner setup with a persisted Formula 1
+schedule and driver roster from Jolpica. GitHub Actions calls
+`/api/events/f1/refresh` every six hours; schedule data changes infrequently,
+and a saved snapshot remains usable while the provider is unavailable.
+
+Configure these repository secrets:
+
+- `F1_EVENT_CATALOG_REFRESH_URL`: `https://fy-pools.vercel.app/api/events/f1/refresh`
+- `F1_EVENT_CATALOG_CRON_SECRET`: the same production value as `CRON_SECRET`
+
+The endpoint accepts an optional `?season=YYYY` for a controlled catch-up
+refresh. It uses `CRON_SECRET` and cannot be called anonymously in production.
+Snapshots expire after 36 hours and are visibly marked as needing refresh.
+Jolpica's season-driver endpoint does not prove a particular race's entries,
+so F1 setup is marked **provisional** until an event-specific source can
+confirm the field. The preview deliberately does not publish a pool from that
+provisional roster.
+
 ## Supabase Project Checklist
 
 1. Create a new production Supabase project.
@@ -120,6 +140,7 @@ After applying migrations, verify these schema facts before launch:
   `standings_snapshots`, `public_result_snapshots`,
   `public_result_refresh_leases`,
   `commissioner_notifications`, and `api_rate_limit_buckets`.
+  Event-backed setup also uses `event_catalog_snapshots`.
 - RLS is enabled on every table in the `public` schema.
 - Direct `anon` and `authenticated` table privileges are revoked. Any future
   browser-read surface must add both a narrow policy and the matching table

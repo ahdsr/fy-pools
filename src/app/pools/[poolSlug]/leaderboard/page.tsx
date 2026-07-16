@@ -4,6 +4,8 @@ import type { Metadata } from "next";
 import { PublicPoolShell } from "@/components/app/public-pool-shell";
 import { RoundOf16Leaderboard } from "@/components/app/round-of-16-public-panels";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
+import { getPublicNbaSeriesPool } from "@/lib/nba-series/persistence";
+import { NbaSeriesLeaderboard } from "@/components/app/nba-series-public-panels";
 import { formatDateTime } from "@/lib/world-cup-pool/data";
 
 export const metadata: Metadata = {
@@ -18,6 +20,8 @@ type LeaderboardPageProps = {
 
 export default async function LeaderboardPage({ params }: LeaderboardPageProps) {
   const { poolSlug } = await params;
+  const nbaPool = await getPublicNbaSeriesPool(poolSlug);
+  if (nbaPool) return <PublicPoolShell poolName={nbaPool.poolName} eyebrow="Leaderboard" title={`${nbaPool.poolName} standings`} description="Standings update after each simulated series result."><NbaSeriesLeaderboard pool={nbaPool} /></PublicPoolShell>;
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,
   });

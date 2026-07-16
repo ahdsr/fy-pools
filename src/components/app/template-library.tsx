@@ -12,6 +12,8 @@ import { FilterPill } from "@/components/ui/filter-pill";
 import { signUpPathFor } from "@/lib/auth/paths";
 import {
   getAllTemplates,
+  getTemplateAvailability,
+  canLaunchCatalogTemplate,
   getCategoryBySlug,
   TEMPLATE_CATEGORIES,
   type TemplateCategory,
@@ -109,6 +111,9 @@ export function TemplateLibrary({ audience }: TemplateLibraryProps) {
                     {template.name}
                   </h2>
                   <Badge variant="outline">{template.popularity}</Badge>
+                  {!canLaunchCatalogTemplate(template) ? (
+                    <Badge variant="outline">Coming soon</Badge>
+                  ) : null}
                 </div>
                 <p className="mt-1 text-sm font-normal text-muted-foreground">
                   {template.category.name}
@@ -121,11 +126,19 @@ export function TemplateLibrary({ audience }: TemplateLibraryProps) {
                 {template.picks}
               </p>
               <Badge variant="outline">{template.lock}</Badge>
-              <Button asChild variant="outline">
-                <Link href={setupPathFor(template.slug)}>
-                  {isPublic ? "Start with template" : "Use template"} <ArrowRight />
-                </Link>
-              </Button>
+              {canLaunchCatalogTemplate(template) ? (
+                <Button asChild variant="outline">
+                  <Link href={setupPathFor(template.slug)}>
+                    {isPublic ? "Start with template" : "Use template"} <ArrowRight />
+                  </Link>
+                </Button>
+              ) : (
+                <Button type="button" variant="outline" disabled>
+                  {getTemplateAvailability(template) === "coming-soon"
+                    ? "Coming soon"
+                    : "Unavailable"}
+                </Button>
+              )}
             </LedgerRow>
           ))}
         </LedgerRows>

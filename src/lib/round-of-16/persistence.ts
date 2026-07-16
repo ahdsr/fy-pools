@@ -30,6 +30,8 @@ import {
   getInviteExpiresAt,
   pickDeadlineHasPassed,
 } from "@/lib/round-of-16/deadlines";
+import { nbaPickDeadlineHasPassed } from "@/lib/nba-series/draft";
+import type { NbaSeriesSettings } from "@/lib/nba-series/types";
 
 type SupabaseAdmin = ReturnType<typeof createSupabaseAdminClient>;
 
@@ -412,41 +414,51 @@ async function ensureRoundOf16PickFields({
   settings: RoundOf16PoolSettings;
 }) {
   const stage = getKnockoutPoolStageDetails(settings);
-  const winnerFields = settings.matchups.map((matchup, index) => ({
+  // These records describe the immutable template structure. The configured
+  // teams, labels, and points live in each pool's settings; otherwise one
+  // commissioner's edits would mutate the shared template for every pool.
+  const winnerFields = settings.matchups.map((_, index) => ({
     template_version_id: templateVersionId,
     key: `${stage.fieldPrefix}_${index + 1}_winner`,
-    label: `${matchup.label || `${stage.label} Match ${index + 1}`} winner`,
+    label: `${stage.label} match ${index + 1} winner`,
     pick_type: "bracket_winner",
     required: true,
     sort_order: index + 1,
     config: {
-      matchupId: matchup.id,
-      teams: [matchup.teamOne, matchup.teamTwo],
+      fieldKind: "match_winner",
+      matchupIndex: index,
     },
   }));
-  const bonusFields = getEnabledRoundOf16BonusProps(settings).map(
+  const bonusFields = settings.bonusProps.map(
     (prop, index) => ({
       template_version_id: templateVersionId,
       key: `bonus_${prop.id}`,
-      label: prop.label,
+      label: `Bonus: ${prop.id}`,
       pick_type: prop.id === "penalty-decisions" ? "numeric_bonus" : "text_bonus",
       required: true,
       sort_order: 100 + index,
       config: {
+        fieldKind: "bonus",
         propId: prop.id,
-        points: prop.points,
       },
     }),
   );
 
-  const { data, error } = await admin
+  const { error } = await admin
     .from("template_pick_fields")
     .upsert([...winnerFields, ...bonusFields], {
       onConflict: "template_version_id,key",
+      ignoreDuplicates: true,
     })
-    .select("id,key,config");
 
   if (error) throw new Error(error.message);
+
+  const { data, error: selectError } = await admin
+    .from("template_pick_fields")
+    .select("id,key,config")
+    .eq("template_version_id", templateVersionId);
+
+  if (selectError) throw new Error(selectError.message);
 
   return new Map(
     (data ?? []).map((field) => [
@@ -1136,9 +1148,17 @@ export async function getCommissionerPoolSummaries() {
   }
 
   return Promise.all((pools ?? []).map(async (pool) => {
-    const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
-      .roundOf16;
-    const deadline = getRoundOf16DeadlineStatus(settings);
+    const poolSettings = pool.settings as { roundOf16?: RoundOf16PoolSettings; nbaSeries?: NbaSeriesSettings };
+    const settings = poolSettings.roundOf16;
+    const nbaSettings = poolSettings.nbaSeries;
+    const deadline = nbaSettings
+      ? {
+          pickDeadline: nbaSettings.basics.picksLockAt,
+          deadlineStatus: nbaPickDeadlineHasPassed(nbaSettings)
+            ? ("Locked" as const)
+            : ("Upcoming" as const),
+        }
+      : getRoundOf16DeadlineStatus(settings);
     const invites = Array.isArray(pool.pool_invites) ? pool.pool_invites : [];
     const shareInvite = invites.find((invite) => !String(invite.email ?? ""));
     const namedInvites = invites.filter((invite) => String(invite.email ?? ""));
@@ -1218,7 +1238,7 @@ export async function getCommissionerPoolSummaries() {
       updatedAt: String(pool.updated_at ?? ""),
       pickDeadline: deadline.pickDeadline,
       deadlineStatus: deadline.deadlineStatus,
-      expectedEntries: Number(settings?.expectedEntries ?? 0),
+      expectedEntries: Number(settings?.expectedEntries ?? nbaSettings?.expectedEntries ?? 0),
       inviteCounts,
       entryCounts: {
         ...entryCounts,

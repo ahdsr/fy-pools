@@ -9,10 +9,12 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { signInPathFor, signUpPathFor } from "@/lib/auth/paths";
 import { getJoinPoolData } from "@/lib/round-of-16/persistence";
+import { getNbaJoinPoolData, type NbaJoinData } from "@/lib/nba-series/persistence";
 import { getSupabaseUser } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { getKnockoutPoolStageDetails } from "@/lib/templates/round-of-16-draft";
 import { RoundOf16PickForm } from "./round-of-16-pick-form";
+import { NbaSeriesPickForm } from "./nba-series-pick-form";
 
 type JoinPageProps = {
   params: Promise<{ inviteCode: string }>;
@@ -91,10 +93,13 @@ async function JoinPageContent({ params, searchParams }: JoinPageProps) {
     );
   }
 
-  const [joinData, user] = await Promise.all([
+  const [joinData, nbaJoinData, user] = await Promise.all([
     getJoinPoolData(inviteCode),
+    getNbaJoinPoolData(inviteCode),
     getSupabaseUser(),
   ]);
+
+  if (nbaJoinData) return <NbaJoinFlow inviteCode={inviteCode} joinData={nbaJoinData} user={user} />;
 
   if (!joinData) {
     return (
@@ -369,6 +374,17 @@ async function JoinPageContent({ params, searchParams }: JoinPageProps) {
       />
     </PageShell>
   );
+}
+
+function NbaJoinFlow({ inviteCode, joinData, user }: { inviteCode: string; joinData: NbaJoinData; user: Awaited<ReturnType<typeof getSupabaseUser>> }) {
+  if (joinData.invite.status === "revoked" || joinData.invite.status === "expired") {
+    return <UnavailableInvite title={`Invite ${joinData.invite.status}`} description="This participant link is no longer available." body="Ask the commissioner for a current invite link." />;
+  }
+  const nextPath = `/join/${encodeURIComponent(inviteCode)}`;
+  if (!user) return <PageShell eyebrow="NBA Playoffs" title={`Join ${joinData.pool.name}`} description="Sign in to save a private, auditable playoff bracket." showHeader={false}><LedgerPanel title="Sign in required"><LedgerRow className="flex flex-wrap gap-3"><Button asChild variant="primaryGreen"><Link href={signUpPathFor(nextPath)}>Create account</Link></Button><Button asChild variant="outline"><Link href={signInPathFor(nextPath)}>Sign in</Link></Button></LedgerRow></LedgerPanel></PageShell>;
+  if (!joinData.invite.isShareLink && joinData.invite.acceptedBy && joinData.invite.acceptedBy !== user.id) return <UnavailableInvite title="Invite already accepted" description="This invite belongs to another account." body="Ask the commissioner for a fresh invite link." />;
+  if (joinData.deadlineHasPassed) return <PageShell eyebrow="NBA Playoffs" title={joinData.pool.name} description="The pick deadline has passed and entries are locked." showHeader={false}><LedgerPanel title={joinData.existingSubmission ? "Entry locked" : "Picks closed"}><LedgerRow><p className="text-sm text-muted-foreground">{joinData.existingSubmission ? "Your submitted bracket is available on the pool page." : "No submitted bracket was found before the deadline."}</p></LedgerRow></LedgerPanel></PageShell>;
+  return <PageShell eyebrow="NBA Playoffs" title={joinData.pool.name} description={joinData.pool.settings.basics.description || "Pick every series winner and exact score before the deadline."} showHeader={false}><NbaSeriesPickForm inviteCode={inviteCode} poolSlug={joinData.pool.slug} settings={joinData.pool.settings} initialPayload={joinData.existingSubmission?.payload} existingSubmittedAt={joinData.existingSubmission?.submittedAt} /></PageShell>;
 }
 
 function JoinPageSkeleton() {

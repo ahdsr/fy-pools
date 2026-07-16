@@ -1,0 +1,40 @@
+name: Refresh F1 event catalog
+
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: f1-event-catalog-refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    steps:
+      - name: Refresh the production F1 event catalog
+        env:
+          REFRESH_URL: ${{ secrets.F1_EVENT_CATALOG_REFRESH_URL }}
+          CRON_SECRET: ${{ secrets.F1_EVENT_CATALOG_CRON_SECRET }}
+        run: |
+          response_file="$(mktemp)"
+          trap 'rm -f "$response_file"' EXIT
+
+          curl \
+            --fail \
+            --silent \
+            --show-error \
+            --retry 1 \
+            --retry-all-errors \
+            --connect-timeout 10 \
+            --max-time 55 \
+            --header "Authorization: Bearer ${CRON_SECRET}" \
+            --output "$response_file" \
+            "${REFRESH_URL}"
+
+          jq -e '.ok == true and .provider == "jolpica" and .events > 0' "$response_file" > /dev/null
+          jq -r '"Refreshed F1 event catalog at \(.fetchedAt), \(.events) events."' "$response_file"

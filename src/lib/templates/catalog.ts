@@ -9,6 +9,11 @@ export type TemplateCategory = {
   templates: PoolTemplate[];
 };
 
+import type {
+  TemplateAvailability,
+  TemplateRuntimeKey,
+} from "@/lib/templates/runtime";
+
 export type PoolTemplate = {
   slug: string;
   name: string;
@@ -16,6 +21,9 @@ export type PoolTemplate = {
   picks: string;
   lock: string;
   popularity: "Popular" | "New" | "Classic";
+  /** A template can be described before its runtime is ready to launch. */
+  availability?: TemplateAvailability;
+  runtime?: TemplateRuntimeKey;
   availableNow?: boolean;
   setupDefaults?: {
     wizardType: "round-of-16";
@@ -25,6 +33,27 @@ export type PoolTemplate = {
 };
 
 export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
+  {
+    slug: "f1",
+    name: "F1",
+    shortName: "F1",
+    description: "Grand Prix prediction cards for qualifying and race finishing positions.",
+    eventWindow: "Race weekends",
+    tone: "bg-brand-coral/18",
+    accent: "bg-brand-hot",
+    templates: [
+      {
+        slug: "f1-grand-prix-predictor",
+        name: "Grand Prix Predictor",
+        bestFor: "Race-weekend groups",
+        picks: "Qualifying and race top three",
+        lock: "Before qualifying",
+        popularity: "New",
+        availability: "coming-soon",
+        runtime: "ranked-finish",
+      },
+    ],
+  },
   {
     slug: "world-cup",
     name: "World Cup",
@@ -67,6 +96,7 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
         lock: "Before round of 16",
         popularity: "New",
         availableNow: false,
+        runtime: "single-elimination",
         setupDefaults: {
           wizardType: "round-of-16",
           matchupCount: 8,
@@ -90,6 +120,7 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
         lock: "Before Spain vs Belgium",
         popularity: "Classic",
         availableNow: true,
+        runtime: "single-elimination",
         setupDefaults: {
           wizardType: "round-of-16",
           matchupCount: 3,
@@ -104,6 +135,7 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
         lock: "Before the first semi-final",
         popularity: "New",
         availableNow: true,
+        runtime: "single-elimination",
         setupDefaults: {
           wizardType: "round-of-16",
           matchupCount: 2,
@@ -129,6 +161,8 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
         picks: "Series scores, conference champs",
         lock: "Before first tip",
         popularity: "Popular",
+        availability: "available",
+        runtime: "series-bracket",
       },
       {
         slug: "nba-finals-prop-card",
@@ -266,6 +300,14 @@ export function getAllTemplates() {
   return TEMPLATE_CATEGORIES.flatMap((category) =>
     category.templates.map((template) => ({ ...template, category })),
   );
+}
+
+export function getTemplateAvailability(template: PoolTemplate): TemplateAvailability {
+  return template.availability ?? (template.availableNow ? "available" : "coming-soon");
+}
+
+export function canLaunchCatalogTemplate(template: PoolTemplate) {
+  return getTemplateAvailability(template) === "available";
 }
 
 export function getAvailableTournamentTemplates(categorySlug: string) {

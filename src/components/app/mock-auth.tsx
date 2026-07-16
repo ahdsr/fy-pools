@@ -92,6 +92,7 @@ const publicPoolNavItems = [
 const adminNavItems = [
   { label: "Workspace", href: "/dashboard" },
   { label: "Pools", href: "/dashboard/pools" },
+  { label: "Events", href: "/dashboard/events" },
   { label: "Templates", href: "/dashboard/templates" },
   { label: "Import", href: "/upload-your-own" },
 ] as const;

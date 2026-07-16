@@ -3,8 +3,11 @@ import { Suspense } from "react";
 
 import { DashboardRouteSkeleton } from "@/components/app/dashboard-route-skeleton";
 import { getCommissionerRoundOf16AdminPool } from "@/lib/round-of-16/persistence";
+import { getCommissionerNbaSeriesPool } from "@/lib/nba-series/persistence";
 import { createRoundOf16WizardStateFromSettings } from "@/lib/templates/round-of-16-draft";
 import { NewPoolWizardStart } from "../../new/new-pool-wizard-start";
+import { NbaSeriesCommissioner } from "./nba-series-commissioner";
+import { PageShell } from "@/components/app/page-shell";
 
 type EditPoolPageProps = {
   params: Promise<{ poolId: string }>;
@@ -33,6 +36,11 @@ export default async function EditPoolPage({ params }: EditPoolPageProps) {
 async function EditPoolWizard({ params }: EditPoolPageProps) {
   const { poolId } = await params;
   const pool = await getCommissionerRoundOf16AdminPool(poolId);
+
+  if (!pool) {
+    const nbaPool = await getCommissionerNbaSeriesPool(poolId);
+    if (nbaPool) return <PageShell eyebrow="NBA Playoffs" title={nbaPool.poolName} description="Manage your bracket simulation and scoring from this commissioner workspace." showHeader={false}><NbaSeriesCommissioner poolId={nbaPool.poolId} poolName={nbaPool.poolName} settings={nbaPool.settings} /></PageShell>;
+  }
 
   if (!pool) notFound();
 

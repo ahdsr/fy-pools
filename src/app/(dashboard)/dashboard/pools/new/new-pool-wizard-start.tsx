@@ -30,7 +30,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { TeamPill } from "@/components/app/pool-public-widgets";
 import { cn } from "@/lib/utils";
-import { getAllTemplates } from "@/lib/templates/catalog";
+import {
+  canLaunchCatalogTemplate,
+  getAllTemplates,
+} from "@/lib/templates/catalog";
 import {
   ROUND_OF_16_DRAFT_STORAGE_KEY,
   ROUND_OF_16_BONUS_MAX_TOTAL_SHARE,
@@ -59,6 +62,7 @@ import {
   updatePoolAdminAction,
   type UpdatePoolAdminState,
 } from "../actions";
+import { NbaSeriesWizard } from "./nba-series-wizard";
 
 const stepDefinitions = [
   {
@@ -709,15 +713,36 @@ export function NewPoolWizardStart({
 }: {
   editPool?: EditPoolWizardConfig;
 }) {
-  const router = useRouter();
   const searchParams = useSearchParams();
   const templates = React.useMemo(() => getAllTemplates(), []);
-  const isEditingPool = Boolean(editPool);
   const queryTemplate = searchParams.get("template") ?? "";
   const queryDraftId = searchParams.get("draft") ?? "";
+  const requestedTemplate = templates.find((template) => template.slug === queryTemplate);
+  if (!editPool && requestedTemplate?.slug === "nba-series-bracket" && canLaunchCatalogTemplate(requestedTemplate)) {
+    return <NbaSeriesWizard />;
+  }
+  return <RoundOf16NewPoolWizardStart editPool={editPool} templates={templates} queryTemplate={queryTemplate} queryDraftId={queryDraftId} />;
+}
+
+function RoundOf16NewPoolWizardStart({
+  editPool,
+  templates,
+  queryTemplate,
+  queryDraftId,
+}: {
+  editPool?: EditPoolWizardConfig;
+  templates: ReturnType<typeof getAllTemplates>;
+  queryTemplate: string;
+  queryDraftId: string;
+}) {
+  const router = useRouter();
+  const isEditingPool = Boolean(editPool);
+  const requestedTemplate = templates.find((template) => template.slug === queryTemplate);
   const initialTemplate =
-    queryTemplate === QUARTER_FINAL_TEMPLATE_SLUG ||
-    queryTemplate === SEMI_FINAL_TEMPLATE_SLUG
+    requestedTemplate &&
+    canLaunchCatalogTemplate(requestedTemplate) &&
+    (queryTemplate === QUARTER_FINAL_TEMPLATE_SLUG ||
+      queryTemplate === SEMI_FINAL_TEMPLATE_SLUG)
       ? queryTemplate
       : QUARTER_FINAL_TEMPLATE_SLUG;
   const [currentStep, setCurrentStep] = React.useState(0);
