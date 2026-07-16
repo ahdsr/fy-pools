@@ -44,7 +44,6 @@ type HeaderAccountControlsProps = {
 
 type SiteHeaderNavProps = {
   className?: string;
-  variant?: "default" | "minimal";
 };
 
 type MobileSiteHeaderNavProps = {
@@ -293,7 +292,7 @@ export function LandingPageHeader({ solid = false }: { solid?: boolean }) {
           <MobileSiteHeaderNav className="text-foreground hover:bg-muted hover:text-foreground" />
           <HeaderBrandWordmark className="absolute left-1/2 -translate-x-1/2 lg:static lg:translate-x-0" />
         </div>
-        <SiteHeaderNav variant="minimal" />
+        <SiteHeaderNav />
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
           <HeaderAccountControls />
@@ -339,7 +338,7 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
     <header
       className="sticky top-0 z-50 w-full border-b border-border bg-surface-paper text-foreground"
     >
-      <nav className="relative flex h-16 w-full items-center justify-between gap-3 px-4 sm:px-5 lg:grid lg:h-auto lg:min-h-16 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-3 lg:px-[43px] lg:py-3">
+      <nav className="relative flex h-20 w-full items-center justify-between gap-3 px-4 sm:px-5 lg:grid lg:min-h-20 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:gap-3 lg:px-[43px] lg:py-3">
         <div className="flex min-w-0 items-center lg:contents">
           {showPoolNav ? (
             <MobilePublicPoolNav
@@ -392,22 +391,15 @@ function PublicPoolNavLinks({
 }) {
   return (
     <div className="hidden min-w-0 lg:col-start-2 lg:row-start-1 lg:flex lg:justify-center lg:overflow-visible lg:px-1">
-      <div
-        className={cn(
-          "inline-flex min-w-max border p-1 shadow-none",
-          "border-border bg-surface-paper",
-        )}
-      >
+      <div className="inline-flex min-w-max items-center gap-7">
         {publicPoolNavItems.map((item) => (
           <Link
             key={item.key}
             href={`${poolBaseHref}${item.href}`}
             aria-current={active === item.key ? "page" : undefined}
             className={cn(
-              "rounded-none px-3 py-1.5 text-sm font-medium transition-colors sm:px-4 sm:py-2",
-              "text-muted-foreground hover:bg-muted hover:text-foreground",
-              active === item.key &&
-                "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground",
+              "rounded-none py-2 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground",
+              active === item.key && "text-foreground",
             )}
           >
             <span>{item.label}</span>
@@ -762,10 +754,7 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
   );
 }
 
-export function SiteHeaderNav({
-  className,
-  variant = "default",
-}: SiteHeaderNavProps) {
+export function SiteHeaderNav({ className }: SiteHeaderNavProps) {
   const pathname = usePathname();
   const { user, hydrated } = useMockUser();
   const items = hydrated && user ? adminNavItems : signedOutNavItems;
@@ -773,9 +762,7 @@ export function SiteHeaderNav({
   return (
     <div
       className={cn(
-        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center lg:flex",
-        variant === "default" && "gap-0.5 border border-border bg-surface-paper p-0.5",
-        variant === "minimal" && "gap-7",
+        "absolute left-1/2 top-1/2 hidden -translate-x-1/2 -translate-y-1/2 items-center gap-7 lg:flex",
         className,
       )}
     >
@@ -788,15 +775,8 @@ export function SiteHeaderNav({
             href={item.href}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "rounded-none text-[0.8125rem] font-medium leading-none transition-colors",
-              variant === "default" &&
-                "px-3 py-1.5 text-muted-foreground hover:bg-muted hover:text-foreground",
-              variant === "default" &&
-                isActive &&
-                "bg-primary text-primary-foreground shadow-none hover:bg-primary hover:text-primary-foreground",
-              variant === "minimal" &&
-                "py-2 text-muted-foreground hover:text-foreground",
-              variant === "minimal" && isActive && "text-foreground",
+              "rounded-none py-2 text-[0.8125rem] font-medium leading-none text-muted-foreground transition-colors hover:text-foreground",
+              isActive && "text-foreground",
             )}
           >
             {item.label}

@@ -26,6 +26,7 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { normalizeEmailAddress } from "@/lib/email";
 import {
+  getRoundOf16EffectiveLockAt,
   getInviteExpiresAt,
   pickDeadlineHasPassed,
 } from "@/lib/round-of-16/deadlines";
@@ -1077,7 +1078,7 @@ export async function getCommissionerNotifications() {
 }
 
 function getRoundOf16DeadlineStatus(settings?: RoundOf16PoolSettings) {
-  const deadline = settings?.basics.picksLockAt;
+  const deadline = settings ? getRoundOf16EffectiveLockAt(settings) : null;
   if (!deadline) {
     return {
       pickDeadline: "",
@@ -1085,18 +1086,10 @@ function getRoundOf16DeadlineStatus(settings?: RoundOf16PoolSettings) {
     };
   }
 
-  const parsed = new Date(deadline);
-  if (Number.isNaN(parsed.getTime())) {
-    return {
-      pickDeadline: deadline,
-      deadlineStatus: "No deadline" as const,
-    };
-  }
-
   return {
-    pickDeadline: parsed.toISOString(),
+    pickDeadline: deadline.toISOString(),
     deadlineStatus:
-      parsed.getTime() <= Date.now()
+      deadline.getTime() <= Date.now()
         ? ("Locked" as const)
         : ("Upcoming" as const),
   };
@@ -1623,6 +1616,7 @@ export async function updateCommissionerRoundOf16AdminPool({
       commissionerName: settings.basics.commissionerName.trim(),
       eventLabel: settings.basics.eventLabel.trim(),
       picksLockAt: settings.basics.picksLockAt.trim(),
+      lockBeforeEventMinutes: Number(settings.basics.lockBeforeEventMinutes),
       timezone: settings.basics.timezone.trim(),
       description: settings.basics.description.trim(),
     },

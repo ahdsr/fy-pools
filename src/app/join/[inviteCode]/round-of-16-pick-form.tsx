@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { signInPathFor, signUpPathFor } from "@/lib/auth/paths";
 import { normalizeEmailAddress } from "@/lib/email";
+import { getRoundOf16EffectiveLockAt } from "@/lib/round-of-16/deadlines";
 import { cn } from "@/lib/utils";
 import {
   getEnabledRoundOf16BonusProps,
@@ -58,11 +59,8 @@ const TEAM_BONUS_PROP_IDS = new Set([
 ]);
 
 function formatPickDeadline(settings: RoundOf16PoolSettings) {
-  const deadline = settings.basics.picksLockAt;
-  if (!deadline) return "before the round starts";
-
-  const parsed = new Date(deadline);
-  if (Number.isNaN(parsed.getTime())) return deadline;
+  const parsed = getRoundOf16EffectiveLockAt(settings);
+  if (!parsed) return "before the round starts";
 
   return parsed.toLocaleString(undefined, {
     month: "short",

@@ -1,3 +1,5 @@
+import { parsePoolDateTime } from "@/lib/round-of-16/deadlines";
+
 export const ROUND_OF_16_DRAFT_STORAGE_KEY = "poolwaffle.poolDrafts";
 
 export type RoundOf16DraftBasics = {
@@ -5,6 +7,7 @@ export type RoundOf16DraftBasics = {
   commissionerName: string;
   eventLabel: string;
   picksLockAt: string;
+  lockBeforeEventMinutes: number;
   timezone: string;
   description: string;
 };
@@ -19,6 +22,11 @@ export type RoundOf16MatchupDraft = {
   label: string;
   teamOne: string;
   teamTwo: string;
+  /**
+   * Optional local date/time in the pool timezone. This is intentionally part
+   * of the matchup model so a future schedule provider can populate it.
+   */
+  startsAt?: string;
 };
 
 export type RoundOf16BonusPropDraft = {
@@ -385,6 +393,7 @@ export function createDefaultRoundOf16WizardState(
         : isQuarterFinal
           ? "2026-07-10T15:00"
           : "2026-07-04T12:00",
+      lockBeforeEventMinutes: 15,
       timezone: "America/Toronto",
       description: "",
     },
@@ -589,18 +598,26 @@ export function validateRoundOf16PoolSettings(
   const eventLabel = textValue(basics?.eventLabel);
   const timezone = textValue(basics?.timezone);
   const picksLockAt = textValue(basics?.picksLockAt);
+  const lockBeforeEventMinutes = Number(basics?.lockBeforeEventMinutes ?? 0);
   if (!poolName.trim()) return "Pool name is required.";
   if (!commissionerName.trim()) return "Commissioner name is required.";
   if (!eventLabel.trim()) return "Event label is required.";
   if (!timezone.trim()) return "Timezone is required.";
   if (!picksLockAt.trim()) return "Pick deadline is required.";
 
-  const deadline = new Date(picksLockAt);
-  if (Number.isNaN(deadline.getTime())) {
+  const deadline = parsePoolDateTime(picksLockAt, timezone);
+  if (!deadline) {
     return "Pick deadline must be a valid date and time.";
   }
   if (requireFutureDeadline && deadline.getTime() <= Date.now()) {
     return "Pick deadline must be in the future.";
+  }
+  if (
+    !Number.isInteger(lockBeforeEventMinutes) ||
+    lockBeforeEventMinutes < 0 ||
+    lockBeforeEventMinutes > 7 * 24 * 60
+  ) {
+    return "Event lock buffer must be a whole number between 0 and 10,080 minutes.";
   }
 
   const stageDetails = getKnockoutPoolStageDetails(settings);
@@ -624,6 +641,10 @@ export function validateRoundOf16PoolSettings(
     }
     if (normalizedValue(teamOne) === normalizedValue(teamTwo)) {
       return "A matchup cannot use the same team twice.";
+    }
+    const startsAt = textValue(matchup.startsAt).trim();
+    if (startsAt && Number.isNaN(new Date(startsAt).getTime())) {
+      return "Matchup start times must be valid dates and times.";
     }
 
     for (const team of [teamOne, teamTwo]) {

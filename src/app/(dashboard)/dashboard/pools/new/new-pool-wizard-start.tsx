@@ -366,8 +366,10 @@ function ScoringBalanceGuide({
 
 function AutomaticMatchupsList({
   matchups,
+  onMatchupStartChange,
 }: {
   matchups: RoundOf16WizardState["matchups"];
+  onMatchupStartChange: (matchupId: string, startsAt: string) => void;
 }) {
   const midpoint = Math.ceil(matchups.length / 2);
   const leftSide = matchups.slice(0, midpoint);
@@ -390,6 +392,23 @@ function AutomaticMatchupsList({
             <span className="h-px flex-1 bg-brand-rule" />
           </div>
           <TeamPill team={matchup.teamTwo} className="max-w-full" />
+        </div>
+        <div className="mt-3 border-t pt-3">
+          <Label
+            htmlFor={`matchup-start-${matchup.id}`}
+            className="text-xs font-medium text-muted-foreground"
+          >
+            Scheduled start (optional)
+          </Label>
+          <Input
+            id={`matchup-start-${matchup.id}`}
+            type="datetime-local"
+            className="mt-1"
+            value={matchup.startsAt ?? ""}
+            onChange={(event) =>
+              onMatchupStartChange(matchup.id, event.target.value)
+            }
+          />
         </div>
       </article>
     );
@@ -1132,7 +1151,7 @@ export function NewPoolWizardStart({
                   />
                 </FieldShell>
                 <FieldShell
-                  label="Pick lock date and time (Eastern Time)"
+                  label="Latest pick cutoff (Eastern Time)"
                   htmlFor="picks-lock-at"
                   error={
                     state.basics.picksLockAt.trim()
@@ -1154,6 +1173,42 @@ export function NewPoolWizardStart({
                       }))
                     }
                   />
+                </FieldShell>
+                <FieldShell
+                  label="Lock before each scheduled event (minutes)"
+                  htmlFor="lock-before-event-minutes"
+                  error={
+                    Number.isInteger(state.basics.lockBeforeEventMinutes) &&
+                    state.basics.lockBeforeEventMinutes >= 0 &&
+                    state.basics.lockBeforeEventMinutes <= 7 * 24 * 60
+                      ? undefined
+                      : "Use a whole number from 0 to 10,080."
+                  }
+                >
+                  <Input
+                    id="lock-before-event-minutes"
+                    type="number"
+                    min="0"
+                    max={String(7 * 24 * 60)}
+                    step="1"
+                    value={state.basics.lockBeforeEventMinutes}
+                    onChange={(event) =>
+                      setState((current) => ({
+                        ...current,
+                        basics: {
+                          ...current.basics,
+                          lockBeforeEventMinutes: numberFromInput(
+                            event.target.value,
+                          ),
+                        },
+                      }))
+                    }
+                  />
+                  <p className="text-xs leading-5 text-muted-foreground">
+                    With a scheduled matchup, picks close this many minutes
+                    before the first start time. The latest cutoff above is
+                    always kept as a backup lock.
+                  </p>
                 </FieldShell>
                 <div className="md:col-span-2">
                   <FieldShell label="Description" htmlFor="description">
@@ -1185,10 +1240,22 @@ export function NewPoolWizardStart({
                   <p className="mt-1 text-sm font-normal leading-6 text-muted-foreground">
                     {stage.stage === "semi-final"
                       ? "The two semi-final paths are populated from the correct quarter-final winners. The winning teams are not known until those matches finish."
-                      : "This setup step confirms the remaining quarter-final slate. France–Morocco is already in progress and is not included."} The commissioner makes winner picks later through the same participant form as invited players.
+                  : "This setup step confirms the remaining quarter-final slate. France–Morocco is already in progress and is not included."} Add scheduled start times when known; the pool will automatically use the earliest one as a lock safeguard.
                   </p>
                 </div>
-                <AutomaticMatchupsList matchups={state.matchups} />
+                <AutomaticMatchupsList
+                  matchups={state.matchups}
+                  onMatchupStartChange={(matchupId, startsAt) =>
+                    setState((current) => ({
+                      ...current,
+                      matchups: current.matchups.map((matchup) =>
+                        matchup.id === matchupId
+                          ? { ...matchup, startsAt }
+                          : matchup,
+                      ),
+                    }))
+                  }
+                />
               </div>
             ) : null}
 

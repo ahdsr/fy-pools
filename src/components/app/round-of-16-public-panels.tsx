@@ -19,6 +19,7 @@ import type {
   RoundOf16ViewerEntry,
 } from "@/lib/round-of-16/public";
 import type { RoundOf16StoredLeaderboardRow } from "@/lib/round-of-16/persistence";
+import { getRoundOf16EffectiveLockAt } from "@/lib/round-of-16/deadlines";
 import {
   getKnockoutPoolStageDetails,
   getEnabledRoundOf16BonusProps,
@@ -39,6 +40,7 @@ function latestResultByLineKey(rows: RoundOf16StoredLeaderboardRow[]) {
 
 export function RoundOf16PublicStats({ pool }: { pool: RoundOf16PublicPool }) {
   const leader = pool.latestStandings[0];
+  const pickLock = getRoundOf16EffectiveLockAt(pool.settings)?.toISOString();
 
   return (
     <LedgerPanel>
@@ -70,10 +72,10 @@ export function RoundOf16PublicStats({ pool }: { pool: RoundOf16PublicPool }) {
             Pick lock
           </p>
           <p className="mt-2 text-2xl font-semibold leading-none text-brand-ink sm:text-3xl">
-            {pool.settings.basics.picksLockAt ? "Set" : "Open"}
+            {pickLock ? "Set" : "Open"}
           </p>
           <p className="mt-2 text-sm font-normal leading-5 text-muted-foreground">
-            {formatDateTime(pool.settings.basics.picksLockAt)}
+            {formatDateTime(pickLock)}
           </p>
         </LedgerRow>
         <LedgerRow>
@@ -342,6 +344,7 @@ export function RoundOf16BracketPanel({
 }) {
   const results = latestResultByLineKey(standings);
   const stage = getKnockoutPoolStageDetails(settings);
+  const pickLock = getRoundOf16EffectiveLockAt(settings)?.toISOString();
 
   return (
     <LedgerPanel
@@ -359,7 +362,7 @@ export function RoundOf16BracketPanel({
                   Match {index + 1}
                 </p>
                 <p className="text-xs font-normal text-muted-foreground">
-                  Starts {formatDateTime(settings.basics.picksLockAt)}
+                  Starts {formatDateTime(matchup.startsAt ?? pickLock)}
                 </p>
               </div>
               <div className="divide-y rounded-md border bg-background">

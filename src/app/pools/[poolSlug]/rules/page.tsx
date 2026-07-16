@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PublicPoolMetaCard, PublicPoolShell } from "@/components/app/public-pool-shell";
 import { formatDateTime } from "@/lib/date-time";
+import { getRoundOf16EffectiveLockAt } from "@/lib/round-of-16/deadlines";
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import {
   getEnabledRoundOf16BonusProps,
@@ -44,7 +45,9 @@ function RoundOf16Rules({
 }) {
   const stage = getKnockoutPoolStageDetails(pool.settings);
   const bonusProps = getEnabledRoundOf16BonusProps(pool.settings);
-  const pickLock = formatDateTime(pool.settings.basics.picksLockAt);
+  const pickLock = formatDateTime(
+    getRoundOf16EffectiveLockAt(pool.settings)?.toISOString(),
+  );
 
   return (
     <PublicPoolShell
