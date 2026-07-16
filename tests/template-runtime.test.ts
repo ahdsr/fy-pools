@@ -24,6 +24,7 @@ describe("template runtime foundation", () => {
       "world-cup-quarter-final-pickem",
       "world-cup-semi-final-pickem",
       "nba-series-bracket",
+      "golf-pga-top-five-predictor",
     ]);
     expect(
       canLaunchCatalogTemplate(

@@ -1,8 +1,7 @@
 import { Suspense } from "react";
 
 import { DashboardRouteSkeleton } from "@/components/app/dashboard-route-skeleton";
-import { getNbaPlayoffCatalogSnapshots } from "@/lib/events/catalog";
-import { getF1EventCatalogSnapshots, selectUpcomingCatalogEvents } from "@/lib/events/catalog";
+import { getF1EventCatalogSnapshots, getNbaPlayoffCatalogSnapshots, getPgaEventCatalogSnapshots, selectUpcomingCatalogEvents } from "@/lib/events/catalog";
 import { NewPoolWizardStart } from "./new-pool-wizard-start";
 
 export const unstable_instant = {
@@ -22,6 +21,9 @@ export default async function NewPoolPage({
   const f1CatalogEvents = template === "f1-grand-prix-predictor"
     ? selectUpcomingCatalogEvents(await getF1EventCatalogSnapshots())
     : [];
+  const golfCatalogEvents = template === "golf-pga-top-five-predictor"
+    ? selectUpcomingCatalogEvents(await getPgaEventCatalogSnapshots())
+    : [];
   return (
     <Suspense
       fallback={
@@ -31,7 +33,7 @@ export default async function NewPoolPage({
         />
       }
     >
-      <NewPoolWizardStart initialNbaCatalogEvents={nbaCatalogEvents} initialF1CatalogEvents={f1CatalogEvents} />
+      <NewPoolWizardStart initialNbaCatalogEvents={nbaCatalogEvents} initialF1CatalogEvents={f1CatalogEvents} initialGolfCatalogEvents={golfCatalogEvents} />
     </Suspense>
   );
 }

@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createDefaultF1GrandPrixSettings } from "@/lib/ranked-finish/f1";
+import { createDefaultGolfPgaTopFiveSettings } from "@/lib/ranked-finish/golf";
 import {
   recordRankedFinishResult,
   resetRankedFinishResults,
@@ -38,6 +39,18 @@ describe("ranked-finish template runtime", () => {
   it("registers F1 as a reusable ranked-finish runtime", () => {
     expect(getTemplateRuntimeDefinition("f1-grand-prix-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
     expect(getPoolTemplateRuntime({ rankedFinish: createDefaultF1GrandPrixSettings() })).toBe("ranked-finish");
+  });
+
+  it("reuses ranked-finish validation and scoring for a PGA Top Five card", () => {
+    let settings = createDefaultGolfPgaTopFiveSettings();
+    settings.basics.commissionerName = "Commissioner";
+    settings = recordRankedFinishResult({ settings, marketId: "final-standings", competitorId: "golfer-1" });
+    settings = recordRankedFinishResult({ settings, marketId: "final-standings", competitorId: "golfer-2" });
+    const picks = { markets: { "final-standings": ["golfer-1", "golfer-2", "golfer-3", "golfer-4", "golfer-5"] } };
+    expect(validateRankedFinishSettings(settings)).toBeNull();
+    expect(validateRankedFinishPicks(settings, picks)).toBeNull();
+    expect(scoreRankedFinishEntry({ settings, picks }).total).toBe(6);
+    expect(getTemplateRuntimeDefinition("golf-pga-top-five-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
   });
 
   it("ships a protected ranked-finish submission transaction and lock dispatcher", () => {

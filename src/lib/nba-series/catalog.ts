@@ -48,3 +48,26 @@ export function createNbaSettingsFromCatalogEvent(
     },
   };
 }
+
+/** Preserves commissioner-owned copy/scoring while replacing live-owned field and lock data. */
+export function canonicalizeNbaSettingsFromCatalogEvent(
+  settings: NbaSeriesSettings,
+  event: CatalogEventSnapshot,
+) {
+  const mapped = createNbaSettingsFromCatalogEvent(event, {
+    commissionerName: settings.basics.commissionerName,
+    poolName: settings.basics.poolName,
+    timezone: settings.basics.timezone,
+  });
+  return {
+    ...settings,
+    basics: {
+      ...settings.basics,
+      eventLabel: mapped.basics.eventLabel,
+      picksLockAt: mapped.basics.picksLockAt,
+    },
+    teams: mapped.teams,
+    sourceSnapshot: mapped.sourceSnapshot,
+    results: {},
+  };
+}

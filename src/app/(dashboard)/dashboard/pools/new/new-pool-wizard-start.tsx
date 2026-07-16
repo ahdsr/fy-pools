@@ -64,6 +64,7 @@ import {
 } from "../actions";
 import { NbaSeriesWizard } from "./nba-series-wizard";
 import { F1GrandPrixWizard } from "./f1-grand-prix-wizard";
+import { GolfPgaWizard } from "./golf-pga-wizard";
 import type { CatalogEventSnapshot } from "@/lib/events/types";
 
 const stepDefinitions = [
@@ -714,10 +715,12 @@ export function NewPoolWizardStart({
   editPool,
   initialNbaCatalogEvents = [],
   initialF1CatalogEvents = [],
+  initialGolfCatalogEvents = [],
 }: {
   editPool?: EditPoolWizardConfig;
   initialNbaCatalogEvents?: CatalogEventSnapshot[];
   initialF1CatalogEvents?: CatalogEventSnapshot[];
+  initialGolfCatalogEvents?: CatalogEventSnapshot[];
 }) {
   const searchParams = useSearchParams();
   const templates = React.useMemo(() => getAllTemplates(), []);
@@ -729,6 +732,9 @@ export function NewPoolWizardStart({
   }
   if (!editPool && requestedTemplate?.slug === "f1-grand-prix-predictor" && canLaunchCatalogTemplate(requestedTemplate)) {
     return <F1GrandPrixWizard catalogEvents={initialF1CatalogEvents} />;
+  }
+  if (!editPool && requestedTemplate?.slug === "golf-pga-top-five-predictor" && canLaunchCatalogTemplate(requestedTemplate)) {
+    return <GolfPgaWizard catalogEvents={initialGolfCatalogEvents} />;
   }
   return <RoundOf16NewPoolWizardStart editPool={editPool} templates={templates} queryTemplate={queryTemplate} queryDraftId={queryDraftId} />;
 }

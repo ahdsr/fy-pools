@@ -11,7 +11,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { validateRankedFinishPicks } from "@/lib/ranked-finish/engine";
 import type { RankedFinishPickPayload, RankedFinishSettings } from "@/lib/ranked-finish/types";
 
-export type RankedFinishPickState = { message?: string; submitted?: { submittedAt: string } };
+export type RankedFinishPickState = {
+  message?: string;
+  submitted?: { entryId: string; entryPickId: string; submittedAt: string };
+};
 
 export function RankedFinishPickForm({
   inviteCode,

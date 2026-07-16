@@ -6,8 +6,9 @@ import { RoundOf16Leaderboard } from "@/components/app/round-of-16-public-panels
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { getPublicNbaSeriesPool } from "@/lib/nba-series/persistence";
 import { NbaSeriesLeaderboard } from "@/components/app/nba-series-public-panels";
-import { getPublicF1Pool } from "@/lib/ranked-finish/persistence";
+import { getPublicF1Pool, getPublicGolfPool } from "@/lib/ranked-finish/persistence";
 import { F1Leaderboard } from "@/components/app/f1-public-panels";
+import { GolfLeaderboard } from "@/components/app/golf-public-panels";
 import { formatDateTime } from "@/lib/world-cup-pool/data";
 
 export const metadata: Metadata = {
@@ -26,6 +27,8 @@ export default async function LeaderboardPage({ params }: LeaderboardPageProps) 
   if (nbaPool) return <PublicPoolShell poolName={nbaPool.poolName} eyebrow="Leaderboard" title={`${nbaPool.poolName} standings`} description="Standings update after each simulated series result."><NbaSeriesLeaderboard pool={nbaPool} /></PublicPoolShell>;
   const f1Pool = await getPublicF1Pool(poolSlug);
   if (f1Pool) return <PublicPoolShell poolName={f1Pool.poolName} eyebrow="Leaderboard" title={`${f1Pool.poolName} standings`} description="Standings update after each qualifying or race position is recorded."><F1Leaderboard pool={f1Pool} /></PublicPoolShell>;
+  const golfPool = await getPublicGolfPool(poolSlug);
+  if (golfPool) return <PublicPoolShell poolName={golfPool.poolName} eyebrow="Leaderboard" title={`${golfPool.poolName} standings`} description="Standings update after each final position is recorded."><GolfLeaderboard pool={golfPool} /></PublicPoolShell>;
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,
   });

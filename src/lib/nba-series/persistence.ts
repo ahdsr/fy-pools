@@ -11,6 +11,8 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { normalizeEmailAddress } from "@/lib/email";
 import { recordSeriesResult, resolveBracketSimulation } from "@/lib/templates/bracket-simulation";
 import { getNbaSeriesSettings, rankStandings } from "@/lib/templates/lifecycle";
+import { withSnapshotFreshness, type CatalogEvent } from "@/lib/events/types";
+import { canonicalizeNbaSettingsFromCatalogEvent } from "@/lib/nba-series/catalog";
 
 type Admin = ReturnType<typeof createSupabaseAdminClient>;
 export type NbaStoredLeaderboardRow = { entryId: string; entryName: string; rank: number; total: number; maxPoints: number; submittedAt: string; lines: ReturnType<typeof scoreNbaSeriesEntry>["lines"] };
@@ -57,18 +59,39 @@ async function ensureTemplate(admin: Admin) {
   return { templateVersionId: String(template.id), fields: new Map((fieldRows ?? []).map((field) => [String(field.key), String(field.id)])) };
 }
 
+/** Rebuild a live-backed pool from the reviewed database snapshot, not form data. */
+async function canonicalizeNbaSettings(admin: Admin, settings: NbaSeriesSettings) {
+  const source = settings.sourceSnapshot;
+  if (!source) return { ...settings, results: {} };
+  const { data, error } = await admin
+    .from("event_catalog_snapshots")
+    .select("event_payload,source_signature,fetched_at,expires_at")
+    .eq("provider", source.provider)
+    .eq("event_external_id", source.eventExternalId)
+    .maybeSingle();
+  if (error || !data) throw new Error("The selected NBA playoff snapshot is no longer available. Refresh and review it again.");
+  if (String(data.source_signature) !== source.sourceSignature) throw new Error("The NBA playoff field changed after review. Refresh and confirm the current field.");
+  const snapshot = withSnapshotFreshness(data.event_payload as CatalogEvent, {
+    fetchedAt: String(data.fetched_at),
+    sourceSignature: String(data.source_signature),
+    expiresAt: String(data.expires_at),
+  });
+  return canonicalizeNbaSettingsFromCatalogEvent(settings, snapshot);
+}
+
 export async function publishNbaSeriesPool({ settings, participants }: { settings: NbaSeriesSettings; participants: NbaSeriesInvite[] }) {
-  const validation = validateNbaSeriesSettings(settings);
-  if (validation) throw new Error(validation);
   const user = await ensureUser();
   const admin = createSupabaseAdminClient();
-  const [template, poolSlug] = await Promise.all([ensureTemplate(admin), buildPoolSlug(admin, settings.basics.poolName)]);
-  const { data: pool, error } = await admin.from("pools").insert({ owner_id: user.id, template_version_id: template.templateVersionId, slug: poolSlug, name: settings.basics.poolName.trim(), status: "open", settings: { nbaSeries: settings } }).select("id,slug,name").single();
+  const canonical = await canonicalizeNbaSettings(admin, settings);
+  const validation = validateNbaSeriesSettings(canonical);
+  if (validation) throw new Error(validation);
+  const [template, poolSlug] = await Promise.all([ensureTemplate(admin), buildPoolSlug(admin, canonical.basics.poolName)]);
+  const { data: pool, error } = await admin.from("pools").insert({ owner_id: user.id, template_version_id: template.templateVersionId, slug: poolSlug, name: canonical.basics.poolName.trim(), status: "open", settings: { nbaSeries: canonical } }).select("id,slug,name").single();
   if (error) throw new Error(error.message);
   const poolId = String(pool.id);
   const { error: memberError } = await admin.from("pool_members").upsert({ pool_id: poolId, user_id: user.id, role: "owner" }, { onConflict: "pool_id,user_id" });
   if (memberError) throw new Error(memberError.message);
-  const expiresAt = new Date(settings.basics.picksLockAt).toISOString();
+  const expiresAt = new Date(canonical.basics.picksLockAt).toISOString();
   const invites = normalizeInvites(participants);
   const rows = [{ pool_id: poolId, code: inviteCode(), email: null, display_name: "Signup link", expires_at: expiresAt }, ...invites.map((invite) => ({ pool_id: poolId, code: inviteCode(), email: invite.email, display_name: invite.displayName, expires_at: expiresAt }))];
   const { data: insertedInvites, error: inviteError } = await admin.from("pool_invites").insert(rows).select("code,email,display_name");

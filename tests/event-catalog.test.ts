@@ -8,12 +8,15 @@ import {
 } from "@/lib/events/f1-jolpica";
 import { withSnapshotFreshness } from "@/lib/events/types";
 import { createF1SettingsFromCatalogEvent } from "@/lib/ranked-finish/f1";
-import { createNbaSettingsFromCatalogEvent } from "@/lib/nba-series/catalog";
+import { canonicalizeNbaSettingsFromCatalogEvent, createNbaSettingsFromCatalogEvent } from "@/lib/nba-series/catalog";
 import { createNbaSimulation } from "@/lib/nba-series/draft";
 import {
   fetchEspnNbaPlayoffCatalog,
   normalizeEspnNbaPlayoffCatalog,
 } from "@/lib/events/nba-espn";
+import { fetchEspnPgaCatalog, normalizeEspnPgaCatalog } from "@/lib/events/pga-espn";
+import { createGolfSettingsFromCatalogEvent } from "@/lib/ranked-finish/golf";
+import { catalogEventSignature } from "@/lib/events/catalog";
 
 const drivers = Array.from({ length: 10 }, (_, index) => ({
   driverId: `driver-${index + 1}`,
@@ -84,6 +87,26 @@ const nbaScoreboard = {
       }],
     };
   }),
+};
+
+const pgaScoreboard = {
+  events: [
+    {
+      id: "pga-ready",
+      name: "Example Open",
+      date: "2026-08-06T11:00:00Z",
+      competitions: [{
+        date: "2026-08-06T11:00:00Z",
+        competitors: Array.from({ length: 5 }, (_, index) => ({ id: `golfer-${index + 1}`, athlete: { displayName: `Golfer ${5 - index}`, shortName: `G${5 - index}` } })),
+      }],
+    },
+    {
+      id: "pga-field-pending",
+      name: "Future Open",
+      date: "2026-08-13T11:00:00Z",
+      competitions: [{ date: "2026-08-13T11:00:00Z", competitors: [] }],
+    },
+  ],
 };
 
 describe("live event catalog", () => {
@@ -173,6 +196,12 @@ describe("live event catalog", () => {
     expect(settings.basics.picksLockAt).toBe("2026-04-18T19:45:00.000Z");
     expect(settings.sourceSnapshot).toMatchObject({ provider: "espn", eventExternalId: "nba-2026-playoffs" });
     expect(firstSeries).toMatchObject({ home: { team: "Boston Celtics" }, away: { team: "Atlanta Hawks" } });
+
+    const modified = { ...settings, teams: settings.teams.map((team) => ({ ...team, name: "Tampered" })), basics: { ...settings.basics, picksLockAt: "2026-04-19T00:00:00.000Z" }, results: { "east-r1-1": { winner: "Tampered", winnerWins: 4, loserWins: 0 } } };
+    const canonical = canonicalizeNbaSettingsFromCatalogEvent(modified, snapshot);
+    expect(canonical.teams[0]?.name).toBe("Boston Celtics");
+    expect(canonical.basics.picksLockAt).toBe("2026-04-18T19:45:00.000Z");
+    expect(canonical.results).toEqual({});
   });
 
   it("replays the ESPN provider boundary without live network access", async () => {
@@ -186,6 +215,28 @@ describe("live event catalog", () => {
 
     expect(catalog.events[0]?.readiness).toBe("ready");
     expect(catalog.sourceSignature).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("uses an event-specific PGA field, while keeping an unpublished field unavailable", async () => {
+    const events = normalizeEspnPgaCatalog({ season: "2026", scoreboard: pgaScoreboard });
+    const ready = events.find((event) => event.externalId === "pga-2026-pga-ready")!;
+    const pending = events.find((event) => event.externalId === "pga-2026-pga-field-pending")!;
+    expect(ready).toMatchObject({ provider: "espn", competitionSlug: "pga-tour", readiness: "ready", fieldStatus: "confirmed" });
+    expect(ready.participants.map((participant) => participant.name)).toEqual(["Golfer 1", "Golfer 2", "Golfer 3", "Golfer 4", "Golfer 5"]);
+    expect(pending.readiness).toBe("unavailable");
+
+    const snapshot = withSnapshotFreshness(ready, { fetchedAt: "2026-08-01T00:00:00.000Z", expiresAt: "2026-08-02T12:00:00.000Z", sourceSignature: "pga-fixture", now: new Date("2026-08-01T01:00:00.000Z") });
+    const settings = createGolfSettingsFromCatalogEvent(snapshot, { commissionerName: "Ada" });
+    expect(settings.basics.picksLockAt).toBe("2026-08-06T10:45:00.000Z");
+    expect(settings.competitors).toHaveLength(5);
+
+    const catalog = await fetchEspnPgaCatalog({ season: "2026", fetchImpl: async () => ({ ok: true, status: 200, statusText: "OK", json: async () => pgaScoreboard }) });
+    expect(catalog.events).toHaveLength(2);
+  });
+
+  it("uses per-event review signatures so unrelated catalog changes stay isolated", () => {
+    const [first, second] = normalizeEspnPgaCatalog({ season: "2026", scoreboard: pgaScoreboard });
+    expect(catalogEventSignature(first!)).not.toBe(catalogEventSignature(second!));
   });
 
   it("ships server-only catalog persistence and a protected scheduler route", () => {

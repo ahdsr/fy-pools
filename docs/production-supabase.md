@@ -99,6 +99,20 @@ The ESPN adapter requires 16 seeded playoff teams and eight first-round series
 before the NBA wizard will offer a live field. A commissioner reviews the
 stored snapshot, and its provider signature is retained with the pool.
 
+## PGA Event-Catalog Refresh
+
+The PGA Tour Top Five Predictor uses the same event-catalog contract. GitHub
+Actions calls `/api/events/golf/refresh` every six hours. Configure:
+
+- `GOLF_EVENT_CATALOG_REFRESH_URL`: `https://fy-pools.vercel.app/api/events/golf/refresh`
+- `GOLF_EVENT_CATALOG_CRON_SECRET`: the same production value as `CRON_SECRET`
+
+ESPN supplies the season schedule before all tournament fields are announced.
+An event is deliberately unavailable for setup until its competitor list is
+present in the provider response. A commissioner reviews that captured field;
+the server verifies its event-specific signature and freshness again when the
+pool is published.
+
 ## Supabase Project Checklist
 
 1. Create a new production Supabase project.

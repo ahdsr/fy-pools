@@ -1,5 +1,7 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import { fetchF1JolpicaCatalog } from "@/lib/events/f1-jolpica";
 import { fetchEspnNbaPlayoffCatalog } from "@/lib/events/nba-espn";
 import { fetchEspnPgaCatalog } from "@/lib/events/pga-espn";
@@ -24,6 +26,11 @@ type SnapshotRow = {
 
 function expiryFrom(fetchedAt: string) {
   return new Date(Date.parse(fetchedAt) + SNAPSHOT_TTL_MS).toISOString();
+}
+
+/** A review token must describe one event, not the whole provider response. */
+export function catalogEventSignature(event: CatalogEvent) {
+  return createHash("sha256").update(JSON.stringify(event)).digest("hex");
 }
 
 function asSnapshot(row: SnapshotRow, now = new Date()): CatalogEventSnapshot {
@@ -61,7 +68,7 @@ async function storeCatalogEvents(
     event_external_id: event.externalId,
     event_payload: event,
     readiness: event.readiness,
-    source_signature: catalog.sourceSignature,
+    source_signature: catalogEventSignature(event),
     fetched_at: fetchedAt,
     expires_at: expiresAt,
     last_error: null,
@@ -70,7 +77,7 @@ async function storeCatalogEvents(
   const { error } = await admin
     .from("event_catalog_snapshots")
     .upsert(rows, { onConflict: "provider,event_external_id" });
-  if (error) throw new Error(`Could not store F1 event catalog: ${error.message}`);
+  if (error) throw new Error(`Could not store event catalog: ${error.message}`);
   return {
     ...catalog,
     fetchedAt,
@@ -78,7 +85,7 @@ async function storeCatalogEvents(
     snapshots: catalog.events.map((event) =>
       withSnapshotFreshness(event, {
         fetchedAt,
-        sourceSignature: catalog.sourceSignature,
+        sourceSignature: catalogEventSignature(event),
         expiresAt,
         now,
       }),
