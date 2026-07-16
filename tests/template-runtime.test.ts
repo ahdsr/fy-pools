@@ -20,6 +20,7 @@ describe("template runtime foundation", () => {
       .map((template) => template.slug);
 
     expect(launchableSlugs).toEqual([
+      "f1-grand-prix-predictor",
       "world-cup-quarter-final-pickem",
       "world-cup-semi-final-pickem",
       "nba-series-bracket",

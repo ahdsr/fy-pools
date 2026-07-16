@@ -1,5 +1,6 @@
 import type { TemplateRuntimeDefinition } from "@/lib/templates/runtime";
 import { F1_GRAND_PRIX_TEMPLATE_SLUG } from "@/lib/ranked-finish/f1";
+import { GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG } from "@/lib/ranked-finish/golf";
 
 const NBA_SERIES_IDS = [
   "east-r1-1",
@@ -93,7 +94,7 @@ export const TEMPLATE_RUNTIME_DEFINITIONS: readonly TemplateRuntimeDefinition[] 
     version: 1,
     sport: "motorsport",
     runtime: "ranked-finish",
-    availability: "coming-soon",
+    availability: "available",
     pickFields: [
       ...Array.from({ length: 3 }, (_, index) => ({ key: `qualifying_p${index + 1}`, label: `Qualifying P${index + 1}`, pickType: "team_bonus" as const, required: true, config: { fieldKind: "ranked_finish", market: "qualifying", position: index + 1 } })),
       ...Array.from({ length: 3 }, (_, index) => ({ key: `race_p${index + 1}`, label: `Race P${index + 1}`, pickType: "team_bonus" as const, required: true, config: { fieldKind: "ranked_finish", market: "race", position: index + 1 } })),
@@ -102,6 +103,23 @@ export const TEMPLATE_RUNTIME_DEFINITIONS: readonly TemplateRuntimeDefinition[] 
       { key: "qualifying-position", label: "Correct qualifying position", points: 2 },
       { key: "race-position", label: "Correct race position", points: 3 },
     ],
+    lockPolicy: { scope: "event", defaultBufferMinutes: 15 },
+    supportsSimulation: true,
+  },
+  {
+    slug: GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG,
+    version: 1,
+    sport: "golf",
+    runtime: "ranked-finish",
+    availability: "available",
+    pickFields: Array.from({ length: 5 }, (_, index) => ({
+      key: `final-standings_p${index + 1}`,
+      label: `Final standings P${index + 1}`,
+      pickType: "team_bonus" as const,
+      required: true,
+      config: { fieldKind: "ranked_finish", market: "final-standings", position: index + 1 },
+    })),
+    scoringRules: [{ key: "exact-final-position", label: "Correct final position", points: 3 }],
     lockPolicy: { scope: "event", defaultBufferMinutes: 15 },
     supportsSimulation: true,
   },

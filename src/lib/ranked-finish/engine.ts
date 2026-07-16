@@ -15,6 +15,14 @@ export function validateRankedFinishSettings(settings: RankedFinishSettings) {
   return null;
 }
 
+export function rankedFinishDeadlineHasPassed(
+  settings: Pick<RankedFinishSettings, "basics">,
+  now = Date.now(),
+) {
+  const lockAt = new Date(settings.basics.picksLockAt).getTime();
+  return !Number.isFinite(lockAt) || now >= lockAt;
+}
+
 export function validateRankedFinishPicks(settings: RankedFinishSettings, payload: RankedFinishPickPayload) {
   const competitorIds = new Set(settings.competitors.map((competitor) => competitor.id));
   for (const market of settings.markets) {

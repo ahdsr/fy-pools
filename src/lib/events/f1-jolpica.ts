@@ -115,7 +115,13 @@ export function normalizeJolpicaF1Catalog({
       fieldStatus: "season-roster",
       sourceUrl: `${JOLPICA_API}/${season}/${round}.json`,
     };
-    events.push({ ...base, ...catalogReadiness(base) });
+    events.push({
+      ...base,
+      ...catalogReadiness(base, {
+        requiredSessionIds: ["qualifying"],
+        minimumParticipants: 10,
+      }),
+    });
   }
   return events.sort((left, right) => (left.startsAt ?? "").localeCompare(right.startsAt ?? ""));
 }

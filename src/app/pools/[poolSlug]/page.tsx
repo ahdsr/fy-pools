@@ -24,6 +24,8 @@ import {
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { getPublicNbaSeriesPool } from "@/lib/nba-series/persistence";
 import { NbaSeriesPublicPanels } from "@/components/app/nba-series-public-panels";
+import { getPublicF1Pool } from "@/lib/ranked-finish/persistence";
+import { F1PublicPanels } from "@/components/app/f1-public-panels";
 import { getKnockoutPoolStageDetails } from "@/lib/templates/round-of-16-draft";
 import {
   describeCurrentPoolMatch,
@@ -79,6 +81,8 @@ async function RoundOf16PoolPage({ poolSlug }: { poolSlug: string }) {
   if (nbaPool) {
     return <PublicPoolShell poolName={nbaPool.poolName} title={nbaPool.poolName} description={nbaPool.settings.basics.description || "NBA playoff series picks, simulation results, and standings."}><NbaSeriesPublicPanels pool={nbaPool} /></PublicPoolShell>;
   }
+  const f1Pool = await getPublicF1Pool(poolSlug);
+  if (f1Pool) return <PublicPoolShell poolName={f1Pool.poolName} title={f1Pool.poolName} description={f1Pool.settings.basics.description || "F1 qualifying and race Top 3 predictions with live standings."}><F1PublicPanels pool={f1Pool} /></PublicPoolShell>;
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,
   });

@@ -63,6 +63,8 @@ import {
   type UpdatePoolAdminState,
 } from "../actions";
 import { NbaSeriesWizard } from "./nba-series-wizard";
+import { F1GrandPrixWizard } from "./f1-grand-prix-wizard";
+import type { CatalogEventSnapshot } from "@/lib/events/types";
 
 const stepDefinitions = [
   {
@@ -710,8 +712,12 @@ type EditPoolWizardConfig = {
 
 export function NewPoolWizardStart({
   editPool,
+  initialNbaCatalogEvents = [],
+  initialF1CatalogEvents = [],
 }: {
   editPool?: EditPoolWizardConfig;
+  initialNbaCatalogEvents?: CatalogEventSnapshot[];
+  initialF1CatalogEvents?: CatalogEventSnapshot[];
 }) {
   const searchParams = useSearchParams();
   const templates = React.useMemo(() => getAllTemplates(), []);
@@ -719,7 +725,10 @@ export function NewPoolWizardStart({
   const queryDraftId = searchParams.get("draft") ?? "";
   const requestedTemplate = templates.find((template) => template.slug === queryTemplate);
   if (!editPool && requestedTemplate?.slug === "nba-series-bracket" && canLaunchCatalogTemplate(requestedTemplate)) {
-    return <NbaSeriesWizard />;
+    return <NbaSeriesWizard catalogEvents={initialNbaCatalogEvents} />;
+  }
+  if (!editPool && requestedTemplate?.slug === "f1-grand-prix-predictor" && canLaunchCatalogTemplate(requestedTemplate)) {
+    return <F1GrandPrixWizard catalogEvents={initialF1CatalogEvents} />;
   }
   return <RoundOf16NewPoolWizardStart editPool={editPool} templates={templates} queryTemplate={queryTemplate} queryDraftId={queryDraftId} />;
 }

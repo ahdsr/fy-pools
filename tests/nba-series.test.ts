@@ -60,6 +60,8 @@ describe("NBA Series Bracket", () => {
 
     expect(migration).toContain("existing_pick.entry_id = v_entry_id");
     expect(migration).not.toContain("where entry_id=v_entry_id");
+    const conflictFix = readFileSync(join(process.cwd(), "supabase/migrations/20260716005000_fix_template_submission_conflict_ambiguity.sql"), "utf8");
+    expect(conflictFix).toContain("on conflict on constraint entry_picks_entry_id_template_version_id_key");
   });
 
   it("can replay or reset simulation scoring from the stored result payload", () => {

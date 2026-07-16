@@ -1,11 +1,13 @@
 import type { NbaSeriesSettings } from "@/lib/nba-series/types";
+import type { RankedFinishSettings } from "@/lib/ranked-finish/types";
 import type { RoundOf16PoolSettings } from "@/lib/templates/round-of-16-draft";
 
-export type PoolTemplateRuntime = "round-of-16" | "nba-series";
+export type PoolTemplateRuntime = "round-of-16" | "nba-series" | "ranked-finish";
 
 export type PoolSettingsEnvelope = {
   roundOf16?: RoundOf16PoolSettings;
   nbaSeries?: NbaSeriesSettings;
+  rankedFinish?: RankedFinishSettings;
 };
 
 export function getPoolTemplateRuntime(
@@ -15,12 +17,18 @@ export function getPoolTemplateRuntime(
   const settings = value as PoolSettingsEnvelope;
   if (settings.roundOf16) return "round-of-16";
   if (settings.nbaSeries) return "nba-series";
+  if (settings.rankedFinish) return "ranked-finish";
   return null;
 }
 
 export function getNbaSeriesSettings(value: unknown) {
   if (getPoolTemplateRuntime(value) !== "nba-series") return undefined;
   return (value as PoolSettingsEnvelope).nbaSeries;
+}
+
+export function getRankedFinishSettings(value: unknown) {
+  if (getPoolTemplateRuntime(value) !== "ranked-finish") return undefined;
+  return (value as PoolSettingsEnvelope).rankedFinish;
 }
 
 export type UnrankedStandingRow<Line> = {

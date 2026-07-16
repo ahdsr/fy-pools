@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import * as React from "react";
-import { ArrowRight, Copy, Trophy } from "lucide-react";
+import { ArrowRight, Copy, RefreshCw, Trophy } from "lucide-react";
 
 import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { PageShell } from "@/components/app/page-shell";
@@ -12,15 +12,26 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { createDefaultNbaSeriesSettings, validateNbaSeriesSettings } from "@/lib/nba-series/draft";
+import { createNbaSettingsFromCatalogEvent } from "@/lib/nba-series/catalog";
+import type { CatalogEventSnapshot } from "@/lib/events/types";
 import type { NbaSeriesInvite, NbaSeriesSettings } from "@/lib/nba-series/types";
-import { publishNbaSeriesPoolAction, type PublishNbaSeriesState } from "./nba-actions";
+import { publishNbaSeriesPoolAction, refreshNbaCatalogAction, type PublishNbaSeriesState, type RefreshNbaCatalogState } from "./nba-actions";
 
 const EMPTY_INVITES: NbaSeriesInvite[] = Array.from({ length: 5 }, (_, index) => ({ id: `invite-${index + 1}`, email: "", displayName: "" }));
 
-export function NbaSeriesWizard() {
+function formatCatalogTime(value: string | undefined) {
+  return value ? new Intl.DateTimeFormat("en-CA", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Toronto" }).format(new Date(value)) : "Not scheduled";
+}
+
+export function NbaSeriesWizard({ catalogEvents }: { catalogEvents: CatalogEventSnapshot[] }) {
   const [settings, setSettings] = React.useState<NbaSeriesSettings>(createDefaultNbaSeriesSettings);
   const [participants, setParticipants] = React.useState<NbaSeriesInvite[]>(EMPTY_INVITES);
   const [state, action, pending] = React.useActionState<PublishNbaSeriesState, FormData>(publishNbaSeriesPoolAction, {});
+  const [catalogState, catalogAction, catalogPending] = React.useActionState<RefreshNbaCatalogState, FormData>(refreshNbaCatalogAction, {});
+  const [catalogSeason, setCatalogSeason] = React.useState(String(new Date().getUTCFullYear()));
+  const [selectedCatalogId, setSelectedCatalogId] = React.useState(catalogEvents[0]?.externalId ?? "");
+  const [catalogMessage, setCatalogMessage] = React.useState("");
+  const selectedCatalogEvent = catalogEvents.find((event) => event.externalId === selectedCatalogId) ?? catalogEvents[0];
   const validation = validateNbaSeriesSettings(settings);
   if (state.published) return <NbaPublishedPanel published={state.published} />;
   const updateTeam = (id: string, name: string) => setSettings((current) => ({ ...current, teams: current.teams.map((team) => team.id === id ? { ...team, name } : team) }));
@@ -31,6 +42,22 @@ export function NbaSeriesWizard() {
         <input type="hidden" name="settings" value={JSON.stringify(settings)} />
         <input type="hidden" name="participants" value={JSON.stringify(participants)} />
         <div className="grid gap-5">
+          <LedgerPanel title="Live NBA playoff field" description="Select a confirmed playoff snapshot to prefill all 16 teams, seeds, and the first-tip lock. Manual setup remains available as a fallback.">
+            <div className="space-y-4 p-5">
+              <div className="flex flex-wrap items-end gap-3">
+                <form action={catalogAction} className="flex items-end gap-3">
+                  <Field label="NBA season"><Input className="w-28" inputMode="numeric" value={catalogSeason} onChange={(event) => setCatalogSeason(event.target.value)} /></Field>
+                  <input type="hidden" name="season" value={catalogSeason} />
+                  <Button type="submit" variant="outline" disabled={catalogPending}><RefreshCw className={catalogPending ? "animate-spin" : ""} />{catalogPending ? "Refreshing…" : "Refresh live field"}</Button>
+                </form>
+                {catalogState.refreshedAt ? <p className="pb-2 text-sm text-muted-foreground">Refreshed {formatCatalogTime(catalogState.refreshedAt)}.</p> : null}
+              </div>
+              {catalogState.message ? <p role="alert" className="text-sm font-medium text-destructive">{catalogState.message}</p> : null}
+              {catalogEvents.length ? <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]"><div className="space-y-2"><Label htmlFor="nba-catalog-event">Available snapshot</Label><select id="nba-catalog-event" className="flex h-11 w-full border border-border bg-background px-3 text-sm" value={selectedCatalogEvent?.externalId ?? ""} onChange={(event) => setSelectedCatalogId(event.target.value)}>{catalogEvents.map((event) => <option key={event.externalId} value={event.externalId}>{event.displayName} · {event.teams?.length ?? 0} teams · {event.freshness}</option>)}</select></div><Button type="button" variant="primaryGreen" className="self-end" disabled={selectedCatalogEvent?.freshness !== "ready" || selectedCatalogEvent?.readiness !== "ready"} onClick={() => { try { if (!selectedCatalogEvent) return; setSettings((current) => createNbaSettingsFromCatalogEvent(selectedCatalogEvent, { commissionerName: current.basics.commissionerName, poolName: current.basics.poolName === "NBA Playoff Bracket" ? undefined : current.basics.poolName, timezone: current.basics.timezone })); setCatalogMessage("Confirmed live field applied. Review the name and invite plan, then publish."); } catch (error) { setCatalogMessage(error instanceof Error ? error.message : "This event could not be applied."); } }}>Use confirmed field</Button></div> : <p className="text-sm text-muted-foreground">No NBA snapshot is stored yet. Refresh the season when the postseason field is available.</p>}
+              {selectedCatalogEvent ? <p className="text-sm text-muted-foreground">{selectedCatalogEvent.readinessReason} First tip: {formatCatalogTime(selectedCatalogEvent.startsAt)}. {selectedCatalogEvent.series?.length ?? 0} provider series captured.</p> : null}
+              {catalogMessage ? <p className="text-sm font-medium text-brand-ink" role="status">{catalogMessage}</p> : null}
+            </div>
+          </LedgerPanel>
           <LedgerPanel title="Pool basics" description="This bracket uses series winners and exact 4–0 through 4–3 score picks.">
             <div className="grid gap-4 p-5 sm:grid-cols-2">
               <Field label="Pool name"><Input value={settings.basics.poolName} onChange={(event) => setSettings((current) => ({ ...current, basics: { ...current.basics, poolName: event.target.value } }))} /></Field>
@@ -40,7 +67,7 @@ export function NbaSeriesWizard() {
               <div className="sm:col-span-2"><Field label="Description"><Textarea value={settings.basics.description} onChange={(event) => setSettings((current) => ({ ...current, basics: { ...current.basics, description: event.target.value } }))} /></Field></div>
             </div>
           </LedgerPanel>
-          <LedgerPanel title="Playoff field" description="Seeds determine the first-round matchups. You can replace these placeholder teams with the confirmed field.">
+          <LedgerPanel title="Playoff field" description={settings.sourceSnapshot ? `Captured from ${settings.sourceSnapshot.provider} at ${formatCatalogTime(settings.sourceSnapshot.fetchedAt)}. Seeds determine first-round matchups.` : "Seeds determine the first-round matchups. You can replace these placeholder teams with the confirmed field."}>
             <div className="grid gap-5 p-5 lg:grid-cols-2">
               {(["east", "west"] as const).map((conference) => <div key={conference} className="space-y-3"><h3 className="font-semibold text-brand-ink">{conference === "east" ? "Eastern Conference" : "Western Conference"}</h3><LedgerRows className="overflow-hidden rounded-lg border">{settings.teams.filter((team) => team.conference === conference).sort((a,b) => a.seed-b.seed).map((team) => <LedgerRow key={team.id} className="grid grid-cols-[2rem_1fr] items-center gap-3"><span className="text-sm font-bold text-muted-foreground">{team.seed}</span><Input aria-label={`${conference} seed ${team.seed}`} value={team.name} onChange={(event) => updateTeam(team.id, event.target.value)} /></LedgerRow>)}</LedgerRows></div>)}
             </div>

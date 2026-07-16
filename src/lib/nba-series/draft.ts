@@ -10,13 +10,23 @@ const WEST_TEAMS = [
 
 export const NBA_SERIES_TEMPLATE_SLUG = "nba-series-bracket";
 
+function defaultNbaPickDeadline(now = new Date()) {
+  let year = now.getUTCFullYear();
+  let deadline = new Date(Date.UTC(year, 3, 17, 13, 0, 0));
+  if (deadline.getTime() <= now.getTime()) {
+    year += 1;
+    deadline = new Date(Date.UTC(year, 3, 17, 13, 0, 0));
+  }
+  return deadline.toISOString().slice(0, 16);
+}
+
 export function createDefaultNbaSeriesSettings(): NbaSeriesSettings {
   return {
     basics: {
       poolName: "NBA Playoff Bracket",
       commissionerName: "",
       eventLabel: "NBA Playoffs",
-      picksLockAt: "2027-04-17T13:00",
+      picksLockAt: defaultNbaPickDeadline(),
       timezone: "America/Toronto",
       description: "",
     },
@@ -53,6 +63,7 @@ export function validateNbaSeriesSettings(settings: NbaSeriesSettings) {
   if (!settings.basics.poolName.trim()) return "Enter a pool name.";
   if (!settings.basics.commissionerName.trim()) return "Enter the commissioner name.";
   if (!settings.basics.picksLockAt.trim()) return "Set a pick deadline.";
+  if (nbaPickDeadlineHasPassed(settings)) return "Set a pick deadline in the future.";
   if (settings.teams.length !== 16) return "Configure all 16 playoff teams.";
   for (const conference of ["east", "west"] as const) {
     const teams = settings.teams.filter((team) => team.conference === conference);

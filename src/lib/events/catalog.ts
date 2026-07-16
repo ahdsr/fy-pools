@@ -1,6 +1,8 @@
 import "server-only";
 
 import { fetchF1JolpicaCatalog } from "@/lib/events/f1-jolpica";
+import { fetchEspnNbaPlayoffCatalog } from "@/lib/events/nba-espn";
+import { fetchEspnPgaCatalog } from "@/lib/events/pga-espn";
 import {
   type CatalogEvent,
   type CatalogEventSnapshot,
@@ -12,7 +14,7 @@ import { createSupabaseAdminClient, getSupabaseUser } from "@/lib/supabase/serve
 const SNAPSHOT_TTL_MS = 36 * 60 * 60 * 1000;
 
 type SnapshotRow = {
-  provider: "jolpica";
+  provider: string;
   event_external_id: string;
   event_payload: CatalogEvent;
   source_signature: string;
@@ -41,6 +43,13 @@ export async function syncF1EventCatalogToDatabase({
   now?: Date;
 } = {}) {
   const catalog = await fetchF1JolpicaCatalog({ season });
+  return storeCatalogEvents(catalog, now);
+}
+
+async function storeCatalogEvents(
+  catalog: { season: string; events: CatalogEvent[]; sourceSignature: string },
+  now: Date,
+) {
   const fetchedAt = now.toISOString();
   const expiresAt = expiryFrom(fetchedAt);
   const admin = createSupabaseAdminClient();
@@ -77,6 +86,26 @@ export async function syncF1EventCatalogToDatabase({
   };
 }
 
+export async function syncNbaPlayoffCatalogToDatabase({
+  season,
+  now = new Date(),
+}: {
+  season?: string;
+  now?: Date;
+} = {}) {
+  return storeCatalogEvents(await fetchEspnNbaPlayoffCatalog({ season }), now);
+}
+
+export async function syncPgaEventCatalogToDatabase({
+  season,
+  now = new Date(),
+}: {
+  season?: string;
+  now?: Date;
+} = {}) {
+  return storeCatalogEvents(await fetchEspnPgaCatalog({ season }), now);
+}
+
 export async function refreshF1EventCatalogForCommissioner(season?: string) {
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   const user = await getSupabaseUser();
@@ -84,19 +113,53 @@ export async function refreshF1EventCatalogForCommissioner(season?: string) {
   return syncF1EventCatalogToDatabase({ season });
 }
 
-export async function getF1EventCatalogSnapshots(now = new Date()) {
+export async function refreshNbaPlayoffCatalogForCommissioner(season?: string) {
+  if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
+  const user = await getSupabaseUser();
+  if (!user) throw new Error("You must be signed in.");
+  return syncNbaPlayoffCatalogToDatabase({ season });
+}
+
+export async function refreshPgaEventCatalogForCommissioner(season?: string) {
+  if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
+  const user = await getSupabaseUser();
+  if (!user) throw new Error("You must be signed in.");
+  return syncPgaEventCatalogToDatabase({ season });
+}
+
+async function getCatalogSnapshots({
+  provider,
+  competitionSlug,
+  now = new Date(),
+}: {
+  provider: string;
+  competitionSlug: string;
+  now?: Date;
+}) {
   if (!isSupabaseConfigured()) return [] as CatalogEventSnapshot[];
   const admin = createSupabaseAdminClient();
   const { data, error } = await admin
     .from("event_catalog_snapshots")
     .select("provider,event_external_id,event_payload,source_signature,fetched_at,expires_at")
-    .eq("provider", "jolpica")
-    .eq("competition_slug", "formula-1")
+    .eq("provider", provider)
+    .eq("competition_slug", competitionSlug)
     .order("event_external_id");
-  if (error) throw new Error(`Could not load F1 event catalog: ${error.message}`);
+  if (error) throw new Error(`Could not load event catalog: ${error.message}`);
   return (data ?? [])
     .map((row) => asSnapshot(row as SnapshotRow, now))
     .sort((left, right) => (left.startsAt ?? "").localeCompare(right.startsAt ?? ""));
+}
+
+export async function getF1EventCatalogSnapshots(now = new Date()) {
+  return getCatalogSnapshots({ provider: "jolpica", competitionSlug: "formula-1", now });
+}
+
+export async function getNbaPlayoffCatalogSnapshots(now = new Date()) {
+  return getCatalogSnapshots({ provider: "espn", competitionSlug: "nba-playoffs", now });
+}
+
+export async function getPgaEventCatalogSnapshots(now = new Date()) {
+  return getCatalogSnapshots({ provider: "espn", competitionSlug: "pga-tour", now });
 }
 
 export function selectUpcomingCatalogEvents(

@@ -22,6 +22,15 @@ export type RankedFinishSettings = {
   competitors: RankedFinishCompetitor[];
   markets: RankedFinishMarket[];
   results: Record<string, string[]>;
+  sourceSnapshot?: {
+    provider: string;
+    eventExternalId: string;
+    sourceSignature: string;
+    fetchedAt: string;
+    fieldStatus: string;
+    rosterReviewed: boolean;
+    reviewedAt?: string;
+  };
 };
 
 export type RankedFinishPickPayload = { markets: Record<string, string[]> };

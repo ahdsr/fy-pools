@@ -27,6 +27,14 @@ export type NbaSeriesSettings = {
   payouts: NbaSeriesPayout[];
   expectedEntries: number;
   inviteNote: string;
+  /** Immutable source metadata when a commissioner starts from a live catalog event. */
+  sourceSnapshot?: {
+    provider: string;
+    eventExternalId: string;
+    sourceSignature: string;
+    fetchedAt: string;
+    fieldStatus: string;
+  };
   /** Commissioner-entered, fixture-driven series outcomes. */
   results: Record<string, SeriesResult>;
 };

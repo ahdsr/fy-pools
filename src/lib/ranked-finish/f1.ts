@@ -58,5 +58,13 @@ export function createF1SettingsFromCatalogEvent(
       id: participant.externalId,
       name: participant.name,
     })),
+    sourceSnapshot: {
+      provider: event.provider,
+      eventExternalId: event.externalId,
+      sourceSignature: event.sourceSignature,
+      fetchedAt: event.fetchedAt,
+      fieldStatus: event.fieldStatus,
+      rosterReviewed: false,
+    },
   };
 }

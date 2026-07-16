@@ -8,6 +8,12 @@ import {
 } from "@/lib/events/f1-jolpica";
 import { withSnapshotFreshness } from "@/lib/events/types";
 import { createF1SettingsFromCatalogEvent } from "@/lib/ranked-finish/f1";
+import { createNbaSettingsFromCatalogEvent } from "@/lib/nba-series/catalog";
+import { createNbaSimulation } from "@/lib/nba-series/draft";
+import {
+  fetchEspnNbaPlayoffCatalog,
+  normalizeEspnNbaPlayoffCatalog,
+} from "@/lib/events/nba-espn";
 
 const drivers = Array.from({ length: 10 }, (_, index) => ({
   driverId: `driver-${index + 1}`,
@@ -32,6 +38,52 @@ const races = {
       ],
     },
   },
+};
+
+const nbaTeams = [
+  ["east", "Boston Celtics", "1"], ["east", "New York Knicks", "2"], ["east", "Cleveland Cavaliers", "3"], ["east", "Orlando Magic", "4"], ["east", "Milwaukee Bucks", "5"], ["east", "Indiana Pacers", "6"], ["east", "Miami Heat", "7"], ["east", "Atlanta Hawks", "8"],
+  ["west", "Oklahoma City Thunder", "1"], ["west", "Denver Nuggets", "2"], ["west", "Los Angeles Lakers", "3"], ["west", "Houston Rockets", "4"], ["west", "Minnesota Timberwolves", "5"], ["west", "Golden State Warriors", "6"], ["west", "Memphis Grizzlies", "7"], ["west", "LA Clippers", "8"],
+] as const;
+
+const nbaStandings = {
+  children: ["Eastern Conference", "Western Conference"].map((name) => ({
+    name,
+    standings: {
+      entries: nbaTeams
+        .filter(([conference]) => name.startsWith(conference === "east" ? "Eastern" : "Western"))
+        .map(([conference, team, seed]) => ({
+          team: { id: `${conference}-${seed}`, displayName: team, shortDisplayName: team.split(" ").at(-1) },
+          stats: [{ name: "playoffSeed", value: Number(seed) }],
+        })),
+    },
+  })),
+};
+
+const nbaFirstRoundPairs = [
+  ["east", "1", "8"], ["east", "4", "5"], ["east", "3", "6"], ["east", "2", "7"],
+  ["west", "1", "8"], ["west", "4", "5"], ["west", "3", "6"], ["west", "2", "7"],
+] as const;
+
+const nbaScoreboard = {
+  events: nbaFirstRoundPairs.map(([conference, firstSeed, secondSeed], index) => {
+    const findTeam = (seed: string) => nbaTeams.find(([candidateConference, , candidateSeed]) => candidateConference === conference && candidateSeed === seed)!;
+    const home = findTeam(firstSeed);
+    const away = findTeam(secondSeed);
+    return {
+      id: `game-${index + 1}`,
+      date: `2026-04-${String(18 + index).padStart(2, "0")}T20:00:00Z`,
+      name: `${away[1]} at ${home[1]}`,
+      season: { year: 2026, type: 3 },
+      competitions: [{
+        competitors: [
+          { homeAway: "home", team: { id: `${home[0]}-${home[2]}`, displayName: home[1] } },
+          { homeAway: "away", team: { id: `${away[0]}-${away[2]}`, displayName: away[1] } },
+        ],
+        notes: [{ headline: `${conference === "east" ? "East" : "West"} 1st Round - Game 1` }],
+        status: { type: { state: "pre" } },
+      }],
+    };
+  }),
 };
 
 describe("live event catalog", () => {
@@ -95,6 +147,45 @@ describe("live event catalog", () => {
 
     expect(stale.freshness).toBe("stale");
     expect(stale.readiness).toBe("provisional");
+  });
+
+  it("normalizes a confirmed NBA playoff field, stages, matchups, and series from a provider replay", () => {
+    const event = normalizeEspnNbaPlayoffCatalog({ season: "2026", scoreboard: nbaScoreboard, standings: nbaStandings });
+
+    expect(event).toMatchObject({ provider: "espn", externalId: "nba-2026-playoffs", readiness: "ready", fieldStatus: "confirmed" });
+    expect(event.teams).toHaveLength(16);
+    expect(event.series).toHaveLength(8);
+    expect(event.matchups).toHaveLength(8);
+    expect(event.lockWindows?.[0]).toMatchObject({ id: "first-tip", scope: "event" });
+  });
+
+  it("maps a reviewed NBA snapshot into the existing bracket simulation without hardcoded teams", () => {
+    const event = normalizeEspnNbaPlayoffCatalog({ season: "2026", scoreboard: nbaScoreboard, standings: nbaStandings });
+    const snapshot = withSnapshotFreshness(event, {
+      fetchedAt: "2026-04-10T00:00:00.000Z",
+      expiresAt: "2026-04-11T12:00:00.000Z",
+      sourceSignature: "nba-fixture",
+      now: new Date("2026-04-10T01:00:00.000Z"),
+    });
+    const settings = createNbaSettingsFromCatalogEvent(snapshot, { commissionerName: "Ada" });
+    const firstSeries = createNbaSimulation(settings).series[0];
+
+    expect(settings.basics.picksLockAt).toBe("2026-04-18T19:45:00.000Z");
+    expect(settings.sourceSnapshot).toMatchObject({ provider: "espn", eventExternalId: "nba-2026-playoffs" });
+    expect(firstSeries).toMatchObject({ home: { team: "Boston Celtics" }, away: { team: "Atlanta Hawks" } });
+  });
+
+  it("replays the ESPN provider boundary without live network access", async () => {
+    const fetchImpl = async (url: string) => ({
+      ok: true,
+      status: 200,
+      statusText: "OK",
+      json: async () => url.includes("standings") ? nbaStandings : nbaScoreboard,
+    });
+    const catalog = await fetchEspnNbaPlayoffCatalog({ season: "2026", fetchImpl });
+
+    expect(catalog.events[0]?.readiness).toBe("ready");
+    expect(catalog.sourceSignature).toMatch(/^[a-f0-9]{64}$/);
   });
 
   it("ships server-only catalog persistence and a protected scheduler route", () => {

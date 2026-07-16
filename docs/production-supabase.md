@@ -82,8 +82,22 @@ refresh. It uses `CRON_SECRET` and cannot be called anonymously in production.
 Snapshots expire after 36 hours and are visibly marked as needing refresh.
 Jolpica's season-driver endpoint does not prove a particular race's entries,
 so F1 setup is marked **provisional** until an event-specific source can
-confirm the field. The preview deliberately does not publish a pool from that
-provisional roster.
+confirm the field. The commissioner must explicitly review that captured
+roster before publishing; the resulting pool stores the event signature and
+frozen roster used for every player pick.
+
+## NBA Playoff-Catalog Refresh
+
+The same Event Catalog contract supports NBA team fields, first-round matchups,
+series, and the first-tip lock. GitHub Actions calls `/api/events/nba/refresh`
+every six hours. Configure:
+
+- `NBA_EVENT_CATALOG_REFRESH_URL`: `https://fy-pools.vercel.app/api/events/nba/refresh`
+- `NBA_EVENT_CATALOG_CRON_SECRET`: the same production value as `CRON_SECRET`
+
+The ESPN adapter requires 16 seeded playoff teams and eight first-round series
+before the NBA wizard will offer a live field. A commissioner reviews the
+stored snapshot, and its provider signature is retained with the pool.
 
 ## Supabase Project Checklist
 

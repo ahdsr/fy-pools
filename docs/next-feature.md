@@ -40,8 +40,13 @@ leaderboards, imports, commissioner controls, and repeatable game simulations.
   before an event opens without relying on an event being live during testing.
 - The event-to-template mapper builds per-pool ranked-finish settings from a
   snapshot and applies the template lock buffer (15 minutes before qualifying).
-- NBA and golf should add provider adapters to this same catalog contract;
-  templates must consume snapshots rather than reach directly into a provider.
+- F1 Grand Prix Predictor is the complete ranked-finish proof: snapshot-backed
+  setup, roster review, player position picks, deterministic commissioner
+  replay, standings, and reset all share the generic ranked-finish runtime.
+- NBA now proves the team/bracket path: 16 seeded teams, first-round matchups,
+  series, stages, and a first-tip lock are all normalized into the same
+  snapshot contract. Golf and later formats must consume snapshots rather than
+  reach directly into a provider.
 
 ## First Non-Soccer Slice
 
