@@ -52,6 +52,16 @@ describe("NBA Series Bracket", () => {
     expect(migration).toContain("replace_template_score_snapshot");
   });
 
+  it("qualifies the entry-pick table column so NBA submissions cannot collide with the RPC output field", () => {
+    const migration = readFileSync(
+      join(process.cwd(), "supabase/migrations/20260716003000_fix_nba_submission_entry_id_ambiguity.sql"),
+      "utf8",
+    );
+
+    expect(migration).toContain("existing_pick.entry_id = v_entry_id");
+    expect(migration).not.toContain("where entry_id=v_entry_id");
+  });
+
   it("can replay or reset simulation scoring from the stored result payload", () => {
     const settings = createDefaultNbaSeriesSettings();
     settings.basics.commissionerName = "Commissioner";
