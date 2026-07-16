@@ -24,9 +24,9 @@ import {
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { getPublicNbaSeriesPool } from "@/lib/nba-series/persistence";
 import { NbaSeriesPublicPanels } from "@/components/app/nba-series-public-panels";
-import { getPublicF1Pool, getPublicGolfPool } from "@/lib/ranked-finish/persistence";
-import { F1PublicPanels } from "@/components/app/f1-public-panels";
-import { GolfPublicPanels } from "@/components/app/golf-public-panels";
+import { getPublicRankedFinishPool } from "@/lib/ranked-finish/persistence";
+import { RankedFinishPublicPanels } from "@/components/app/ranked-finish-public-panels";
+import { getPoolRuntimeTargetBySlug } from "@/lib/templates/runtime-dispatch";
 import { getKnockoutPoolStageDetails } from "@/lib/templates/round-of-16-draft";
 import {
   describeCurrentPoolMatch,
@@ -78,14 +78,15 @@ async function PoolPageContent({ poolSlug }: { poolSlug: string }) {
 }
 
 async function RoundOf16PoolPage({ poolSlug }: { poolSlug: string }) {
-  const nbaPool = await getPublicNbaSeriesPool(poolSlug);
-  if (nbaPool) {
-    return <PublicPoolShell poolName={nbaPool.poolName} title={nbaPool.poolName} description={nbaPool.settings.basics.description || "NBA playoff series picks, simulation results, and standings."}><NbaSeriesPublicPanels pool={nbaPool} /></PublicPoolShell>;
+  const target = await getPoolRuntimeTargetBySlug(poolSlug);
+  if (target?.runtime === "nba-series") {
+    const pool = await getPublicNbaSeriesPool(poolSlug);
+    if (pool) return <PublicPoolShell poolName={pool.poolName} title={pool.poolName} description={pool.settings.basics.description || "NBA playoff series picks, simulation results, and standings."}><NbaSeriesPublicPanels pool={pool} /></PublicPoolShell>;
   }
-  const f1Pool = await getPublicF1Pool(poolSlug);
-  if (f1Pool) return <PublicPoolShell poolName={f1Pool.poolName} title={f1Pool.poolName} description={f1Pool.settings.basics.description || "F1 qualifying and race Top 3 predictions with live standings."}><F1PublicPanels pool={f1Pool} /></PublicPoolShell>;
-  const golfPool = await getPublicGolfPool(poolSlug);
-  if (golfPool) return <PublicPoolShell poolName={golfPool.poolName} title={golfPool.poolName} description={golfPool.settings.basics.description || "PGA Tour exact Top Five predictions with live standings."}><GolfPublicPanels pool={golfPool} /></PublicPoolShell>;
+  if (target?.runtime === "ranked-finish") {
+    const pool = await getPublicRankedFinishPool(poolSlug, target.templateSlug);
+    if (pool) return <PublicPoolShell poolName={pool.poolName} title={pool.poolName} description={pool.settings.basics.description || target.templateDescription}><RankedFinishPublicPanels pool={pool} participantNoun={target.competitorNoun} /></PublicPoolShell>;
+  }
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,
   });

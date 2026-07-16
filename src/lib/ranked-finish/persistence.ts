@@ -26,11 +26,6 @@ export type RankedFinishInvite = { id: string; email: string; displayName: strin
 export type RankedFinishStoredLeaderboardRow = { entryId: string; entryName: string; rank: number; total: number; maxPoints: number; submittedAt: string; lines: ReturnType<typeof scoreRankedFinishEntry>["lines"] };
 export type RankedFinishJoinData = { invite: { id: string; code: string; email: string; displayName: string; status: string; acceptedBy: string; isShareLink: boolean }; pool: { id: string; slug: string; name: string; ownerId: string; templateVersionId: string; settings: RankedFinishSettings }; existingSubmission?: { entryId: string; entryPickId: string; submittedAt: string; payload: RankedFinishPickPayload }; deadlineHasPassed: boolean };
 export type RankedFinishPublicPool = { poolId: string; poolSlug: string; poolName: string; settings: RankedFinishSettings; entries: { entryId: string; entryName: string; submittedAt: string }[]; latestStandings: RankedFinishStoredLeaderboardRow[]; latestStandingsCalculatedAt: string };
-/** Compatibility aliases keep existing F1 routes focused on presentation, not persistence. */
-export type F1JoinData = RankedFinishJoinData;
-export type GolfJoinData = RankedFinishJoinData;
-export type F1PublicPool = RankedFinishPublicPool;
-export type GolfPublicPool = RankedFinishPublicPool;
 
 function configured() { if (!isSupabaseConfigured()) throw new Error("Supabase is not configured."); }
 function slugify(value: string) { return value.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "ranked-finish-predictor"; }
@@ -123,9 +118,6 @@ export async function getRankedFinishJoinPoolData(inviteCodeValue: string, templ
   return { invite: { id: String(data.id), code: String(data.code), email: String(data.email ?? ""), displayName: String(data.display_name ?? "Participant"), status: String(data.status), acceptedBy: String(data.accepted_by ?? ""), isShareLink: !data.email }, pool: { id: String(pool.id), slug: String(pool.slug), name: String(pool.name), ownerId: String(pool.owner_id), templateVersionId: String(pool.template_version_id), settings }, existingSubmission, deadlineHasPassed: rankedFinishDeadlineHasPassed(settings) };
 }
 
-export async function getF1JoinPoolData(inviteCodeValue: string) { return getRankedFinishJoinPoolData(inviteCodeValue, F1_GRAND_PRIX_TEMPLATE_SLUG); }
-export async function getGolfJoinPoolData(inviteCodeValue: string) { return getRankedFinishJoinPoolData(inviteCodeValue, GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG); }
-
 export async function submitRankedFinishPicks({ inviteCode: inviteCodeValue, payload, templateSlug }: { inviteCode: string; payload: RankedFinishPickPayload; templateSlug: string }) {
   const user = await ensureUser(); const join = await getRankedFinishJoinPoolData(inviteCodeValue, templateSlug); if (!join) throw new Error("Invite not found.");
   if (join.invite.status === "revoked" || join.invite.status === "expired") throw new Error("This invite is no longer available.");
@@ -136,9 +128,6 @@ export async function submitRankedFinishPicks({ inviteCode: inviteCodeValue, pay
   const submittedAt = new Date().toISOString(); const { data, error } = await admin.rpc("submit_ranked_finish_picks_transaction", { p_pool_id: join.pool.id, p_user_id: user.id, p_template_version_id: join.pool.templateVersionId, p_invite_id: join.invite.id, p_accept_invite: !join.invite.isShareLink, p_display_name: user.user_metadata?.display_name ?? join.invite.displayName ?? user.email?.split("@")[0] ?? "Participant", p_entry_number: 1, p_entry_metadata: { inviteCode: inviteCodeValue }, p_submitted_at: submittedAt, p_pick_items: items, p_invite_code: inviteCodeValue });
   if (error) throw new Error(error.message); const row = Array.isArray(data) ? data[0] : data; if (!row?.entry_id) throw new Error("Picks were not submitted."); revalidatePath(`/pools/${join.pool.slug}`); return { entryId: String(row.entry_id), entryPickId: String(row.entry_pick_id), submittedAt };
 }
-
-export async function submitF1RankedFinishPicks(input: { inviteCode: string; payload: RankedFinishPickPayload }) { return submitRankedFinishPicks({ ...input, templateSlug: F1_GRAND_PRIX_TEMPLATE_SLUG }); }
-export async function submitGolfRankedFinishPicks(input: { inviteCode: string; payload: RankedFinishPickPayload }) { return submitRankedFinishPicks({ ...input, templateSlug: GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG }); }
 
 async function rebuildStandings({ admin, poolId, settings }: { admin: Admin; poolId: string; settings: RankedFinishSettings }) {
   const { data: entries, error } = await admin.from("entries").select("id,display_name,entry_picks(id,status,submitted_at,entry_pick_items(id,value))").eq("pool_id", poolId); if (error) throw new Error(error.message);
@@ -159,23 +148,12 @@ export async function resetRankedFinishPoolResults(poolId: string, templateSlug:
   const nextSettings = resetRankedFinishResults(settings); const { error: updateError } = await admin.from("pools").update({ settings: { rankedFinish: nextSettings }, updated_at: new Date().toISOString() }).eq("id", poolId); if (updateError) throw new Error(updateError.message); const rows = await rebuildStandings({ admin, poolId, settings: nextSettings }); await audit(admin, poolId, user.id, "ranked_finish.results_reset", "Reset ranked-finish results.", {}); revalidatePath(`/pools/${pool.slug}`); revalidatePath(`/pools/${pool.slug}/leaderboard`); revalidatePath(`/dashboard/pools/${poolId}/edit`); return { settings: nextSettings, rows };
 }
 
-export async function recordF1Result(input: { poolId: string; marketId: string; competitorId: string }) { return recordRankedFinishPoolResult({ ...input, templateSlug: F1_GRAND_PRIX_TEMPLATE_SLUG }); }
-export async function recordGolfResult(input: { poolId: string; marketId: string; competitorId: string }) { return recordRankedFinishPoolResult({ ...input, templateSlug: GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG }); }
-export async function resetF1Results(poolId: string) { return resetRankedFinishPoolResults(poolId, F1_GRAND_PRIX_TEMPLATE_SLUG); }
-export async function resetGolfResults(poolId: string) { return resetRankedFinishPoolResults(poolId, GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG); }
-
 export async function getPublicRankedFinishPool(poolSlug: string, templateSlug: string): Promise<RankedFinishPublicPool | null> {
   if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,settings").eq("slug", poolSlug).maybeSingle(); if (error || !pool) return null; const settings = rankedSettings(pool.settings, templateSlug); if (!settings) return null;
   const [{ data: entries, error: entriesError }, { data: snapshot }] = await Promise.all([admin.from("entries").select("id,display_name,entry_picks(status,submitted_at)").eq("pool_id", pool.id), admin.from("standings_snapshots").select("rows,calculated_at").eq("pool_id", pool.id).order("calculated_at", { ascending: false }).limit(1).maybeSingle()]); if (entriesError) throw new Error(entriesError.message);
   return { poolId: String(pool.id), poolSlug: String(pool.slug), poolName: String(pool.name), settings, entries: (entries ?? []).flatMap((entry) => { const pick = Array.isArray(entry.entry_picks) ? entry.entry_picks[0] : entry.entry_picks; return pick && ["submitted", "locked"].includes(String(pick.status)) ? [{ entryId: String(entry.id), entryName: String(entry.display_name), submittedAt: String(pick.submitted_at ?? "") }] : []; }), latestStandings: Array.isArray(snapshot?.rows) ? snapshot.rows as RankedFinishStoredLeaderboardRow[] : [], latestStandingsCalculatedAt: String(snapshot?.calculated_at ?? "") };
 }
 
-export async function getPublicF1Pool(poolSlug: string) { return getPublicRankedFinishPool(poolSlug, F1_GRAND_PRIX_TEMPLATE_SLUG); }
-export async function getPublicGolfPool(poolSlug: string) { return getPublicRankedFinishPool(poolSlug, GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG); }
-
 export async function getCommissionerRankedFinishPool(poolId: string, templateSlug: string) {
   const user = await ensureUser(); const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,owner_id,settings").eq("id", poolId).maybeSingle(); if (error || !pool) return null; if (String(pool.owner_id) !== user.id) throw new Error("Only the pool commissioner can view this pool."); const settings = rankedSettings(pool.settings, templateSlug); return settings ? { poolId: String(pool.id), poolSlug: String(pool.slug), poolName: String(pool.name), settings } : null;
 }
-
-export async function getCommissionerF1Pool(poolId: string) { return getCommissionerRankedFinishPool(poolId, F1_GRAND_PRIX_TEMPLATE_SLUG); }
-export async function getCommissionerGolfPool(poolId: string) { return getCommissionerRankedFinishPool(poolId, GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG); }

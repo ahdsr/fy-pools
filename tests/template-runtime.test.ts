@@ -11,6 +11,10 @@ import {
   getAllTemplates,
 } from "@/lib/templates/catalog";
 import { getTemplateRuntimeDefinition } from "@/lib/templates/definitions";
+import { createDefaultNbaSeriesSettings } from "@/lib/nba-series/draft";
+import { createDefaultF1GrandPrixSettings } from "@/lib/ranked-finish/f1";
+import { createDefaultGolfPgaTopFiveSettings } from "@/lib/ranked-finish/golf";
+import { resolvePoolRuntimeTarget } from "@/lib/templates/runtime-dispatch";
 
 describe("template runtime foundation", () => {
   it("only exposes executable formats as launchable", () => {
@@ -94,5 +98,21 @@ describe("template runtime foundation", () => {
         result: { winner: "East 1", winnerWins: 4, loserWins: 4 },
       }),
     ).toThrow("not valid");
+  });
+
+  it("dispatches persisted pools to one runtime without sport-specific route probing", () => {
+    expect(resolvePoolRuntimeTarget({ roundOf16: {} })).toEqual({ runtime: "round-of-16" });
+    expect(resolvePoolRuntimeTarget({ nbaSeries: createDefaultNbaSeriesSettings() })).toEqual({ runtime: "nba-series" });
+    expect(resolvePoolRuntimeTarget({ rankedFinish: createDefaultF1GrandPrixSettings() })).toMatchObject({
+      runtime: "ranked-finish",
+      templateSlug: "f1-grand-prix-predictor",
+      competitorNoun: "driver",
+    });
+    expect(resolvePoolRuntimeTarget({ rankedFinish: createDefaultGolfPgaTopFiveSettings() })).toMatchObject({
+      runtime: "ranked-finish",
+      templateSlug: "golf-pga-top-five-predictor",
+      competitorNoun: "golfer",
+    });
+    expect(resolvePoolRuntimeTarget({ rankedFinish: { templateSlug: "unknown" } })).toBeNull();
   });
 });
