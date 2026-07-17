@@ -58,7 +58,14 @@ async function getPoolRuntimeTarget(
     .select("settings")
     .eq(column, value)
     .maybeSingle();
-  if (error || !data) return null;
+  if (error) {
+    console.error("[fy-pools] Failed to resolve pool runtime", {
+      column,
+      error,
+    });
+    throw new Error("Pool runtime lookup failed.");
+  }
+  if (!data) return null;
   return resolvePoolRuntimeTarget(data.settings);
 }
 
@@ -78,7 +85,11 @@ export async function getInviteRuntimeTarget(inviteCode: string) {
     .select("pools(settings)")
     .eq("code", inviteCode)
     .maybeSingle();
-  if (error || !data) return null;
+  if (error) {
+    console.error("[fy-pools] Failed to resolve invite runtime", { error });
+    throw new Error("Invite runtime lookup failed.");
+  }
+  if (!data) return null;
   const pool = Array.isArray(data.pools) ? data.pools[0] : data.pools;
   return resolvePoolRuntimeTarget(pool?.settings);
 }
