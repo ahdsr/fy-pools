@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { FilterPill } from "@/components/ui/filter-pill";
 import { signUpPathFor } from "@/lib/auth/paths";
+import { earlyAccessMailto } from "@/lib/site-contact";
 import {
   getAllTemplates,
   getTemplateAvailability,
@@ -133,10 +134,12 @@ export function TemplateLibrary({ audience }: TemplateLibraryProps) {
                   </Link>
                 </Button>
               ) : (
-                <Button type="button" variant="outline" disabled>
-                  {getTemplateAvailability(template) === "coming-soon"
-                    ? "Coming soon"
-                    : "Unavailable"}
+                <Button asChild variant="outline">
+                  <a href={earlyAccessMailto(template.name)}>
+                    {getTemplateAvailability(template) === "coming-soon"
+                      ? "Request early access"
+                      : "Ask about this format"}
+                  </a>
                 </Button>
               )}
             </LedgerRow>

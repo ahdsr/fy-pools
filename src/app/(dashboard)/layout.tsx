@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import { DashboardHeader } from "@/components/app/mock-auth";
+import { getCommissionerNotifications } from "@/lib/round-of-16/persistence";
 
 export const metadata: Metadata = {
   title: "Commissioner workspace",
@@ -16,14 +17,16 @@ export const metadata: Metadata = {
 // or mutating private data.
 export const unstable_instant = false;
 
-export default function DashboardLayout({
+export default async function DashboardLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const notifications = await getCommissionerNotifications();
+
   return (
     <div className="flex min-h-dvh flex-col">
-      <DashboardHeader />
+      <DashboardHeader notifications={notifications} />
       <div className="flex flex-1 flex-col">{children}</div>
     </div>
   );

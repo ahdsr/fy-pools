@@ -6,7 +6,7 @@ import { TemplateLibrary } from "@/components/app/template-library";
 export const metadata: Metadata = {
   title: "Sports pool templates",
   description:
-    "Browse ready-to-run templates for World Cup, NBA, NFL, tennis, golf, and other private sports pools.",
+    "Browse available PoolWaffle sports pool templates and request early access to upcoming formats.",
   alternates: {
     canonical: "/templates",
   },

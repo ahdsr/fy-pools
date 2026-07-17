@@ -26,7 +26,7 @@ export function createF1SettingsFromCatalogEvent(
   event: CatalogEventSnapshot,
   {
     commissionerName = "",
-    poolName = `${event.displayName} Predictor`,
+    poolName = `F1 ${event.displayName} Predictor`,
     timezone = "America/Toronto",
   }: {
     commissionerName?: string;

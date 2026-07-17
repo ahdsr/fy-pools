@@ -68,7 +68,7 @@ export const metadata: Metadata = {
     template: "%s | PoolWaffle",
   },
   description:
-    "Private sports pool hosting for commissioners, with templates, spreadsheet imports, player picks, scoring, projections, and leaderboards.",
+    "Closed-beta private sports pool hosting for commissioners, with live templates, player picks, scoring, and leaderboards.",
   applicationName: "PoolWaffle",
   openGraph: {
     siteName: "PoolWaffle",

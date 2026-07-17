@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { LogOut, Menu, Moon, Plus, Sun, UserRound } from "lucide-react";
+import { Bell, History, LogOut, Menu, Moon, Plus, Sun, UserRound, X } from "lucide-react";
 import * as React from "react";
 
 import { BrandWordmark } from "@/components/app/brand";
@@ -30,6 +30,7 @@ import {
   signUpPathFor,
 } from "@/lib/auth/paths";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
+import { type CommissionerNotification } from "@/lib/round-of-16/persistence";
 import {
   requestPasswordResetAction,
   resendConfirmationEmailAction,
@@ -86,7 +87,7 @@ const signedOutNavItems = [
 ] as const;
 
 const worldCupPoolNavItems = [
-  { key: "overview", label: "Pool", href: "" },
+  { key: "overview", label: "Leaderboard", href: "" },
   { key: "rules", label: "Rules", href: "/rules" },
   { key: "projections", label: "Projections", href: "/projections" },
   { key: "heatmap", label: "Heatmap", href: "/heatmap" },
@@ -94,13 +95,13 @@ const worldCupPoolNavItems = [
 ] as const;
 
 const roundOf16PoolNavItems = [
-  { key: "overview", label: "Pool", href: "" },
+  { key: "overview", label: "Leaderboard", href: "" },
   { key: "rules", label: "Rules", href: "/rules" },
   { key: "bracket", label: "Bracket", href: "/bracket" },
 ] as const;
 
 const adminNavItems = [
-  { label: "Pools", href: "/dashboard/pools" },
+  { label: "Workspace", href: "/dashboard" },
   { label: "Templates", href: "/dashboard/templates" },
 ] as const;
 
@@ -276,11 +277,11 @@ export function ThemeToggle() {
   );
 }
 
-export function DashboardHeader() {
-  return <LandingPageHeader />;
+export function DashboardHeader({ notifications }: { notifications?: CommissionerNotification[] }) {
+  return <LandingPageHeader notifications={notifications ?? []} showNotifications={notifications !== undefined} />;
 }
 
-export function LandingPageHeader({ solid = false }: { solid?: boolean }) {
+export function LandingPageHeader({ solid = false, notifications = [], showNotifications = false }: { solid?: boolean; notifications?: CommissionerNotification[]; showNotifications?: boolean }) {
   const [hasScrolled, setHasScrolled] = React.useState(false);
 
   React.useEffect(() => {
@@ -309,11 +310,34 @@ export function LandingPageHeader({ solid = false }: { solid?: boolean }) {
         <SiteHeaderNav />
         <div className="flex shrink-0 items-center gap-2">
           <ThemeToggle />
+          {showNotifications ? <HeaderNotifications notifications={notifications} /> : null}
           <HeaderAccountControls />
         </div>
       </nav>
     </header>
   );
+}
+
+function HeaderNotifications({ notifications }: { notifications: CommissionerNotification[] }) {
+  const { user, hydrated } = useMockUser();
+  const [open, setOpen] = React.useState(false);
+
+  React.useEffect(() => {
+    if (!open) return;
+    const closeOnEscape = (event: KeyboardEvent) => { if (event.key === "Escape") setOpen(false); };
+    window.addEventListener("keydown", closeOnEscape);
+    return () => window.removeEventListener("keydown", closeOnEscape);
+  }, [open]);
+
+  if (!hydrated || !user) return null;
+
+  return <>
+    <Button type="button" variant="outline" size="icon" aria-label={`Open notifications${notifications.length ? ` (${notifications.length})` : ""}`} aria-expanded={open} onClick={() => setOpen(true)} className="relative">
+      <Bell />
+      {notifications.length ? <span className="absolute -right-1 -top-1 grid min-w-4 place-items-center rounded-full bg-brand-hot px-1 text-[10px] font-bold leading-4 text-white">{notifications.length}</span> : null}
+    </Button>
+    {open ? <div className="fixed inset-0 z-[60]" role="presentation"><button type="button" aria-label="Close notifications" className="absolute inset-0 bg-black/25" onClick={() => setOpen(false)} /><aside role="dialog" aria-modal="true" aria-label="Notifications" className="absolute inset-y-0 right-0 flex w-full max-w-md flex-col border-l border-border bg-surface-paper shadow-2xl"><div className="flex items-center justify-between border-b px-5 py-4"><div><h2 className="text-lg font-bold text-brand-ink">Inbox</h2><p className="text-sm text-muted-foreground">Recent participant submissions.</p></div><Button type="button" variant="ghost" size="icon" aria-label="Close notifications" onClick={() => setOpen(false)}><X /></Button></div><div className="min-h-0 flex-1 overflow-y-auto divide-y">{notifications.length ? notifications.map((notification) => <article key={notification.id} className="space-y-2 px-5 py-4"><div className="flex items-start justify-between gap-3"><p className="font-semibold text-brand-ink">{notification.title}</p><time className="shrink-0 text-xs text-muted-foreground">{new Date(notification.createdAt).toLocaleString()}</time></div><p className="text-sm leading-6 text-muted-foreground">{notification.body}</p><p className="text-xs font-medium text-brand-hot">{notification.poolName}</p></article>) : <p className="px-5 py-6 text-sm leading-6 text-muted-foreground">No submitted picks yet. New participant submissions will appear here.</p>}</div></aside></div> : null}
+  </>;
 }
 
 function getPublicPoolActiveRoute(pathname: string): PublicPoolNavKey {
@@ -719,6 +743,17 @@ export function MockSignUpForm({ nextPath }: MockAuthFormProps) {
   return (
     <form className="space-y-5" action={formAction}>
       <input type="hidden" name="next" value={redirectPath} />
+      <p className="text-xs leading-5 text-muted-foreground">
+        By continuing with Google or creating an account, you agree to the{" "}
+        <Link href="/terms" className="font-semibold text-brand-hot hover:underline">
+          Terms of Use
+        </Link>{" "}
+        and acknowledge the{" "}
+        <Link href="/privacy" className="font-semibold text-brand-hot hover:underline">
+          Privacy Notice
+        </Link>
+        .
+      </p>
       <GoogleAuthButton nextPath={redirectPath} />
       <AuthMethodDivider />
       <div className="space-y-2">
@@ -921,6 +956,12 @@ export function HeaderAccountControls({
             <Link href="/dashboard">
               <UserRound />
               Workspace
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link href="/dashboard/activity">
+              <History />
+              Recent activity
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={handleSignOut}>

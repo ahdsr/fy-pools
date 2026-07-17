@@ -7,7 +7,10 @@ import entriesJson from "@/data/marcins-world-cup-2026/entries.json";
 import picksJson from "@/data/marcins-world-cup-2026/picks.json";
 import resultsJson from "@/data/marcins-world-cup-2026/results.json";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
-import { buildTournamentRaceModel } from "@/lib/world-cup-pool/tournament-race";
+import {
+  buildTournamentRaceModel,
+  findBestTournamentRaceEntryProjection,
+} from "@/lib/world-cup-pool/tournament-race";
 import type {
   EntriesConfig,
   EntryPicks,
@@ -167,5 +170,53 @@ describe("tournament race projections", () => {
       stage: "thirdPlace",
       label: "3rd-place match",
     });
+  });
+
+  it("scores every remaining bracket path before reporting an entry's best finish", () => {
+    const { entriesConfig, picksByPath, results, referencePicks } = fixture();
+    const settleEarlierMatches = (match: NonNullable<PoolResults["matches"]>[number]) => {
+      if (match.id === "400021541") {
+        return {
+          ...match,
+          homeTeam: "France",
+          awayTeam: "Spain",
+          winner: "Spain",
+          loser: "France",
+          completed: true,
+          state: "post",
+        };
+      }
+      if (match.id === "400021540") {
+        return {
+          ...match,
+          homeTeam: "England",
+          awayTeam: "Argentina",
+          winner: "Argentina",
+          loser: "England",
+          completed: true,
+          state: "post",
+        };
+      }
+      if ((match.matchNumber ?? 0) > 0 && (match.matchNumber ?? 0) < 101) {
+        return { ...match, completed: true, state: "post" };
+      }
+      return match;
+    };
+    const lateTournamentResults: PoolResults = {
+      ...results,
+      matches: results.matches?.map(settleEarlierMatches),
+      fixtures: results.fixtures?.map(settleEarlierMatches),
+    };
+
+    const projection = findBestTournamentRaceEntryProjection({
+      entriesConfig,
+      picksByPath,
+      results: lateTournamentResults,
+      referencePicks,
+      entryId: "lucas-czuchraj",
+    });
+
+    expect(projection?.rank).toBe(4);
+    expect(projection?.total).toBe(209);
   });
 });

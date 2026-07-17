@@ -1,8 +1,8 @@
 import Link from "next/link";
 
 import { BrandWordmark } from "@/components/app/brand";
+import { SUPPORT_EMAIL, supportMailto } from "@/lib/site-contact";
 import { cn } from "@/lib/utils";
-import { WORLD_CUP_REFERENCE_LINKS } from "@/lib/world-cup-pool/reference-urls";
 
 type SiteFooterProps = React.ComponentProps<"footer">;
 
@@ -30,8 +30,14 @@ const footerGroups = [
     ],
   },
   {
-    title: "References",
-    links: WORLD_CUP_REFERENCE_LINKS,
+    title: "Support",
+    links: [
+      { label: "Contact PoolWaffle", href: "/contact" },
+      { label: "Sports data sources", href: "/support/data-sources" },
+      { label: "Privacy Notice", href: "/privacy" },
+      { label: "Terms of Use", href: "/terms" },
+      { label: SUPPORT_EMAIL, href: supportMailto() },
+    ],
   },
 ] as const;
 
@@ -66,6 +72,13 @@ export function SiteFooter({ className, ...props }: SiteFooterProps) {
                       >
                         {link.label}
                       </a>
+                    ) : link.href.startsWith("mailto:") ? (
+                      <a
+                        href={link.href}
+                        className="text-sm font-normal text-muted-foreground transition-colors hover:text-brand-hot"
+                      >
+                        {link.label}
+                      </a>
                     ) : (
                       <Link
                         href={link.href}
@@ -86,6 +99,9 @@ export function SiteFooter({ className, ...props }: SiteFooterProps) {
           <p className="text-sm font-normal leading-6 text-muted-foreground">
             Private sports pool hosting for commissioners who need clean picks,
             locked entries, trusted scoring, and public standings.
+          </p>
+          <p className="text-xs font-semibold uppercase tracking-normal text-brand-hot">
+            Closed beta
           </p>
           <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground">
             Copyright 2026 PoolWaffle

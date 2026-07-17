@@ -21,21 +21,20 @@ export const metadata: Metadata = {
     absolute: "PoolWaffle | Private Sports Pool Hosting",
   },
   description:
-    "Create private sports pools with templates, spreadsheet imports, locked player picks, scoring, projections, and public leaderboards.",
+    "Closed-beta private sports pool hosting with live templates, locked player picks, scoring, and public leaderboards.",
   keywords: [
     "sports pool hosting",
     "private sports pools",
     "office pool software",
-    "World Cup pool",
     "NBA playoff pool",
-    "NFL survivor pool",
-    "pick'em pool",
+    "F1 pool",
+    "golf pool",
     "pool leaderboard",
   ],
   openGraph: {
     title: "PoolWaffle | Private Sports Pool Hosting",
     description:
-      "Launch private sports pools from templates or spreadsheets, collect clean picks, lock entries, and publish standings players can trust.",
+      "Launch closed-beta sports pools from live templates, collect clean picks, lock entries, and publish standings players can trust.",
     type: "website",
   },
   alternates: {
@@ -45,7 +44,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "PoolWaffle | Private Sports Pool Hosting",
     description:
-      "Launch private sports pools, collect picks, lock entries, and share standings players can trust.",
+      "Launch closed-beta sports pools, collect picks, lock entries, and share standings players can trust.",
   },
 };
 
@@ -53,8 +52,8 @@ export default function Home() {
   const steps = [
     {
       label: "01",
-      title: "Start from a proven format",
-      body: "Launch World Cup predictors, NBA playoff brackets, NFL survivor pools, weekly pick'em, golf majors, tennis draws, or a custom spreadsheet import.",
+      title: "Choose a live format",
+      body: "Start with an F1 Grand Prix, NBA Series Bracket, ATP Top Four, or PGA Tour Top Five pool during the closed beta.",
       icon: Brackets,
     },
     {
@@ -74,12 +73,12 @@ export default function Home() {
   const features = [
     {
       title: "Template library",
-      body: "Build from sport-specific pool templates with pick fields, lock timing, and scoring structure already mapped.",
+      body: "Launch the four closed-beta formats with their pick fields, lock timing, and scoring structure already mapped.",
       icon: Brackets,
     },
     {
-      title: "Spreadsheet import",
-      body: "Bring the workbook your group already uses and convert rules, formulas, brackets, bonuses, and tiebreakers into a hosted pool.",
+      title: "Spreadsheet conversion beta",
+      body: "Tell us about the workbook your group uses today and request early access to the upcoming conversion workflow.",
       icon: FileSpreadsheet,
     },
     {
@@ -89,7 +88,7 @@ export default function Home() {
     },
     {
       title: "Player-friendly pool pages",
-      body: "Give players read-only standings, score breakdowns, projections, and entry details without sending around manual updates.",
+      body: "Give players read-only standings, score breakdowns, and entry details without sending around manual updates.",
       icon: ChartNoAxesCombined,
     },
   ];
@@ -107,19 +106,16 @@ export default function Home() {
     },
     {
       title: "Public view",
-      body: "Share standings, score breakdowns, brackets, and projections from a single pool page.",
+      body: "Share standings, score breakdowns, brackets, and entry details from a single pool page.",
       icon: Trophy,
     },
   ];
 
   const formats = [
-    "World Cup full predictors",
-    "NBA series brackets",
-    "NFL survivor pools",
-    "Weekly pick'em",
-    "Golf major rosters",
-    "Tennis tournament brackets",
-    "Custom spreadsheet pools",
+    "F1 Grand Prix Predictor",
+    "NBA Series Bracket",
+    "ATP Tour Top Four Predictor",
+    "PGA Tour Top Five Predictor",
   ];
 
   const jsonLd = {
@@ -130,7 +126,7 @@ export default function Home() {
     operatingSystem: "Web",
     url: getAppSiteUrl(),
     description:
-      "Private sports pool hosting for commissioners, with templates, spreadsheet imports, player entry locks, scoring, projections, and public standings.",
+      "Closed-beta private sports pool hosting for commissioners, with live templates, player entry locks, scoring, and public standings.",
   };
 
   return (
@@ -148,16 +144,15 @@ export default function Home() {
               <div className="space-y-6">
                 <div className="space-y-5">
                   <p className="text-xs font-semibold tracking-[0.08em] text-brand-hot uppercase">
-                    Better pools, together
+                    Closed beta · better pools, together
                   </p>
                   <h1 className="hero-heading max-w-[650px] text-[clamp(2.125rem,9vw,3.25rem)] font-normal leading-[1.08] text-foreground sm:leading-[1.04] md:text-[clamp(3.25rem,5.5vw,4.7rem)]">
-                    Private sports pool hosting for serious commissioners.
+                    Private sports pool hosting for early groups.
                   </h1>
                   <p className="max-w-[610px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-[1.05rem] sm:font-light sm:leading-7">
-                    PoolWaffle helps you launch polished office pools and private
-                    sports contests, collect clean player picks, lock entries on
-                    schedule, score results, and publish standings everyone can
-                    audit.
+                    PoolWaffle is testing a better way to launch private sports
+                    pools: collect clean player picks, lock entries on schedule,
+                    score results, and publish standings everyone can audit.
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 sm:flex-row">
@@ -245,10 +240,9 @@ export default function Home() {
               run contests.
             </h2>
             <p className="max-w-[520px] text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
-              Start from a template when the format is common. Upload your own
-              spreadsheet when the format is custom. Either way, players get a
-              clean private pool page and commissioners keep control of the
-              scoring.
+              Start with one of the formats available in the beta. If your pool
+              is custom or lives in a spreadsheet, tell us what you run and we’ll
+              use it to shape the next release.
             </p>
           </div>
           <div className="grid gap-4 sm:grid-cols-2">
@@ -327,12 +321,12 @@ export default function Home() {
         <section className="grid gap-6 rounded-[1.75rem] border border-border bg-card p-5 sm:p-6 md:grid-cols-[0.55fr_1fr] md:items-start md:p-8">
           <div className="space-y-3">
             <h2 className="text-2xl font-normal leading-tight text-foreground sm:text-3xl">
-              Pool formats covered
+              Formats available in the beta
             </h2>
             <p className="text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-base sm:font-light sm:leading-7">
-              Use PoolWaffle for tournament brackets, season-long contests,
-              party sheets, office pools, family pools, and commissioner-run
-              custom formats.
+              These formats can launch today. More templates and spreadsheet
+              conversion are available by early-access request while we test
+              them with small groups.
             </p>
           </div>
           <ul className="grid gap-x-4 gap-y-3 sm:grid-cols-2">

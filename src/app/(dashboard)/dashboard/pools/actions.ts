@@ -3,10 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import {
-  deleteCommissionerPool,
-  updateCommissionerRoundOf16AdminPool,
-} from "@/lib/round-of-16/persistence";
+import { updateCommissionerRoundOf16AdminPool } from "@/lib/round-of-16/persistence";
 import { parseJsonFormValue } from "@/lib/form-json";
 import type {
   RoundOf16InviteInput,
@@ -16,6 +13,7 @@ import type {
 export type UpdatePoolAdminState = {
   message?: string;
 };
+
 
 export async function updatePoolAdminAction(
   _state: UpdatePoolAdminState,
@@ -64,28 +62,4 @@ export async function updatePoolAdminAction(
   if (redirectPath) redirect(redirectPath);
 
   return {};
-}
-
-export async function deletePoolAction(formData: FormData) {
-  const poolId = String(formData.get("poolId") ?? "");
-  let redirectPath = "";
-
-  try {
-    const deleted = await deleteCommissionerPool(poolId);
-
-    revalidatePath("/dashboard");
-    revalidatePath("/dashboard/pools");
-    revalidatePath(`/pools/${deleted.poolSlug}`);
-  } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Pool could not be deleted.";
-
-    if (message === "You must be signed in.") {
-      redirectPath = "/sign-in?next=/dashboard/pools";
-    } else {
-      throw error;
-    }
-  }
-
-  if (redirectPath) redirect(redirectPath);
 }

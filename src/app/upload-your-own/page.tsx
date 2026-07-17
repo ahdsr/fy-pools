@@ -1,10 +1,8 @@
-import Link from "next/link";
 import type { Metadata } from "next";
 import {
-  ArrowRight,
   Brackets,
-  CheckCircle2,
   FileSpreadsheet,
+  Sparkles,
   Trophy,
   Users,
 } from "lucide-react";
@@ -16,35 +14,35 @@ import {
   LedgerRows,
 } from "@/components/app/ledger";
 import { PageShell } from "@/components/app/page-shell";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { earlyAccessMailto } from "@/lib/site-contact";
 
 export const metadata: Metadata = {
-  title: "Convert a spreadsheet pool",
+  title: "Spreadsheet conversion beta",
   description:
-    "Turn the sports-pool spreadsheet your group already uses into a hosted PoolWaffle pool with online picks, scoring, and standings.",
+    "Request early access to bring an existing spreadsheet-based sports pool online with PoolWaffle.",
   alternates: {
     canonical: "/upload-your-own",
   },
   openGraph: {
-    title: "Convert a spreadsheet pool | PoolWaffle",
+    title: "Spreadsheet conversion beta | PoolWaffle",
     description:
-      "Bring your existing pool format online without rebuilding its picks, scoring, payouts, or standings from scratch.",
+      "Tell PoolWaffle about the spreadsheet pool you want to bring online next.",
   },
 };
 
 const conversionSteps = [
   {
-    title: "Upload the spreadsheet you already use",
-    body: "Bring the workbook, tabs, formulas, pool rules, seed lists, and scoring notes that already run your group.",
+    title: "Tell us about your current pool",
+    body: "Share the workbook, format, pool rules, scoring notes, and event timing that make your group’s pool unique.",
   },
   {
-    title: "Map it into a hosted pool",
-    body: "PoolWaffle turns your format into entry forms, valid pick options, lock rules, brackets, bonus questions, and scoring rules.",
+    title: "Help us prioritize the conversion",
+    body: "We are collecting closed-beta requests for custom formats, scoring rules, brackets, and import needs before opening this workflow more broadly.",
   },
   {
-    title: "Invite players and publish standings",
-    body: "Players submit clean picks online while commissioners manage entries, review brackets, and share trusted leaderboard updates.",
+    title: "Plan the hosted pool together",
+    body: "If your format is a fit for the beta, we will follow up before you move any workbook data or invite your players.",
   },
 ];
 
@@ -74,34 +72,30 @@ const importIncludes = [
 export default function UploadYourOwnPage() {
   return (
     <PageShell
-      eyebrow="Spreadsheet import"
-      title="Upload your spreadsheet. Launch the pool your group already knows."
-      description="If your pool lives in Excel today, PoolWaffle can turn that workbook into a hosted pool with online picks, brackets, scoring, standings, and commissioner tools."
-      backHref="/"
-      status="Import landing"
+      eyebrow="Closed-beta early access"
+      title="Bring your spreadsheet pool online next."
+      description="Spreadsheet conversion is not self-serve yet. Tell us about the format your group already knows so we can prioritize the right closed-beta workflow."
     >
       <section className="grid gap-5 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
         <LedgerPanel
-          title="What we can convert"
-          description="Keep the format that makes your pool yours, then make it easier to run."
+          title="What we want to learn"
+          description="The details below help us understand whether your format belongs in the next conversion cohort."
         >
           <LedgerFeatureRows items={importIncludes} />
         </LedgerPanel>
 
         <LedgerPanel
-          title="From workbook to pool"
-          description="A guided conversion keeps the spreadsheet familiar while moving the hard parts online."
+          title="How early access works"
+          description="We will not ask you to upload a workbook through this page. Start with a short email instead."
           className="bg-surface-paper"
         >
           <LedgerRows>
-            {conversionSteps.map((step, index) => (
+            {conversionSteps.map((step) => (
               <LedgerRow
                 key={step.title}
                 className="grid gap-4 sm:grid-cols-[auto_1fr] sm:items-start"
               >
-                <Badge variant="secondary">
-                  {String(index + 1).padStart(2, "0")}
-                </Badge>
+                <Sparkles className="mt-1 size-5 text-brand-hot" aria-hidden="true" />
                 <div className="space-y-2">
                   <h2 className="text-xl font-bold tracking-[0.005em] text-brand-ink">
                     {step.title}
@@ -119,27 +113,24 @@ export default function UploadYourOwnPage() {
       <LedgerPanel className="bg-accent text-accent-foreground">
         <LedgerRow className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
           <div className="space-y-3">
-            <div className="flex items-center gap-2 text-sm font-bold uppercase tracking-normal text-cta-green">
-              <CheckCircle2 className="size-4" />
-              Built for custom commissioner spreadsheets
+            <div className="text-sm font-bold uppercase tracking-normal text-cta-green">
+              Request conversion early access
             </div>
             <h2 className="max-w-[720px] text-2xl font-bold tracking-[0.005em] text-white">
-              Bring your existing pool format instead of rebuilding it from a
-              blank template.
+              Send us the format you want to run. We’ll use it to shape the
+              spreadsheet-conversion beta.
             </h2>
           </div>
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild variant="primaryGreen">
-              <Link href="/dashboard/pools/new">
-                Start pool setup <ArrowRight />
-              </Link>
+              <a href={earlyAccessMailto("spreadsheet conversion")}>Request early access</a>
             </Button>
             <Button
               asChild
               variant="ghost"
               className="text-white hover:bg-white/10 hover:text-white"
             >
-              <Link href="/dashboard/templates">Browse templates</Link>
+              <a href="/templates">Browse available templates</a>
             </Button>
           </div>
         </LedgerRow>

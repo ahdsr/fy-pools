@@ -44,7 +44,7 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
     templates: [
       {
         slug: "f1-grand-prix-predictor",
-        name: "Grand Prix Predictor",
+        name: "F1 Grand Prix Predictor",
         bestFor: "Race-weekend groups",
         picks: "Qualifying and race top three",
         lock: "Before qualifying",

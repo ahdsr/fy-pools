@@ -38,7 +38,7 @@ export function PublicPoolShell({
     <main className="relative isolate min-h-screen overflow-hidden bg-background">
       <AbstractShapeBackground />
 
-      <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-7 px-4 py-5 sm:px-5 md:gap-9 md:px-6 md:py-8">
+      <div className="relative z-10 flex w-full flex-col gap-7 px-4 py-5 sm:px-5 md:gap-9 md:py-8 lg:px-[43px]">
         {picksSubmitted ? (
           <div
             className="flex items-start gap-3 border border-brand-success/30 bg-cta-green-soft px-4 py-3 text-brand-ink"

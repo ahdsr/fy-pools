@@ -43,8 +43,9 @@ deadline, score entries, and share a leaderboard.
   publish, invite changes, lock changes, and scoring refreshes.
 - [x] Improve deployment documentation and keep `.env.example` aligned with the
   production environment contract.
-- [ ] Add minimal privacy, terms, and contact links if the product is launched
-  publicly beyond a private test group.
+- [x] Public closed-beta release layer: publish privacy, terms, and contact
+  pages; use transparent beta positioning; and direct upcoming-format interest
+  to a manual support inbox rather than implying unavailable workflows.
 
 ## P2 Post-MVP
 

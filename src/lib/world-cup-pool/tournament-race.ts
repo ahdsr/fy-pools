@@ -49,6 +49,12 @@ export type TournamentRaceModel = {
   totalSelectableMatches: number;
 };
 
+export type TournamentRaceEntryProjection = {
+  rank: number;
+  total: number;
+  standings: TournamentRaceEntry[];
+};
+
 type ResolvedMatch = MatchResult & {
   original: MatchResult;
   official: boolean;
@@ -303,6 +309,130 @@ function checkpointFor({
       trackedIds,
     ),
   };
+}
+
+function standingsForSelections({
+  entriesConfig,
+  picksByPath,
+  results,
+  referencePicks,
+  selections,
+}: {
+  entriesConfig: EntriesConfig;
+  picksByPath: Map<string, EntryPicks>;
+  results: PoolResults;
+  referencePicks: EntryPicks;
+  selections: TournamentRaceSelections;
+}) {
+  const resolved = resolveMatches({ results, referencePicks, selections });
+  const completedResults = projectedResults({
+    results,
+    referencePicks,
+    resolved: resolved.resolved,
+  });
+
+  return buildLeaderboardRows(entriesConfig, picksByPath, completedResults);
+}
+
+/**
+ * Exhaustively checks the remaining knockout bracket for one entry's best
+ * possible finish. This deliberately uses the same complete-result scoring
+ * path as the interactive tournament race, rather than adding isolated
+ * scoring events together.
+ */
+export function findBestTournamentRaceEntryProjection({
+  entriesConfig,
+  picksByPath,
+  results,
+  referencePicks,
+  entryId,
+  maxLeaves = 1_024,
+}: {
+  entriesConfig: EntriesConfig;
+  picksByPath: Map<string, EntryPicks>;
+  results: PoolResults;
+  referencePicks: EntryPicks;
+  entryId: string;
+  maxLeaves?: number;
+}): TournamentRaceEntryProjection | null {
+  const initialModel = buildTournamentRaceModel({
+    entriesConfig,
+    picksByPath,
+    results,
+    referencePicks,
+  });
+  if (initialModel && initialModel.totalSelectableMatches > 10) return null;
+
+  let best: TournamentRaceEntryProjection | null = null;
+  let leavesChecked = 0;
+  let exceededLimit = false;
+
+  function consider(selections: TournamentRaceSelections) {
+    if (leavesChecked >= maxLeaves) {
+      exceededLimit = true;
+      return;
+    }
+    leavesChecked += 1;
+
+    const rows = standingsForSelections({
+      entriesConfig,
+      picksByPath,
+      results,
+      referencePicks,
+      selections,
+    });
+    const target = rows.find((row) => row.id === entryId);
+    if (!target) return;
+
+    const projection = {
+      rank: target.rank,
+      total: target.score.total,
+      standings: rows.map((row) => ({
+        id: row.id,
+        name: row.name,
+        rank: row.rank,
+        total: row.score.total,
+      })),
+    };
+
+    if (
+      !best ||
+      projection.rank < best.rank ||
+      (projection.rank === best.rank && projection.total > best.total)
+    ) {
+      best = projection;
+    }
+  }
+
+  function visit(selections: TournamentRaceSelections) {
+    if (exceededLimit) return;
+
+    const model = buildTournamentRaceModel({
+      entriesConfig,
+      picksByPath,
+      results,
+      referencePicks,
+      selections,
+    });
+    if (!model) {
+      consider(selections);
+      return;
+    }
+
+    const next = model.matches.find(
+      (match) => match.selectable && !model.normalizedSelections[match.id],
+    );
+    if (!next) {
+      consider(model.normalizedSelections);
+      return;
+    }
+
+    visit({ ...model.normalizedSelections, [next.id]: next.homeTeam });
+    visit({ ...model.normalizedSelections, [next.id]: next.awayTeam });
+  }
+
+  visit({});
+  return exceededLimit ? null : best;
 }
 
 function raceStartIndex(matches: ResolvedMatch[]) {

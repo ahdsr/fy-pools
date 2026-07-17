@@ -1,4 +1,5 @@
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
+import { findBestTournamentRaceEntryProjection } from "@/lib/world-cup-pool/tournament-race";
 import { actualAdvancersForGroup, scorePool } from "@/lib/world-cup-pool/scoring";
 import {
   teamCanStillEarnFinalPosition,
@@ -1139,7 +1140,54 @@ export function findEntryScenarioProjection({
   }
 
   visit(0, []);
-  return best;
+
+  // Event-by-event scoring is useful for explaining a route, but a late
+  // knockout result also settles dependent advancement picks. Verify a
+  // claimed win against the complete bracket scorer so the movement panel
+  // cannot promise first place when the race chart correctly shows #2.
+  if (!best?.canFinishFirst) return best;
+
+  const fullBracketProjection = findBestTournamentRaceEntryProjection({
+    entriesConfig,
+    picksByPath,
+    results,
+    referencePicks: selectedPicks,
+    entryId,
+  });
+  if (!fullBracketProjection || fullBracketProjection.rank === 1) return best;
+
+  const currentTotals = new Map(
+    currentRows.map((row) => [row.id, row.score.total]),
+  );
+  const standings = fullBracketProjection.standings.map((row) => {
+    const currentTotal = currentTotals.get(row.id) ?? row.total;
+    return {
+      id: row.id,
+      name: row.name,
+      currentTotal,
+      projectedTotal: row.total,
+      delta: row.total - currentTotal,
+      rank: row.rank,
+    };
+  });
+  const selectedStanding = standings.find((row) => row.id === entryId);
+  if (!selectedStanding) return best;
+
+  return {
+    ...best,
+    projectedRank: selectedStanding.rank,
+    projectedTotal: selectedStanding.projectedTotal,
+    routeCovered: selectedStanding.delta,
+    canFinishFirst: false,
+    tiedForFirst: false,
+    tiedEntries: standings.filter(
+      (row) => row.projectedTotal === selectedStanding.projectedTotal,
+    ),
+    standings,
+    blockers: standings.filter(
+      (row) => row.id !== entryId && row.projectedTotal >= selectedStanding.projectedTotal,
+    ),
+  };
 }
 
 export function buildOpponentPathsReport({

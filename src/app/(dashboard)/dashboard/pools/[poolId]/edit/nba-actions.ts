@@ -5,9 +5,21 @@ import { parseJsonFormValue } from "@/lib/form-json";
 import {
   refreshNbaSeriesScoring,
   resetNbaSeriesSimulation,
+  updateNbaSeriesPoolBasics,
 } from "@/lib/nba-series/persistence";
+import type { PoolDetailsState } from "@/components/app/pool-details-editor";
 
 export type SimulateNbaSeriesState = { message?: string; completed?: string };
+
+export async function updateNbaSeriesPoolDetailsAction(_state: PoolDetailsState, formData: FormData): Promise<PoolDetailsState> {
+  try {
+    const poolId = String(formData.get("poolId") ?? "");
+    await updateNbaSeriesPoolBasics({ poolId, basics: { poolName: String(formData.get("poolName") ?? ""), commissionerName: String(formData.get("commissionerName") ?? ""), description: String(formData.get("description") ?? "") } });
+    return { saved: true };
+  } catch (error) {
+    return { message: error instanceof Error ? error.message : "Pool details could not be saved." };
+  }
+}
 
 export async function simulateNbaSeriesAction(_state: SimulateNbaSeriesState, formData: FormData): Promise<SimulateNbaSeriesState> {
   try {

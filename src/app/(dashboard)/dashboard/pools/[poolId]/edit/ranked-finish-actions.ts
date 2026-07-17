@@ -6,8 +6,20 @@ import { parseJsonFormValue } from "@/lib/form-json";
 import {
   recordRankedFinishPoolResult,
   resetRankedFinishPoolResults,
+  updateRankedFinishPoolBasics,
 } from "@/lib/ranked-finish/persistence";
 import type { RankedFinishResultState } from "./ranked-finish-commissioner";
+import type { PoolDetailsState } from "@/components/app/pool-details-editor";
+
+export async function updateRankedFinishPoolDetailsAction(templateSlug: string, _state: PoolDetailsState, formData: FormData): Promise<PoolDetailsState> {
+  try {
+    const poolId = String(formData.get("poolId") ?? "");
+    await updateRankedFinishPoolBasics({ poolId, templateSlug, basics: { poolName: String(formData.get("poolName") ?? ""), commissionerName: String(formData.get("commissionerName") ?? ""), description: String(formData.get("description") ?? "") } });
+    return { saved: true };
+  } catch (error) {
+    return { message: error instanceof Error ? error.message : "Pool details could not be saved." };
+  }
+}
 
 export async function recordRankedFinishResultAction(
   templateSlug: string,

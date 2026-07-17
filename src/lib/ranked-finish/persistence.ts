@@ -153,6 +153,24 @@ export async function resetRankedFinishPoolResults(poolId: string, templateSlug:
   const nextSettings = resetRankedFinishResults(settings); const { error: updateError } = await admin.from("pools").update({ settings: { rankedFinish: nextSettings }, updated_at: new Date().toISOString() }).eq("id", poolId); if (updateError) throw new Error(updateError.message); const rows = await rebuildStandings({ admin, poolId, settings: nextSettings }); await audit(admin, poolId, user.id, "ranked_finish.results_reset", "Reset ranked-finish results.", {}); revalidatePath(`/pools/${pool.slug}`); revalidatePath(`/pools/${pool.slug}/leaderboard`); revalidatePath(`/dashboard/pools/${poolId}/edit`); return { settings: nextSettings, rows };
 }
 
+export async function updateRankedFinishPoolBasics({ poolId, templateSlug, basics }: { poolId: string; templateSlug: string; basics: Pick<RankedFinishSettings["basics"], "poolName" | "commissionerName" | "description"> }) {
+  const user = await ensureUser(); const admin = createSupabaseAdminClient();
+  const { data: pool, error } = await admin.from("pools").select("id,owner_id,slug,settings").eq("id", poolId).single();
+  if (error) throw new Error(error.message);
+  if (String(pool.owner_id) !== user.id) throw new Error("Only the pool commissioner can edit this pool.");
+  const settings = rankedSettings(pool.settings, templateSlug);
+  if (!settings) throw new Error("Ranked-finish settings were not found.");
+  const poolName = basics.poolName.trim(); const commissionerName = basics.commissionerName.trim();
+  if (!poolName) throw new Error("Enter a pool name.");
+  if (!commissionerName) throw new Error("Enter the commissioner name.");
+  const nextSettings = { ...settings, basics: { ...settings.basics, poolName, commissionerName, description: basics.description.trim() } };
+  const { error: updateError } = await admin.from("pools").update({ name: poolName, settings: { rankedFinish: nextSettings }, updated_at: new Date().toISOString() }).eq("id", poolId);
+  if (updateError) throw new Error(updateError.message);
+  await audit(admin, poolId, user.id, "ranked_finish.pool_details_updated", `Updated pool details for ${poolName}.`, {});
+  revalidatePath("/dashboard"); revalidatePath("/dashboard/pools"); revalidatePath(`/dashboard/pools/${poolId}/edit`); revalidatePath(`/pools/${pool.slug}`); revalidatePath(`/pools/${pool.slug}/leaderboard`);
+  return nextSettings;
+}
+
 export async function getPublicRankedFinishPool(poolSlug: string, templateSlug: string): Promise<RankedFinishPublicPool | null> {
   if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,settings").eq("slug", poolSlug).maybeSingle(); if (error || !pool) return null; const settings = rankedSettings(pool.settings, templateSlug); if (!settings) return null;
   const [{ data: entries, error: entriesError }, { data: snapshot }] = await Promise.all([admin.from("entries").select("id,display_name,entry_picks(status,submitted_at)").eq("pool_id", pool.id), admin.from("standings_snapshots").select("rows,calculated_at").eq("pool_id", pool.id).order("calculated_at", { ascending: false }).limit(1).maybeSingle()]); if (entriesError) throw new Error(entriesError.message);

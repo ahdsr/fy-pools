@@ -1,8 +1,8 @@
-import { Info, Trophy, Users } from "lucide-react";
+import { Info } from "lucide-react";
 import { Suspense } from "react";
 import { notFound } from "next/navigation";
 
-import { LedgerPanel } from "@/components/app/ledger";
+import { LedgerPanel, LedgerRow, LedgerRows } from "@/components/app/ledger";
 import { LeaderboardTable } from "@/components/app/leaderboard-table";
 import { TournamentRace } from "@/components/app/tournament-race";
 import { DoubleDownPanel } from "@/components/app/double-down-panel";
@@ -10,8 +10,6 @@ import { placeDoubleDownCallAction } from "@/app/pools/[poolSlug]/double-down-ac
 import {
   LatestUpdatesPanel,
   PayoutPanel,
-  PublicToolsPanel,
-  StatGrid,
 } from "@/components/app/pool-public-widgets";
 import {
   PublicPoolScoreRefresh,
@@ -31,10 +29,7 @@ import { getPublicRankedFinishPool } from "@/lib/ranked-finish/persistence";
 import { RankedFinishPublicPanels } from "@/components/app/ranked-finish-public-panels";
 import { getPoolRuntimeTargetBySlug } from "@/lib/templates/runtime-dispatch";
 import { getKnockoutPoolStageDetails } from "@/lib/templates/round-of-16-draft";
-import {
-  describeCurrentPoolMatch,
-  getReferencePicks,
-} from "@/lib/world-cup-pool/current-match";
+import { getReferencePicks } from "@/lib/world-cup-pool/current-match";
 import {
   formatDateTime,
   getPublicPoolRouteInfo,
@@ -73,7 +68,11 @@ async function PoolPageContent({ poolSlug, picksSubmitted, inviteCode }: { poolS
 
   if (routeInfo) {
     return (
-      <PublicPoolShell poolName={routeInfo.poolName} title={routeInfo.poolName}>
+      <PublicPoolShell
+        poolName={routeInfo.poolName}
+        eyebrow="Leaderboard"
+        title={routeInfo.poolName}
+      >
         <Suspense fallback={<PoolDetailsFallback />}>
           <WorldCupPoolDetails poolSlug={poolSlug} />
         </Suspense>
@@ -108,6 +107,7 @@ async function RoundOf16PoolPage({ poolSlug, picksSubmitted, inviteCode }: { poo
     return (
       <PublicPoolShell
         poolName={roundOf16Pool.poolName}
+        eyebrow="Leaderboard"
         title={roundOf16Pool.poolName}
         description={
           roundOf16Pool.settings.basics.description ||
@@ -149,54 +149,10 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
 
   const { pool, rows, analytics, publicSlug } = standings;
   const referencePicks = getReferencePicks(pool.picksByPath);
-  const currentMatchLabel = describeCurrentPoolMatch(
-    pool.results,
-    referencePicks,
-  );
-  const poolTools = [
-    {
-      title: "On the Pitch",
-      body: `Step onto the ${currentMatchLabel} pitch.`,
-      href: `/pools/${publicSlug}/locker-room`,
-      icon: Users,
-    },
-    ...(rows[0]
-      ? [
-          {
-            title: "Leader detail",
-            body: "Open the current leader's score breakdown.",
-            href: `/pools/${publicSlug}/entry/${rows[0].id}`,
-            icon: Trophy,
-          },
-        ]
-      : []),
-  ];
   const doubleDown = await getDoubleDownPublicSnapshot(publicSlug);
 
   return (
     <>
-      <LedgerPanel>
-        <StatGrid
-          stats={[
-            {
-              label: "Entries",
-              value: rows.length,
-              note: "Imported from submitted picks",
-            },
-            {
-              label: "First place",
-              value: rows[0]?.name ?? "TBD",
-              note: `${analytics.leaderTotal} points`,
-            },
-            {
-              label: "Prize pool",
-              value: pool.entriesConfig.prizePoolLabel ?? "TBD",
-              note: `${analytics.payoutPlaces} payout places`,
-            },
-          ]}
-        />
-      </LedgerPanel>
-
       {doubleDown ? (
         <DoubleDownPanel
           snapshot={doubleDown}
@@ -234,12 +190,48 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
         </LedgerPanel>
 
         <aside className="grid gap-5">
+          <LedgerPanel>
+            <LedgerRows>
+              <LedgerRow>
+                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground sm:text-sm">
+                  Entries
+                </p>
+                <p className="mt-2 text-2xl font-semibold leading-none text-brand-ink sm:text-3xl">
+                  {rows.length}
+                </p>
+                <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm sm:leading-5">
+                  Imported from submitted picks
+                </p>
+              </LedgerRow>
+              <LedgerRow>
+                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground sm:text-sm">
+                  First place
+                </p>
+                <p className="mt-2 text-2xl font-semibold leading-none text-brand-ink sm:text-3xl">
+                  {rows[0]?.name ?? "TBD"}
+                </p>
+                <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm sm:leading-5">
+                  {analytics.leaderTotal} points
+                </p>
+              </LedgerRow>
+              <LedgerRow>
+                <p className="text-xs font-medium uppercase tracking-normal text-muted-foreground sm:text-sm">
+                  Prize pool
+                </p>
+                <p className="mt-2 text-2xl font-semibold leading-none text-brand-ink sm:text-3xl">
+                  {pool.entriesConfig.prizePoolLabel ?? "TBD"}
+                </p>
+                <p className="mt-2 text-[0.9375rem] font-normal leading-6 text-muted-foreground sm:text-sm sm:leading-5">
+                  {analytics.payoutPlaces} payout places
+                </p>
+              </LedgerRow>
+            </LedgerRows>
+          </LedgerPanel>
           <LatestUpdatesPanel
             results={pool.results}
             referencePicks={referencePicks}
           />
           <PayoutPanel entriesConfig={pool.entriesConfig} compact />
-          <PublicToolsPanel tools={poolTools} />
         </aside>
       </section>
       <PublicPoolScoreRefresh
