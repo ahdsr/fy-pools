@@ -229,6 +229,16 @@ export const TEMPLATE_CATEGORIES: TemplateCategory[] = [
     accent: "bg-brand-coral",
     templates: [
       {
+        slug: "tennis-atp-top-four-predictor",
+        name: "ATP Tour Top Four Predictor",
+        bestFor: "Tournament watch groups",
+        picks: "Exact top four finishers",
+        lock: "Before first main-draw serve",
+        popularity: "New",
+        availability: "available",
+        runtime: "ranked-finish",
+      },
+      {
         slug: "tennis-slam-bracket",
         name: "Grand Slam Bracket",
         bestFor: "Tournament bracket fans",

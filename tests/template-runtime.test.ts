@@ -16,6 +16,32 @@ import { createDefaultF1GrandPrixSettings } from "@/lib/ranked-finish/f1";
 import { createDefaultGolfPgaTopFiveSettings } from "@/lib/ranked-finish/golf";
 import { resolvePoolRuntimeTarget } from "@/lib/templates/runtime-dispatch";
 
+function persistedRankedFinishTemplate({
+  slug,
+  name,
+  description,
+  eventNoun,
+  competitorNoun,
+  lockLabel,
+}: {
+  slug: string;
+  name: string;
+  description: string;
+  eventNoun: string;
+  competitorNoun: string;
+  lockLabel: string;
+}) {
+  return {
+    slug,
+    name,
+    description,
+    config: {
+      runtime: "ranked-finish",
+      rankedFinish: { eventNoun, competitorNoun, lockLabel },
+    },
+  };
+}
+
 describe("template runtime foundation", () => {
   it("only exposes executable formats as launchable", () => {
     const templates = getAllTemplates();
@@ -28,6 +54,7 @@ describe("template runtime foundation", () => {
       "world-cup-quarter-final-pickem",
       "world-cup-semi-final-pickem",
       "nba-series-bracket",
+      "tennis-atp-top-four-predictor",
       "golf-pga-top-five-predictor",
     ]);
     expect(
@@ -103,16 +130,57 @@ describe("template runtime foundation", () => {
   it("dispatches persisted pools to one runtime without sport-specific route probing", () => {
     expect(resolvePoolRuntimeTarget({ roundOf16: {} })).toEqual({ runtime: "round-of-16" });
     expect(resolvePoolRuntimeTarget({ nbaSeries: createDefaultNbaSeriesSettings() })).toEqual({ runtime: "nba-series" });
-    expect(resolvePoolRuntimeTarget({ rankedFinish: createDefaultF1GrandPrixSettings() })).toMatchObject({
+    expect(resolvePoolRuntimeTarget(
+      { rankedFinish: createDefaultF1GrandPrixSettings() },
+      persistedRankedFinishTemplate({
+        slug: "f1-grand-prix-predictor",
+        name: "F1 Grand Prix Predictor",
+        description: "Qualifying and race exact-position predictions.",
+        eventNoun: "race weekend",
+        competitorNoun: "driver",
+        lockLabel: "before qualifying",
+      }),
+    )).toMatchObject({
       runtime: "ranked-finish",
       templateSlug: "f1-grand-prix-predictor",
       competitorNoun: "driver",
     });
-    expect(resolvePoolRuntimeTarget({ rankedFinish: createDefaultGolfPgaTopFiveSettings() })).toMatchObject({
+    expect(resolvePoolRuntimeTarget(
+      { rankedFinish: createDefaultGolfPgaTopFiveSettings() },
+      persistedRankedFinishTemplate({
+        slug: "golf-pga-top-five-predictor",
+        name: "PGA Tour Top Five Predictor",
+        description: "Exact top-five finishing-position predictions.",
+        eventNoun: "tournament",
+        competitorNoun: "golfer",
+        lockLabel: "before the first tee time",
+      }),
+    )).toMatchObject({
       runtime: "ranked-finish",
       templateSlug: "golf-pga-top-five-predictor",
       competitorNoun: "golfer",
     });
     expect(resolvePoolRuntimeTarget({ rankedFinish: { templateSlug: "unknown" } })).toBeNull();
+  });
+
+  it("keeps a published ranked-finish pool routable after its setup template is retired", () => {
+    const settings = createDefaultF1GrandPrixSettings();
+    settings.templateSlug = "retired-race-predictor";
+
+    expect(resolvePoolRuntimeTarget(
+      { rankedFinish: settings },
+      persistedRankedFinishTemplate({
+        slug: "retired-race-predictor",
+        name: "Retired Race Predictor",
+        description: "A version already in use by a published pool.",
+        eventNoun: "race weekend",
+        competitorNoun: "driver",
+        lockLabel: "before qualifying",
+      }),
+    )).toMatchObject({
+      runtime: "ranked-finish",
+      templateSlug: "retired-race-predictor",
+      templateName: "Retired Race Predictor",
+    });
   });
 });

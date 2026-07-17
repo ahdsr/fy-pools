@@ -66,36 +66,49 @@ export type PublicPoolNavKey =
   | "projections"
   | "heatmap"
   | "bracket"
-  | "locker-room"
   | "entry";
+
+export type PublicPoolNavVariant =
+  | "world-cup"
+  | "round-of-16"
+  | "nba-series"
+  | "ranked-finish"
+  | "unknown";
 
 type PublicPoolHeaderProps = {
   poolSlug?: string;
   active?: PublicPoolNavKey;
+  variant?: PublicPoolNavVariant;
 };
 
 const signedOutNavItems = [
-  { label: "Pools", href: "/dashboard/pools" },
   { label: "Templates", href: "/templates" },
-  { label: "Upload", href: "/upload-your-own" },
 ] as const;
 
-const publicPoolNavItems = [
+const worldCupPoolNavItems = [
   { key: "overview", label: "Pool", href: "" },
   { key: "rules", label: "Rules", href: "/rules" },
   { key: "projections", label: "Projections", href: "/projections" },
   { key: "heatmap", label: "Heatmap", href: "/heatmap" },
   { key: "bracket", label: "Bracket", href: "/bracket" },
-  { key: "locker-room", label: "On the Pitch", href: "/locker-room" },
+] as const;
+
+const roundOf16PoolNavItems = [
+  { key: "overview", label: "Pool", href: "" },
+  { key: "rules", label: "Rules", href: "/rules" },
+  { key: "bracket", label: "Bracket", href: "/bracket" },
 ] as const;
 
 const adminNavItems = [
-  { label: "Workspace", href: "/dashboard" },
   { label: "Pools", href: "/dashboard/pools" },
-  { label: "Events", href: "/dashboard/events" },
   { label: "Templates", href: "/dashboard/templates" },
-  { label: "Import", href: "/upload-your-own" },
 ] as const;
+
+function publicPoolNavItems(variant: PublicPoolNavVariant) {
+  if (variant === "world-cup") return worldCupPoolNavItems;
+  if (variant === "round-of-16") return roundOf16PoolNavItems;
+  return [];
+}
 
 type MockAuthContextValue = {
   user: AuthUser | null;
@@ -308,31 +321,33 @@ function getPublicPoolActiveRoute(pathname: string): PublicPoolNavKey {
   if (pathname.includes("/projections")) return "projections";
   if (pathname.includes("/heatmap")) return "heatmap";
   if (pathname.includes("/bracket")) return "bracket";
-  if (pathname.includes("/locker-room")) return "locker-room";
   if (pathname.includes("/entry/")) return "entry";
   return "overview";
 }
 
-export function PublicPoolRouteHeader() {
+export function PublicPoolRouteHeader({
+  poolSlug,
+  variant = "unknown",
+}: {
+  poolSlug: string;
+  variant?: PublicPoolNavVariant;
+}) {
   const pathname = usePathname();
-  const poolSlug = pathname.match(/^\/pools\/([^/]+)/)?.[1];
-
-  if (!poolSlug) {
-    return null;
-  }
 
   return (
     <PublicPoolHeader
-      poolSlug={decodeURIComponent(poolSlug)}
+      poolSlug={poolSlug}
       active={getPublicPoolActiveRoute(pathname)}
+      variant={variant}
     />
   );
 }
 
-export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
+export function PublicPoolHeader({ poolSlug, active, variant = "unknown" }: PublicPoolHeaderProps) {
   const { user, hydrated } = useMockUser();
   const signedIn = hydrated && user;
-  const showPoolNav = Boolean(poolSlug && active);
+  const items = publicPoolNavItems(variant);
+  const showPoolNav = Boolean(poolSlug && active && items.length > 1);
   const poolBaseHref = poolSlug ? `/pools/${poolSlug}` : "";
 
   return (
@@ -345,6 +360,7 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
             <MobilePublicPoolNav
               active={active}
               poolBaseHref={poolBaseHref}
+              items={items}
             />
           ) : null}
           <BrandWordmark
@@ -357,6 +373,7 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
             <PublicPoolNavLinks
               active={active}
               poolBaseHref={poolBaseHref}
+              items={items}
             />
         ) : (
           <div className="hidden lg:block" />
@@ -386,14 +403,16 @@ export function PublicPoolHeader({ poolSlug, active }: PublicPoolHeaderProps) {
 function PublicPoolNavLinks({
   active,
   poolBaseHref,
+  items,
 }: {
   active?: PublicPoolNavKey;
   poolBaseHref: string;
+  items: readonly { key: PublicPoolNavKey; label: string; href: string }[];
 }) {
   return (
     <div className="hidden min-w-0 lg:col-start-2 lg:row-start-1 lg:flex lg:justify-center lg:overflow-visible lg:px-1">
       <div className="inline-flex min-w-max items-center gap-7">
-        {publicPoolNavItems.map((item) => (
+        {items.map((item) => (
           <Link
             key={item.key}
             href={`${poolBaseHref}${item.href}`}
@@ -414,9 +433,11 @@ function PublicPoolNavLinks({
 function MobilePublicPoolNav({
   active,
   poolBaseHref,
+  items,
 }: {
   active?: PublicPoolNavKey;
   poolBaseHref: string;
+  items: readonly { key: PublicPoolNavKey; label: string; href: string }[];
 }) {
   return (
     <DropdownMenu>
@@ -437,7 +458,7 @@ function MobilePublicPoolNav({
       <DropdownMenuContent align="end" className="w-56">
         <DropdownMenuLabel>Pool navigation</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {publicPoolNavItems.map((item) => (
+        {items.map((item) => (
           <DropdownMenuItem key={item.key} asChild>
             <Link
               href={`${poolBaseHref}${item.href}`}

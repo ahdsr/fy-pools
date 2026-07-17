@@ -1,7 +1,9 @@
 import { Suspense } from "react";
 
 import { DashboardRouteSkeleton } from "@/components/app/dashboard-route-skeleton";
-import { getF1EventCatalogSnapshots, getNbaPlayoffCatalogSnapshots, getPgaEventCatalogSnapshots, selectUpcomingCatalogEvents } from "@/lib/events/catalog";
+import { getNbaPlayoffCatalogSnapshots } from "@/lib/events/catalog";
+import { getRankedFinishCatalogEvents } from "@/lib/ranked-finish/catalog";
+import { getRankedFinishTemplate } from "@/lib/ranked-finish/templates";
 import { NewPoolWizardStart } from "./new-pool-wizard-start";
 
 export const unstable_instant = {
@@ -18,11 +20,8 @@ export default async function NewPoolPage({
   const nbaCatalogEvents = template === "nba-series-bracket"
     ? await getNbaPlayoffCatalogSnapshots().catch(() => [])
     : [];
-  const f1CatalogEvents = template === "f1-grand-prix-predictor"
-    ? selectUpcomingCatalogEvents(await getF1EventCatalogSnapshots())
-    : [];
-  const golfCatalogEvents = template === "golf-pga-top-five-predictor"
-    ? selectUpcomingCatalogEvents(await getPgaEventCatalogSnapshots())
+  const rankedFinishCatalogEvents = getRankedFinishTemplate(template ?? "")
+    ? await getRankedFinishCatalogEvents(template!).catch(() => [])
     : [];
   return (
     <Suspense
@@ -33,7 +32,7 @@ export default async function NewPoolPage({
         />
       }
     >
-      <NewPoolWizardStart initialNbaCatalogEvents={nbaCatalogEvents} initialF1CatalogEvents={f1CatalogEvents} initialGolfCatalogEvents={golfCatalogEvents} />
+      <NewPoolWizardStart initialNbaCatalogEvents={nbaCatalogEvents} initialRankedFinishCatalogEvents={rankedFinishCatalogEvents} />
     </Suspense>
   );
 }

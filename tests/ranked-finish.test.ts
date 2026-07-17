@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import { createDefaultF1GrandPrixSettings } from "@/lib/ranked-finish/f1";
 import { createDefaultGolfPgaTopFiveSettings } from "@/lib/ranked-finish/golf";
+import { createDefaultAtpTopFourSettings } from "@/lib/ranked-finish/tennis";
+import { RANKED_FINISH_TEMPLATES } from "@/lib/ranked-finish/templates";
 import {
   recordRankedFinishResult,
   resetRankedFinishResults,
@@ -41,6 +43,34 @@ describe("ranked-finish template runtime", () => {
     expect(getPoolTemplateRuntime({ rankedFinish: createDefaultF1GrandPrixSettings() })).toBe("ranked-finish");
   });
 
+  it("keeps all ranked-finish setup differences in the shared template registry", () => {
+    expect(RANKED_FINISH_TEMPLATES.map((template) => ({
+      slug: template.slug,
+      competitionSlug: template.competitionSlug,
+      lockSession: template.setup.catalogLockSessionId,
+      settingsSlug: template.createDefaultSettings().templateSlug,
+    }))).toEqual([
+      {
+        slug: "f1-grand-prix-predictor",
+        competitionSlug: "formula-1",
+        lockSession: "qualifying",
+        settingsSlug: "f1-grand-prix-predictor",
+      },
+      {
+        slug: "golf-pga-top-five-predictor",
+        competitionSlug: "pga-tour",
+        lockSession: "first-tee",
+        settingsSlug: "golf-pga-top-five-predictor",
+      },
+      {
+        slug: "tennis-atp-top-four-predictor",
+        competitionSlug: "atp-tour",
+        lockSession: "first-serve",
+        settingsSlug: "tennis-atp-top-four-predictor",
+      },
+    ]);
+  });
+
   it("reuses ranked-finish validation and scoring for a PGA Top Five card", () => {
     let settings = createDefaultGolfPgaTopFiveSettings();
     settings.basics.commissionerName = "Commissioner";
@@ -51,6 +81,17 @@ describe("ranked-finish template runtime", () => {
     expect(validateRankedFinishPicks(settings, picks)).toBeNull();
     expect(scoreRankedFinishEntry({ settings, picks }).total).toBe(6);
     expect(getTemplateRuntimeDefinition("golf-pga-top-five-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
+  });
+
+  it("reuses ranked-finish validation and scoring for an ATP Top Four card", () => {
+    let settings = createDefaultAtpTopFourSettings();
+    settings.basics.commissionerName = "Commissioner";
+    settings = recordRankedFinishResult({ settings, marketId: "final-standings", competitorId: "player-1" });
+    const picks = { markets: { "final-standings": ["player-1", "player-2", "player-3", "player-4"] } };
+    expect(validateRankedFinishSettings(settings)).toBeNull();
+    expect(validateRankedFinishPicks(settings, picks)).toBeNull();
+    expect(scoreRankedFinishEntry({ settings, picks }).total).toBe(3);
+    expect(getTemplateRuntimeDefinition("tennis-atp-top-four-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
   });
 
   it("ships a protected ranked-finish submission transaction and lock dispatcher", () => {

@@ -5,6 +5,7 @@ import { createHash } from "node:crypto";
 import { fetchF1JolpicaCatalog } from "@/lib/events/f1-jolpica";
 import { fetchEspnNbaPlayoffCatalog } from "@/lib/events/nba-espn";
 import { fetchEspnPgaCatalog } from "@/lib/events/pga-espn";
+import { fetchEspnAtpCatalog } from "@/lib/events/tennis-espn";
 import {
   type CatalogEvent,
   type CatalogEventSnapshot,
@@ -113,6 +114,16 @@ export async function syncPgaEventCatalogToDatabase({
   return storeCatalogEvents(await fetchEspnPgaCatalog({ season }), now);
 }
 
+export async function syncAtpEventCatalogToDatabase({
+  season,
+  now = new Date(),
+}: {
+  season?: string;
+  now?: Date;
+} = {}) {
+  return storeCatalogEvents(await fetchEspnAtpCatalog({ season }), now);
+}
+
 export async function refreshF1EventCatalogForCommissioner(season?: string) {
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
   const user = await getSupabaseUser();
@@ -132,6 +143,13 @@ export async function refreshPgaEventCatalogForCommissioner(season?: string) {
   const user = await getSupabaseUser();
   if (!user) throw new Error("You must be signed in.");
   return syncPgaEventCatalogToDatabase({ season });
+}
+
+export async function refreshAtpEventCatalogForCommissioner(season?: string) {
+  if (!isSupabaseConfigured()) throw new Error("Supabase is not configured.");
+  const user = await getSupabaseUser();
+  if (!user) throw new Error("You must be signed in.");
+  return syncAtpEventCatalogToDatabase({ season });
 }
 
 async function getCatalogSnapshots({
@@ -167,6 +185,10 @@ export async function getNbaPlayoffCatalogSnapshots(now = new Date()) {
 
 export async function getPgaEventCatalogSnapshots(now = new Date()) {
   return getCatalogSnapshots({ provider: "espn", competitionSlug: "pga-tour", now });
+}
+
+export async function getAtpEventCatalogSnapshots(now = new Date()) {
+  return getCatalogSnapshots({ provider: "espn", competitionSlug: "atp-tour", now });
 }
 
 export function selectUpcomingCatalogEvents(

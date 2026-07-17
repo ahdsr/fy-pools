@@ -13,9 +13,11 @@ import {
   validateRankedFinishPicks,
   validateRankedFinishSettings,
 } from "@/lib/ranked-finish/engine";
-import { F1_GRAND_PRIX_TEMPLATE_SLUG } from "@/lib/ranked-finish/f1";
-import { GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG } from "@/lib/ranked-finish/golf";
-import { getRankedFinishTemplate, type RankedFinishTemplate } from "@/lib/ranked-finish/templates";
+import {
+  getRankedFinishRuntimeMetadata,
+  getRankedFinishTemplate,
+  type RankedFinishTemplate,
+} from "@/lib/ranked-finish/templates";
 import type { RankedFinishPickPayload, RankedFinishSettings } from "@/lib/ranked-finish/types";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseAdminClient, getSupabaseUser } from "@/lib/supabase/server";
@@ -56,12 +58,23 @@ async function ensureTemplate(
   settings: RankedFinishSettings,
 ) {
   const definition = templateFor(settings.templateSlug);
-  const { data: template, error } = await admin.from("template_versions").upsert({ slug: definition.slug, name: definition.name, version: 1, description: definition.description, config: { runtime: "ranked-finish", sport: definition.sport } }, { onConflict: "slug,version" }).select("id").single();
+  const { error: templateError } = await admin.from("template_versions").upsert({ slug: definition.slug, name: definition.name, version: 1, description: definition.description, config: { runtime: "ranked-finish", sport: definition.sport, rankedFinish: getRankedFinishRuntimeMetadata(definition) } }, { onConflict: "slug,version", ignoreDuplicates: true });
+  if (templateError) throw new Error(templateError.message);
+  const { data: template, error } = await admin.from("template_versions").select("id").eq("slug", definition.slug).eq("version", 1).single();
   if (error) throw new Error(error.message);
   const fields = settings.markets.flatMap((market, marketIndex) => Array.from({ length: market.positions }, (_, index) => ({ template_version_id: template.id, key: `${market.id}_p${index + 1}`, label: `${market.label} P${index + 1}`, pick_type: "team_bonus", required: true, sort_order: marketIndex * 100 + index, config: { fieldKind: "ranked_finish", market: market.id, position: index + 1 } })));
   const { error: fieldError } = await admin.from("template_pick_fields").upsert(fields, { onConflict: "template_version_id,key", ignoreDuplicates: true }); if (fieldError) throw new Error(fieldError.message);
   const { data: fieldRows, error: selectError } = await admin.from("template_pick_fields").select("id,key").eq("template_version_id", template.id); if (selectError) throw new Error(selectError.message);
   return { templateVersionId: String(template.id), fields: new Map((fieldRows ?? []).map((field) => [String(field.key), String(field.id)])) };
+}
+
+async function getTemplateFieldIds(admin: Admin, templateVersionId: string) {
+  const { data: fieldRows, error } = await admin
+    .from("template_pick_fields")
+    .select("id,key")
+    .eq("template_version_id", templateVersionId);
+  if (error) throw new Error(error.message);
+  return new Map((fieldRows ?? []).map((field) => [String(field.key), String(field.id)]));
 }
 
 async function canonicalizeRankedFinishSettings(
@@ -97,14 +110,6 @@ export async function publishRankedFinishPool({ settings, participants, template
   return { poolId, poolSlug: String(pool.slug), poolName: String(pool.name), poolHref: `/pools/${pool.slug}`, signupInviteLink: { code: String(signup?.code), href: `/join/${signup?.code}` }, inviteLinks: (insertedInvites ?? []).filter((invite) => invite.email).map((invite) => ({ email: String(invite.email), displayName: String(invite.display_name), href: `/join/${invite.code}` })) };
 }
 
-export async function publishF1RankedFinishPool(input: { settings: RankedFinishSettings; participants: RankedFinishInvite[] }) {
-  return publishRankedFinishPool({ ...input, templateSlug: F1_GRAND_PRIX_TEMPLATE_SLUG });
-}
-
-export async function publishGolfRankedFinishPool(input: { settings: RankedFinishSettings; participants: RankedFinishInvite[] }) {
-  return publishRankedFinishPool({ ...input, templateSlug: GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG });
-}
-
 function itemPayload(items: unknown): RankedFinishPickPayload {
   const markets: Record<string, string[]> = {};
   for (const item of Array.isArray(items) ? items : []) { const value = item && typeof item === "object" ? (item as { value?: unknown }).value : undefined; if (!value || typeof value !== "object") continue; const pick = value as { marketId?: unknown; position?: unknown; competitorId?: unknown }; if (typeof pick.marketId !== "string" || !Number.isInteger(pick.position) || typeof pick.competitorId !== "string") continue; const entries = markets[pick.marketId] ?? []; entries[Number(pick.position) - 1] = pick.competitorId; markets[pick.marketId] = entries; }
@@ -123,7 +128,7 @@ export async function submitRankedFinishPicks({ inviteCode: inviteCodeValue, pay
   if (join.invite.status === "revoked" || join.invite.status === "expired") throw new Error("This invite is no longer available.");
   if (!join.invite.isShareLink && normalizeEmailAddress(join.invite.email) !== normalizeEmailAddress(user.email)) throw new Error("Sign in with the email address this invite was sent to.");
   const validation = validateRankedFinishPicks(join.pool.settings, payload); if (validation) throw new Error(validation);
-  const admin = createSupabaseAdminClient(); const template = await ensureTemplate(admin, join.pool.settings); const items = join.pool.settings.markets.flatMap((market) => payload.markets[market.id].map((competitorId, index) => ({ template_pick_field_id: template.fields.get(`${market.id}_p${index + 1}`), pick_type: "team_bonus", value: { marketId: market.id, position: index + 1, competitorId } })));
+  const admin = createSupabaseAdminClient(); const fields = await getTemplateFieldIds(admin, join.pool.templateVersionId); const items = join.pool.settings.markets.flatMap((market) => payload.markets[market.id].map((competitorId, index) => ({ template_pick_field_id: fields.get(`${market.id}_p${index + 1}`), pick_type: "team_bonus", value: { marketId: market.id, position: index + 1, competitorId } })));
   if (items.some((item) => !item.template_pick_field_id)) throw new Error("Pool pick fields are not configured correctly.");
   const submittedAt = new Date().toISOString(); const { data, error } = await admin.rpc("submit_ranked_finish_picks_transaction", { p_pool_id: join.pool.id, p_user_id: user.id, p_template_version_id: join.pool.templateVersionId, p_invite_id: join.invite.id, p_accept_invite: !join.invite.isShareLink, p_display_name: user.user_metadata?.display_name ?? join.invite.displayName ?? user.email?.split("@")[0] ?? "Participant", p_entry_number: 1, p_entry_metadata: { inviteCode: inviteCodeValue }, p_submitted_at: submittedAt, p_pick_items: items, p_invite_code: inviteCodeValue });
   if (error) throw new Error(error.message); const row = Array.isArray(data) ? data[0] : data; if (!row?.entry_id) throw new Error("Picks were not submitted."); revalidatePath(`/pools/${join.pool.slug}`); return { entryId: String(row.entry_id), entryPickId: String(row.entry_pick_id), submittedAt };

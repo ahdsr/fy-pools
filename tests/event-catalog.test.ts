@@ -16,6 +16,8 @@ import {
 } from "@/lib/events/nba-espn";
 import { fetchEspnPgaCatalog, normalizeEspnPgaCatalog } from "@/lib/events/pga-espn";
 import { createGolfSettingsFromCatalogEvent } from "@/lib/ranked-finish/golf";
+import { fetchEspnAtpCatalog, normalizeEspnAtpCatalog } from "@/lib/events/tennis-espn";
+import { createAtpSettingsFromCatalogEvent } from "@/lib/ranked-finish/tennis";
 import { catalogEventSignature } from "@/lib/events/catalog";
 
 const drivers = Array.from({ length: 10 }, (_, index) => ({
@@ -107,6 +109,31 @@ const pgaScoreboard = {
       competitions: [{ date: "2026-08-13T11:00:00Z", competitors: [] }],
     },
   ],
+};
+
+const atpScoreboard = {
+  events: [{
+    id: "atp-ready",
+    name: "Example ATP Open",
+    date: "2026-08-03T10:00:00Z",
+    venue: { displayName: "Toronto, Canada" },
+    groupings: [{
+      grouping: { slug: "mens-singles" },
+      competitions: [
+        { startDate: "2026-08-03T10:00:00Z", round: { displayName: "Round 1" }, competitors: [
+          { id: "player-1", type: "athlete", athlete: { displayName: "Player One", shortName: "P. One" } },
+          { id: "player-2", type: "athlete", athlete: { displayName: "Player Two", shortName: "P. Two" } },
+        ] },
+        { startDate: "2026-08-03T12:00:00Z", round: { displayName: "Round 1" }, competitors: [
+          { id: "player-3", type: "athlete", athlete: { displayName: "Player Three" } },
+          { id: "player-4", type: "athlete", athlete: { displayName: "Player Four" } },
+        ] },
+        { startDate: "2026-08-02T09:00:00Z", round: { displayName: "Qualifying 1st Round" }, competitors: [
+          { id: "qualifier", type: "athlete", athlete: { displayName: "Qualifying Player" } },
+        ] },
+      ],
+    }],
+  }],
 };
 
 describe("live event catalog", () => {
@@ -232,6 +259,20 @@ describe("live event catalog", () => {
 
     const catalog = await fetchEspnPgaCatalog({ season: "2026", fetchImpl: async () => ({ ok: true, status: 200, statusText: "OK", json: async () => pgaScoreboard }) });
     expect(catalog.events).toHaveLength(2);
+  });
+
+  it("uses an ATP main-draw field, excluding qualifying entries, for a reusable Top Four pool", async () => {
+    const [event] = normalizeEspnAtpCatalog({ season: "2026", scoreboard: atpScoreboard });
+    expect(event).toMatchObject({ provider: "espn", competitionSlug: "atp-tour", readiness: "ready", fieldStatus: "confirmed", location: "Toronto, Canada" });
+    expect(event?.participants.map((participant) => participant.name)).toEqual(["Player Four", "Player One", "Player Three", "Player Two"]);
+
+    const snapshot = withSnapshotFreshness(event!, { fetchedAt: "2026-08-01T00:00:00.000Z", expiresAt: "2026-08-02T12:00:00.000Z", sourceSignature: "atp-fixture", now: new Date("2026-08-01T01:00:00.000Z") });
+    const settings = createAtpSettingsFromCatalogEvent(snapshot, { commissionerName: "Ada" });
+    expect(settings.basics.picksLockAt).toBe("2026-08-03T09:45:00.000Z");
+    expect(settings.competitors).toHaveLength(4);
+
+    const catalog = await fetchEspnAtpCatalog({ season: "2026", fetchImpl: async () => ({ ok: true, status: 200, statusText: "OK", json: async () => atpScoreboard }) });
+    expect(catalog.events[0]?.externalId).toBe("atp-2026-atp-ready");
   });
 
   it("uses per-event review signatures so unrelated catalog changes stay isolated", () => {

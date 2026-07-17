@@ -1,6 +1,7 @@
 import type { TemplateRuntimeDefinition } from "@/lib/templates/runtime";
 import { F1_GRAND_PRIX_TEMPLATE_SLUG } from "@/lib/ranked-finish/f1";
 import { GOLF_PGA_TOP_FIVE_TEMPLATE_SLUG } from "@/lib/ranked-finish/golf";
+import { ATP_TOP_FOUR_TEMPLATE_SLUG } from "@/lib/ranked-finish/tennis";
 
 const NBA_SERIES_IDS = [
   "east-r1-1",
@@ -113,6 +114,23 @@ export const TEMPLATE_RUNTIME_DEFINITIONS: readonly TemplateRuntimeDefinition[] 
     runtime: "ranked-finish",
     availability: "available",
     pickFields: Array.from({ length: 5 }, (_, index) => ({
+      key: `final-standings_p${index + 1}`,
+      label: `Final standings P${index + 1}`,
+      pickType: "team_bonus" as const,
+      required: true,
+      config: { fieldKind: "ranked_finish", market: "final-standings", position: index + 1 },
+    })),
+    scoringRules: [{ key: "exact-final-position", label: "Correct final position", points: 3 }],
+    lockPolicy: { scope: "event", defaultBufferMinutes: 15 },
+    supportsSimulation: true,
+  },
+  {
+    slug: ATP_TOP_FOUR_TEMPLATE_SLUG,
+    version: 1,
+    sport: "tennis",
+    runtime: "ranked-finish",
+    availability: "available",
+    pickFields: Array.from({ length: 4 }, (_, index) => ({
       key: `final-standings_p${index + 1}`,
       label: `Final standings P${index + 1}`,
       pickType: "team_bonus" as const,

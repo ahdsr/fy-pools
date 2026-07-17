@@ -9,9 +9,14 @@ readiness, and maps it into an individual template's settings.
 roster as provisional until an event-specific entry list is available.
 `nba-espn.ts` is the team/bracket adapter: it requires all 16 seeded playoff
 teams and eight first-round series before it marks the event ready. Do not
-weaken either distinction when adding golf, NFL, tennis, or later providers: a
+weaken either distinction when adding golf, NFL, or later providers: a
 missing confirmed field should be visible to the commissioner, not silently
 inferred.
+
+`tennis-espn.ts` extracts the ATP men's-singles main-draw field from ESPN's
+tournament scoreboard. Qualifying and doubles entries are excluded; a future
+tournament remains unavailable until ESPN has published at least two main-draw
+players.
 
 Event providers are input sources only. Scoring, lock enforcement, standings,
 and simulations remain template-runtime responsibilities.
