@@ -5,6 +5,8 @@ import { notFound } from "next/navigation";
 import { LedgerPanel } from "@/components/app/ledger";
 import { LeaderboardTable } from "@/components/app/leaderboard-table";
 import { TournamentRace } from "@/components/app/tournament-race";
+import { DoubleDownPanel } from "@/components/app/double-down-panel";
+import { placeDoubleDownCallAction } from "@/app/pools/[poolSlug]/double-down-actions";
 import {
   LatestUpdatesPanel,
   PayoutPanel,
@@ -41,6 +43,7 @@ import {
   scoreRefreshSourceLabel,
 } from "@/lib/world-cup-pool/data";
 import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
+import { getDoubleDownPublicSnapshot } from "@/lib/double-down/persistence";
 
 type PoolPageProps = {
   params: Promise<{ poolSlug: string }>;
@@ -168,6 +171,7 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
         ]
       : []),
   ];
+  const doubleDown = await getDoubleDownPublicSnapshot(publicSlug);
 
   return (
     <>
@@ -192,6 +196,13 @@ async function WorldCupPoolDetails({ poolSlug }: { poolSlug: string }) {
           ]}
         />
       </LedgerPanel>
+
+      {doubleDown ? (
+        <DoubleDownPanel
+          snapshot={doubleDown}
+          placeCallAction={placeDoubleDownCallAction.bind(null, publicSlug)}
+        />
+      ) : null}
 
       <section className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_22rem] lg:items-start">
         <LedgerPanel

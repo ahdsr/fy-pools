@@ -12,6 +12,7 @@ import { NbaSeriesCommissioner } from "./nba-series-commissioner";
 import { RankedFinishCommissioner } from "./ranked-finish-commissioner";
 import { recordRankedFinishResultAction, resetRankedFinishResultsAction } from "./ranked-finish-actions";
 import { PageShell } from "@/components/app/page-shell";
+import { DoubleDownCommissionerPanel } from "@/components/app/double-down-commissioner-panel";
 
 type EditPoolPageProps = {
   params: Promise<{ poolId: string }>;
@@ -42,11 +43,11 @@ async function EditPoolWizard({ params }: EditPoolPageProps) {
   const target = await getPoolRuntimeTargetById(poolId);
   if (target?.runtime === "nba-series") {
     const nbaPool = await getCommissionerNbaSeriesPool(poolId);
-    if (nbaPool) return <PageShell eyebrow="NBA Playoffs" title={nbaPool.poolName} description="Manage your bracket simulation and scoring from this commissioner workspace." showHeader={false}><NbaSeriesCommissioner poolId={nbaPool.poolId} poolName={nbaPool.poolName} settings={nbaPool.settings} /></PageShell>;
+    if (nbaPool) return <PageShell eyebrow="NBA Playoffs" title={nbaPool.poolName} description="Manage your bracket simulation and scoring from this commissioner workspace." showHeader={false}><DoubleDownCommissionerPanel poolId={nbaPool.poolId} /><NbaSeriesCommissioner poolId={nbaPool.poolId} poolName={nbaPool.poolName} settings={nbaPool.settings} /></PageShell>;
   }
   if (target?.runtime === "ranked-finish") {
     const rankedPool = await getCommissionerRankedFinishPool(poolId, target.templateSlug);
-    if (rankedPool) return <PageShell eyebrow={target.templateName} title={rankedPool.poolName} description={`Record ${target.competitorNoun} finishing positions, then watch standings update.`} showHeader={false}><RankedFinishCommissioner poolId={rankedPool.poolId} poolName={rankedPool.poolName} settings={rankedPool.settings} participantNoun={target.competitorNoun} recordAction={recordRankedFinishResultAction.bind(null, target.templateSlug)} resetAction={resetRankedFinishResultsAction.bind(null, target.templateSlug)} /></PageShell>;
+    if (rankedPool) return <PageShell eyebrow={target.templateName} title={rankedPool.poolName} description={`Record ${target.competitorNoun} finishing positions, then watch standings update.`} showHeader={false}><DoubleDownCommissionerPanel poolId={rankedPool.poolId} /><RankedFinishCommissioner poolId={rankedPool.poolId} poolName={rankedPool.poolName} settings={rankedPool.settings} participantNoun={target.competitorNoun} recordAction={recordRankedFinishResultAction.bind(null, target.templateSlug)} resetAction={resetRankedFinishResultsAction.bind(null, target.templateSlug)} /></PageShell>;
   }
 
   const pool = await getCommissionerRoundOf16AdminPool(poolId);
@@ -54,7 +55,9 @@ async function EditPoolWizard({ params }: EditPoolPageProps) {
   if (!pool) notFound();
 
   return (
-    <NewPoolWizardStart
+    <>
+      <DoubleDownCommissionerPanel poolId={pool.poolId} />
+      <NewPoolWizardStart
       editPool={{
         poolId: pool.poolId,
         poolSlug: pool.poolSlug,
@@ -64,6 +67,7 @@ async function EditPoolWizard({ params }: EditPoolPageProps) {
           pool.directInvites,
         ),
       }}
-    />
+      />
+    </>
   );
 }

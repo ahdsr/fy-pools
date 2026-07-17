@@ -28,6 +28,7 @@ import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { createSupabaseAdminClient } from "@/lib/supabase/server";
 import { buildLeaderboardRows } from "@/lib/world-cup-pool/leaderboard";
 import { notifyNewPublicPoolLeaders } from "@/lib/world-cup-pool/leader-notifications";
+import { reconcileWorldCupDoubleDown } from "@/lib/double-down/persistence";
 export { formatDateTime };
 
 export const MARCINS_POOL_SLUG = "marcins-2026-world-cup-pool";
@@ -638,6 +639,20 @@ export async function warmMarcinsWorldCupResults() {
   } catch (error) {
     // Scores remain live even if the optional notification integration is down.
     console.error("[fy-pools] Leader notification check failed", error);
+  }
+
+  try {
+    await reconcileWorldCupDoubleDown({
+      poolSlug: MARCINS_POOL_SLUG,
+      entriesConfig: staticPool.entriesConfig,
+      picksByPath: staticPool.picksByPath,
+      results,
+      sourceSignature,
+    });
+  } catch (error) {
+    // The live scores remain authoritative if a side-game reconciliation has
+    // a transient database problem.
+    console.error("[fy-pools] Double Down reconciliation failed", error);
   }
 
   return {
