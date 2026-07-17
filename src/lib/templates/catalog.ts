@@ -321,13 +321,3 @@ export function getTemplateAvailability(template: PoolTemplate): TemplateAvailab
 export function canLaunchCatalogTemplate(template: PoolTemplate) {
   return getTemplateAvailability(template) === "available";
 }
-
-export function getAvailableTournamentTemplates(categorySlug: string) {
-  const category = getCategoryBySlug(categorySlug);
-
-  return (
-    category?.templates
-      .filter((template) => template.availableNow)
-      .map((template) => ({ ...template, category })) ?? []
-  );
-}

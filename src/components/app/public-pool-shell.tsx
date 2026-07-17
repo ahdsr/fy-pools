@@ -1,6 +1,9 @@
 import { AbstractShapeBackground } from "@/components/app/abstract-shape-background";
 import { LiveScoreRefresh } from "@/components/app/live-score-refresh";
 import { SiteFooter } from "@/components/app/site-footer";
+import { Button } from "@/components/ui/button";
+import { CheckCircle2 } from "lucide-react";
+import Link from "next/link";
 import { cn } from "@/lib/utils";
 
 type PublicPoolShellProps = {
@@ -12,6 +15,8 @@ type PublicPoolShellProps = {
   scoreRefreshLabel?: string;
   scoreRefreshSource?: string;
   liveScoreMatchDates?: string[];
+  picksSubmitted?: boolean;
+  editPicksHref?: string;
   meta?: React.ReactNode;
   children: React.ReactNode;
 };
@@ -24,6 +29,8 @@ export function PublicPoolShell({
   scoreRefreshLabel,
   scoreRefreshSource,
   liveScoreMatchDates,
+  picksSubmitted = false,
+  editPicksHref,
   meta,
   children,
 }: PublicPoolShellProps) {
@@ -32,6 +39,25 @@ export function PublicPoolShell({
       <AbstractShapeBackground />
 
       <div className="relative z-10 mx-auto flex w-full max-w-[1268px] flex-col gap-7 px-4 py-5 sm:px-5 md:gap-9 md:px-6 md:py-8">
+        {picksSubmitted ? (
+          <div
+            className="flex items-start gap-3 border border-brand-success/30 bg-cta-green-soft px-4 py-3 text-brand-ink"
+            role="status"
+          >
+            <CheckCircle2 className="mt-0.5 size-5 shrink-0 text-brand-success" />
+            <div className="min-w-0 flex-1">
+              <p className="font-semibold">Your picks are in.</p>
+              <p className="mt-1 text-sm leading-5 text-muted-foreground">
+                Your predictions have been saved. You can update them until the pool locks.
+              </p>
+            </div>
+            {editPicksHref ? (
+              <Button asChild className="shrink-0" size="sm" variant="secondaryGreen">
+                <Link href={editPicksHref}>Edit picks</Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <section className="grid gap-5 py-3 md:grid-cols-[minmax(0,1fr)_20rem] md:items-end md:gap-6 md:py-8">
           <div className="max-w-3xl">
             {eyebrow ? (

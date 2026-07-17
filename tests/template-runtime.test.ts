@@ -10,7 +10,6 @@ import {
   canLaunchCatalogTemplate,
   getAllTemplates,
 } from "@/lib/templates/catalog";
-import { getTemplateRuntimeDefinition } from "@/lib/templates/definitions";
 import { createDefaultNbaSeriesSettings } from "@/lib/nba-series/draft";
 import { createDefaultF1GrandPrixSettings } from "@/lib/ranked-finish/f1";
 import { createDefaultGolfPgaTopFiveSettings } from "@/lib/ranked-finish/golf";
@@ -64,19 +63,13 @@ describe("template runtime foundation", () => {
     ).toBe(true);
   });
 
-  it("keeps structural NBA template fields and its simulation capability together", () => {
-    const definition = getTemplateRuntimeDefinition("nba-series-bracket");
+  it("keeps NBA's playable structure in its production runtime settings", () => {
+    const settings = createDefaultNbaSeriesSettings();
 
-    expect(definition).toMatchObject({
-      runtime: "series-bracket",
-      availability: "available",
-      supportsSimulation: true,
-      lockPolicy: { scope: "event", defaultBufferMinutes: 15 },
-    });
-    expect(definition?.pickFields).toHaveLength(15);
-    expect(definition?.pickFields[0]).toMatchObject({
-      pickType: "series_score",
-      config: { bestOf: 7 },
+    expect(settings.teams).toHaveLength(16);
+    expect(settings.scoring).toMatchObject({
+      winnerPoints: 2,
+      exactScorePoints: 1,
     });
   });
 

@@ -24,6 +24,7 @@ import {
 import { getPublicRoundOf16Pool } from "@/lib/round-of-16/public";
 import { getPublicNbaSeriesPool } from "@/lib/nba-series/persistence";
 import { NbaSeriesPublicPanels } from "@/components/app/nba-series-public-panels";
+import { rankedFinishDeadlineHasPassed } from "@/lib/ranked-finish/engine";
 import { getPublicRankedFinishPool } from "@/lib/ranked-finish/persistence";
 import { RankedFinishPublicPanels } from "@/components/app/ranked-finish-public-panels";
 import { getPoolRuntimeTargetBySlug } from "@/lib/templates/runtime-dispatch";
@@ -43,25 +44,28 @@ import { getPublicPoolStandings } from "@/lib/world-cup-pool/public-pool";
 
 type PoolPageProps = {
   params: Promise<{ poolSlug: string }>;
+  searchParams: Promise<{ picks?: string; invite?: string }>;
 };
 
 export const unstable_instant = {
   prefetch: "runtime",
-  samples: [{ params: { poolSlug: "marcins-2026-world-cup-pool" } }],
+  samples: [{ params: { poolSlug: "marcins-2026-world-cup-pool" }, searchParams: { picks: null, invite: null } }],
 };
 
 const currentStandingsInfo =
   "These standings are not final. Current scores are based on results entered so far: group picks use the current group order, third-place qualifiers count only once entered or final, and knockout/finals/bonus points use completed or entered outcomes. That means the table can be skewed by today's partial results until every result is final.";
 
-export default function PoolPage({ params }: PoolPageProps) {
+export default function PoolPage({ params, searchParams }: PoolPageProps) {
   return (
     <Suspense fallback={<PoolRouteFallback />}>
-      {params.then(({ poolSlug }) => <PoolPageContent poolSlug={poolSlug} />)}
+      {Promise.all([params, searchParams]).then(([{ poolSlug }, { picks, invite }]) => (
+        <PoolPageContent poolSlug={poolSlug} picksSubmitted={picks === "submitted"} inviteCode={invite} />
+      ))}
     </Suspense>
   );
 }
 
-async function PoolPageContent({ poolSlug }: { poolSlug: string }) {
+async function PoolPageContent({ poolSlug, picksSubmitted, inviteCode }: { poolSlug: string; picksSubmitted: boolean; inviteCode?: string }) {
   const routeInfo = await getPublicPoolRouteInfo(poolSlug);
 
   if (routeInfo) {
@@ -74,10 +78,10 @@ async function PoolPageContent({ poolSlug }: { poolSlug: string }) {
     );
   }
 
-  return <RoundOf16PoolPage poolSlug={poolSlug} />;
+  return <RoundOf16PoolPage poolSlug={poolSlug} picksSubmitted={picksSubmitted} inviteCode={inviteCode} />;
 }
 
-async function RoundOf16PoolPage({ poolSlug }: { poolSlug: string }) {
+async function RoundOf16PoolPage({ poolSlug, picksSubmitted, inviteCode }: { poolSlug: string; picksSubmitted: boolean; inviteCode?: string }) {
   const target = await getPoolRuntimeTargetBySlug(poolSlug);
   if (target?.runtime === "nba-series") {
     const pool = await getPublicNbaSeriesPool(poolSlug);
@@ -85,7 +89,12 @@ async function RoundOf16PoolPage({ poolSlug }: { poolSlug: string }) {
   }
   if (target?.runtime === "ranked-finish") {
     const pool = await getPublicRankedFinishPool(poolSlug, target.templateSlug);
-    if (pool) return <PublicPoolShell poolName={pool.poolName} title={pool.poolName} description={pool.settings.basics.description || target.templateDescription}><RankedFinishPublicPanels pool={pool} participantNoun={target.competitorNoun} /></PublicPoolShell>;
+    if (pool) {
+      const editPicksHref = picksSubmitted && inviteCode && !rankedFinishDeadlineHasPassed(pool.settings)
+        ? `/join/${encodeURIComponent(inviteCode)}`
+        : undefined;
+      return <PublicPoolShell poolName={pool.poolName} title={pool.poolName} description={pool.settings.basics.description || target.templateDescription} picksSubmitted={picksSubmitted} editPicksHref={editPicksHref}><RankedFinishPublicPanels pool={pool} participantNoun={target.competitorNoun} /></PublicPoolShell>;
+    }
   }
   const roundOf16Pool = await getPublicRoundOf16Pool(poolSlug, {
     includeViewer: false,

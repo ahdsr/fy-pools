@@ -22,26 +22,6 @@ import { cn } from "@/lib/utils";
 import type { TodaysResultsReport } from "@/lib/world-cup-pool/todays-results";
 import type { EntryPicks, PoolResults, PoolScore } from "@/lib/world-cup-pool/types";
 
-export function GroupPicksPanel({
-  picks,
-  results,
-  score,
-}: {
-  picks: EntryPicks;
-  results: PoolResults;
-  score: PoolScore;
-}) {
-  return (
-    <CollapsibleLedgerPanel
-      title="Group picks"
-      description="Predicted order is compared against the current live order."
-      defaultOpen={false}
-    >
-      <GroupPicksContent picks={picks} results={results} score={score} />
-    </CollapsibleLedgerPanel>
-  );
-}
-
 export function GroupPicksContent({
   picks,
   results,
@@ -122,24 +102,6 @@ function TeamList({
   );
 }
 
-export function PodiumBonusPanel({
-  picks,
-  score,
-}: {
-  picks: EntryPicks;
-  score: PoolScore;
-}) {
-  return (
-    <CollapsibleLedgerPanel
-      title="Podium and bonus"
-      description="Champion, podium, and bonus picks with their current scoring."
-      defaultOpen={false}
-    >
-      <PodiumBonusContent picks={picks} score={score} />
-    </CollapsibleLedgerPanel>
-  );
-}
-
 export function PodiumBonusContent({
   picks,
   score,
@@ -203,18 +165,6 @@ const advancementStages = [
   { key: "thirdPlaceMatch", label: "Third-place match" },
 ] as const;
 
-export function AdvancementPicksPanel({ picks }: { picks: EntryPicks }) {
-  return (
-    <CollapsibleLedgerPanel
-      title="Advancement picks"
-      description="Every team this entry picked to reach each knockout round."
-      defaultOpen={false}
-    >
-      <AdvancementPicksContent picks={picks} />
-    </CollapsibleLedgerPanel>
-  );
-}
-
 export function AdvancementPicksContent({ picks }: { picks: EntryPicks }) {
   return (
     <Table>
@@ -252,18 +202,6 @@ export function AdvancementPicksContent({ picks }: { picks: EntryPicks }) {
   );
 }
 
-export function ThirdPlaceQualifierPicksPanel({ picks }: { picks: EntryPicks }) {
-  return (
-    <CollapsibleLedgerPanel
-      title="Third-place qualifiers"
-      description="The third-place group teams this entry selected to advance."
-      defaultOpen={false}
-    >
-      <ThirdPlaceQualifierPicksContent picks={picks} />
-    </CollapsibleLedgerPanel>
-  );
-}
-
 export function ThirdPlaceQualifierPicksContent({
   picks,
 }: {
@@ -291,24 +229,6 @@ export function ThirdPlaceQualifierPicksContent({
         </div>
       </LedgerRow>
     </LedgerRows>
-  );
-}
-
-export function KnockoutScoringPanel({
-  picks,
-  score,
-}: {
-  picks: EntryPicks;
-  score: PoolScore;
-}) {
-  return (
-    <CollapsibleLedgerPanel
-      title="Knockout scoring"
-      description="Round-by-round knockout hits and points from this entry."
-      defaultOpen={false}
-    >
-      <KnockoutScoringContent picks={picks} score={score} />
-    </CollapsibleLedgerPanel>
   );
 }
 

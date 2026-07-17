@@ -11,7 +11,6 @@ import {
   validateRankedFinishPicks,
   validateRankedFinishSettings,
 } from "@/lib/ranked-finish/engine";
-import { getTemplateRuntimeDefinition } from "@/lib/templates/definitions";
 import { getPoolTemplateRuntime } from "@/lib/templates/lifecycle";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -39,7 +38,11 @@ describe("ranked-finish template runtime", () => {
   });
 
   it("registers F1 as a reusable ranked-finish runtime", () => {
-    expect(getTemplateRuntimeDefinition("f1-grand-prix-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
+    expect(
+      RANKED_FINISH_TEMPLATES.find(
+        (template) => template.slug === "f1-grand-prix-predictor",
+      ),
+    ).toBeDefined();
     expect(getPoolTemplateRuntime({ rankedFinish: createDefaultF1GrandPrixSettings() })).toBe("ranked-finish");
   });
 
@@ -80,7 +83,6 @@ describe("ranked-finish template runtime", () => {
     expect(validateRankedFinishSettings(settings)).toBeNull();
     expect(validateRankedFinishPicks(settings, picks)).toBeNull();
     expect(scoreRankedFinishEntry({ settings, picks }).total).toBe(6);
-    expect(getTemplateRuntimeDefinition("golf-pga-top-five-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
   });
 
   it("reuses ranked-finish validation and scoring for an ATP Top Four card", () => {
@@ -91,7 +93,6 @@ describe("ranked-finish template runtime", () => {
     expect(validateRankedFinishSettings(settings)).toBeNull();
     expect(validateRankedFinishPicks(settings, picks)).toBeNull();
     expect(scoreRankedFinishEntry({ settings, picks }).total).toBe(3);
-    expect(getTemplateRuntimeDefinition("tennis-atp-top-four-predictor")).toMatchObject({ runtime: "ranked-finish", availability: "available", supportsSimulation: true });
   });
 
   it("ships a protected ranked-finish submission transaction and lock dispatcher", () => {

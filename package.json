@@ -50,7 +50,6 @@
     "@types/three": "^0.184.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.10",
-    "playwright": "^1.61.0",
     "supabase": "^2.109.1",
     "tailwindcss": "^4",
     "typescript": "^5",

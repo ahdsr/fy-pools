@@ -205,7 +205,7 @@ export default function DashboardPage() {
       heroAction={
         <Button asChild variant="primaryGreen" size="lg">
           <Link href="/dashboard/pools">
-            Choose a format <ArrowRight />
+            Start new pool <ArrowRight />
           </Link>
         </Button>
       }
@@ -348,40 +348,6 @@ async function DashboardWorkspaceContent() {
             )}
           </LedgerPanel>
 
-          <LedgerPanel
-            title="Workspace"
-            description="Two starting points define the MVP: pool operations and spreadsheet import."
-          >
-            <LedgerFeatureRows
-              className="md:grid-cols-1 md:divide-x-0 md:divide-y"
-              items={[
-                {
-                  icon: ClipboardList,
-                  title: "Pool operations",
-                  body: "Create pools, invite players, track entries, and review lock status from this workspace.",
-                  action: (
-                    <Button asChild>
-                      <Link href="/dashboard/pools">
-                        Start a pool <ArrowRight />
-                      </Link>
-                    </Button>
-                  ),
-                },
-                {
-                  icon: FileSpreadsheet,
-                  title: "Spreadsheet import",
-                  body: "Bring an Excel pool you already use and turn it into hosted picks, brackets, scoring, and standings.",
-                  action: (
-                    <Button asChild variant="outline">
-                      <Link href="/upload-your-own">
-                        Upload your own <ArrowRight />
-                      </Link>
-                    </Button>
-                  ),
-                },
-              ]}
-            />
-          </LedgerPanel>
         </div>
       </div>
       <PlaceholderGrid
@@ -423,7 +389,7 @@ function EmptyWorkspace() {
           <div className="flex flex-col gap-3 sm:flex-row">
             <Button asChild variant="primaryGreen">
               <Link href="/dashboard/pools">
-                Choose a format <ArrowRight />
+                Start new pool <ArrowRight />
               </Link>
             </Button>
             <Button asChild variant="outline">
