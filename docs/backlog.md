@@ -55,7 +55,11 @@ deadline, score entries, and share a leaderboard.
 - [ ] Full World Cup predictor template with group ranks, advancers, knockout
   paths, podium picks, and bonus questions.
 - [ ] NBA playoff series template with series winners and series score picks.
-- [ ] Spreadsheet import for commissioners who already run pools in Excel.
+- [ ] Spreadsheet migration: begin with a read-only CSV/XLSX readiness report,
+  then support validated imports for specific existing templates. Include field
+  mapping, error and ambiguity review, standings-preview reconciliation,
+  commissioner approval, audit history, and an assisted path for unsupported
+  custom rules; do not promise automatic conversion of arbitrary workbooks.
 - [ ] Live results automation through a scheduled sports data sync.
 - [ ] Game Day Room / On the Pitch: social match rooms with sides, avatars,
   cheers, room energy, and post-match awards.

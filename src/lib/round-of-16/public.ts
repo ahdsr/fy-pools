@@ -16,6 +16,7 @@ import type {
   RoundOf16PoolSettings,
 } from "@/lib/templates/round-of-16-draft";
 import { PUBLIC_POOL_SLUGS } from "@/lib/world-cup-pool/data";
+import { isArchivedPool } from "@/lib/pool-lifecycle";
 
 export type RoundOf16PublicEntry = {
   entryId: string;
@@ -79,6 +80,7 @@ export async function getPublicRoundOf16Pool(
 
   if (poolError) throw new Error(poolError.message);
   if (!pool) return null;
+  if (isArchivedPool(pool.status)) return null;
 
   const settings = (pool.settings as { roundOf16?: RoundOf16PoolSettings })
     .roundOf16;

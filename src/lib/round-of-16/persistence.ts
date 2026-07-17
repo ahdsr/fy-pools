@@ -26,6 +26,11 @@ import {
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { normalizeEmailAddress } from "@/lib/email";
 import {
+  archivePoolSettings,
+  isArchivedPool,
+  restorePoolSettings,
+} from "@/lib/pool-lifecycle";
+import {
   getRoundOf16EffectiveLockAt,
   getInviteExpiresAt,
   pickDeadlineHasPassed,
@@ -773,7 +778,7 @@ export async function getJoinPoolData(inviteCode: string) {
   const { data: invite, error } = await admin
     .from("pool_invites")
     .select(
-      "id,code,email,display_name,status,expires_at,accepted_by,accepted_at,pools(id,slug,name,owner_id,template_version_id,settings)",
+      "id,code,email,display_name,status,expires_at,accepted_by,accepted_at,pools(id,slug,name,status,owner_id,template_version_id,settings)",
     )
     .eq("code", inviteCode)
     .maybeSingle();
@@ -782,6 +787,7 @@ export async function getJoinPoolData(inviteCode: string) {
   if (!invite?.pools) return null;
 
   const poolRecord = Array.isArray(invite.pools) ? invite.pools[0] : invite.pools;
+  if (isArchivedPool(poolRecord.status)) return null;
   const settings = (poolRecord.settings as { roundOf16?: RoundOf16PoolSettings })
     .roundOf16;
 
@@ -1813,7 +1819,101 @@ export async function updateCommissionerRoundOf16AdminPool({
   };
 }
 
-export async function deleteCommissionerPool(poolId: string) {
+export async function archiveCommissionerPool(poolId: string) {
+  const user = await requireSupabaseUser();
+  const admin = createSupabaseAdminClient();
+  const { data: pool, error: poolError } = await admin
+    .from("pools")
+    .select("id,name,slug,owner_id,status,settings")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (poolError) throw new Error(poolError.message);
+  if (!pool) throw new Error("Pool not found.");
+  if (String(pool.owner_id) !== user.id) {
+    throw new Error("Only the pool commissioner can archive this pool.");
+  }
+  if (isArchivedPool(pool.status)) return { poolSlug: String(pool.slug) };
+
+  const { error: updateError } = await admin
+    .from("pools")
+    .update({
+      status: "archived",
+      settings: archivePoolSettings(pool.settings, pool.status),
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", poolId);
+  if (updateError) throw new Error(updateError.message);
+
+  await recordCommissionerAuditEvent({
+    admin,
+    poolId,
+    actorId: user.id,
+    eventType: "pool.archived",
+    summary: `Archived ${String(pool.name)}.`,
+    metadata: { poolSlug: String(pool.slug), previousStatus: String(pool.status) },
+  });
+
+  return { poolSlug: String(pool.slug) };
+}
+
+export async function restoreCommissionerPool(poolId: string) {
+  const user = await requireSupabaseUser();
+  const admin = createSupabaseAdminClient();
+  const { data: pool, error: poolError } = await admin
+    .from("pools")
+    .select("id,name,slug,owner_id,status,settings")
+    .eq("id", poolId)
+    .maybeSingle();
+
+  if (poolError) throw new Error(poolError.message);
+  if (!pool) throw new Error("Pool not found.");
+  if (String(pool.owner_id) !== user.id) {
+    throw new Error("Only the pool commissioner can restore this pool.");
+  }
+  if (!isArchivedPool(pool.status)) throw new Error("Only archived pools can be restored.");
+
+  const restored = restorePoolSettings(pool.settings);
+  const { error: updateError } = await admin
+    .from("pools")
+    .update({
+      status: restored.status,
+      settings: restored.settings,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", poolId);
+  if (updateError) throw new Error(updateError.message);
+
+  await recordCommissionerAuditEvent({
+    admin,
+    poolId,
+    actorId: user.id,
+    eventType: "pool.restored",
+    summary: `Restored ${String(pool.name)}.`,
+    metadata: { poolSlug: String(pool.slug), restoredStatus: restored.status },
+  });
+
+  return { poolSlug: String(pool.slug) };
+}
+
+function poolDeletionFailure(
+  poolId: string,
+  error: { code?: string; details?: string; hint?: string; message?: string },
+) {
+  console.error("[fy-pools] Pool deletion failed", {
+    poolId,
+    code: error.code,
+    details: error.details,
+    hint: error.hint,
+    message: error.message,
+  });
+  return new Error("Pool could not be permanently deleted. Please try again or archive it instead.");
+}
+
+export async function deleteCommissionerPool(
+  poolId: string,
+  confirmationPoolName: string,
+) {
   const user = await requireSupabaseUser();
   const admin = createSupabaseAdminClient();
   const { data: pool, error: poolError } = await admin
@@ -1822,10 +1922,13 @@ export async function deleteCommissionerPool(poolId: string) {
     .eq("id", poolId)
     .maybeSingle();
 
-  if (poolError) throw new Error(poolError.message);
+  if (poolError) throw poolDeletionFailure(poolId, poolError);
   if (!pool) throw new Error("Pool not found.");
   if (String(pool.owner_id) !== user.id) {
     throw new Error("Only the pool commissioner can delete this pool.");
+  }
+  if (confirmationPoolName.trim() !== String(pool.name)) {
+    throw new Error("Type the pool name exactly to confirm permanent deletion.");
   }
 
   const { error: deleteError } = await admin
@@ -1833,7 +1936,23 @@ export async function deleteCommissionerPool(poolId: string) {
     .delete()
     .eq("id", poolId);
 
-  if (deleteError) throw new Error(deleteError.message);
+  if (deleteError) {
+    const failure = poolDeletionFailure(poolId, deleteError);
+    await recordCommissionerAuditEvent({
+      admin,
+      poolId,
+      actorId: user.id,
+      eventType: "pool.delete_failed",
+      summary: `Could not delete ${String(pool.name)}.`,
+      metadata: {
+        poolSlug: String(pool.slug),
+        code: deleteError.code,
+        details: deleteError.details,
+        hint: deleteError.hint,
+      },
+    });
+    throw failure;
+  }
 
   await recordCommissionerAuditEvent({
     admin,

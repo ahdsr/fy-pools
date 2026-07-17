@@ -9,6 +9,7 @@ import type { NbaSeriesInvite, NbaSeriesPickPayload, NbaSeriesSettings } from "@
 import { createSupabaseAdminClient, getSupabaseUser } from "@/lib/supabase/server";
 import { isSupabaseConfigured } from "@/lib/supabase/config";
 import { normalizeEmailAddress } from "@/lib/email";
+import { isArchivedPool } from "@/lib/pool-lifecycle";
 import { recordSeriesResult, resolveBracketSimulation } from "@/lib/templates/bracket-simulation";
 import { getNbaSeriesSettings, rankStandings } from "@/lib/templates/lifecycle";
 import { withSnapshotFreshness, type CatalogEvent } from "@/lib/events/types";
@@ -114,9 +115,10 @@ function itemPayload(items: unknown): NbaSeriesPickPayload {
 export async function getNbaJoinPoolData(inviteCodeValue: string): Promise<NbaJoinData | null> {
   if (!isSupabaseConfigured()) return null;
   const admin = createSupabaseAdminClient();
-  const { data, error } = await admin.from("pool_invites").select("id,code,email,display_name,status,accepted_by,pools(id,slug,name,owner_id,template_version_id,settings)").eq("code", inviteCodeValue).maybeSingle();
+  const { data, error } = await admin.from("pool_invites").select("id,code,email,display_name,status,accepted_by,pools(id,slug,name,status,owner_id,template_version_id,settings)").eq("code", inviteCodeValue).maybeSingle();
   if (error || !data) return null;
   const pool = Array.isArray(data.pools) ? data.pools[0] : data.pools;
+  if (!pool || isArchivedPool(pool.status)) return null;
   const settings = poolSettings(pool?.settings); if (!pool || !settings) return null;
   const user = await getSupabaseUser();
   let existingSubmission: NbaJoinData["existingSubmission"];
@@ -217,7 +219,7 @@ export async function updateNbaSeriesPoolBasics({ poolId, basics }: { poolId: st
 }
 
 export async function getPublicNbaSeriesPool(poolSlug: string): Promise<NbaPublicPool | null> {
-  if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,settings").eq("slug", poolSlug).maybeSingle(); if (error || !pool) return null; const settings = poolSettings(pool.settings); if (!settings) return null;
+  if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,status,settings").eq("slug", poolSlug).maybeSingle(); if (error || !pool || isArchivedPool(pool.status)) return null; const settings = poolSettings(pool.settings); if (!settings) return null;
   const [{ data: entries, error: entriesError }, { data: snapshot }] = await Promise.all([admin.from("entries").select("id,display_name,entry_picks(status,submitted_at)").eq("pool_id", pool.id), admin.from("standings_snapshots").select("rows,calculated_at").eq("pool_id", pool.id).order("calculated_at", { ascending: false }).limit(1).maybeSingle()]); if (entriesError) throw new Error(entriesError.message);
   return { poolId: String(pool.id), poolSlug: String(pool.slug), poolName: String(pool.name), settings, entries: (entries ?? []).flatMap((entry) => { const pick = Array.isArray(entry.entry_picks) ? entry.entry_picks[0] : entry.entry_picks; return pick && ["submitted","locked"].includes(String(pick.status)) ? [{ entryId: String(entry.id), entryName: String(entry.display_name), submittedAt: String(pick.submitted_at ?? "") }] : []; }), latestStandings: Array.isArray(snapshot?.rows) ? snapshot.rows as NbaStoredLeaderboardRow[] : [], latestStandingsCalculatedAt: String(snapshot?.calculated_at ?? "") };
 }

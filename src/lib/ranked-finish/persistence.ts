@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 
 import { withSnapshotFreshness, type CatalogEvent } from "@/lib/events/types";
 import { normalizeEmailAddress } from "@/lib/email";
+import { isArchivedPool } from "@/lib/pool-lifecycle";
 import {
   rankedFinishDeadlineHasPassed,
   recordRankedFinishResult,
@@ -117,8 +118,8 @@ function itemPayload(items: unknown): RankedFinishPickPayload {
 }
 
 export async function getRankedFinishJoinPoolData(inviteCodeValue: string, templateSlug: string): Promise<RankedFinishJoinData | null> {
-  if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data, error } = await admin.from("pool_invites").select("id,code,email,display_name,status,accepted_by,pools(id,slug,name,owner_id,template_version_id,settings)").eq("code", inviteCodeValue).maybeSingle(); if (error || !data) return null;
-  const pool = Array.isArray(data.pools) ? data.pools[0] : data.pools; const settings = rankedSettings(pool?.settings, templateSlug); if (!pool || !settings) return null; const user = await getSupabaseUser(); let existingSubmission: RankedFinishJoinData["existingSubmission"];
+  if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data, error } = await admin.from("pool_invites").select("id,code,email,display_name,status,accepted_by,pools(id,slug,name,status,owner_id,template_version_id,settings)").eq("code", inviteCodeValue).maybeSingle(); if (error || !data) return null;
+  const pool = Array.isArray(data.pools) ? data.pools[0] : data.pools; if (!pool || isArchivedPool(pool.status)) return null; const settings = rankedSettings(pool.settings, templateSlug); if (!settings) return null; const user = await getSupabaseUser(); let existingSubmission: RankedFinishJoinData["existingSubmission"];
   if (user) { const { data: entry } = await admin.from("entries").select("id,entry_picks(id,submitted_at,entry_pick_items(value))").eq("pool_id", pool.id).eq("user_id", user.id).eq("entry_number", 1).maybeSingle(); const pick = Array.isArray(entry?.entry_picks) ? entry?.entry_picks[0] : entry?.entry_picks; if (entry && pick) existingSubmission = { entryId: String(entry.id), entryPickId: String(pick.id), submittedAt: String(pick.submitted_at ?? ""), payload: itemPayload(pick.entry_pick_items) }; }
   return { invite: { id: String(data.id), code: String(data.code), email: String(data.email ?? ""), displayName: String(data.display_name ?? "Participant"), status: String(data.status), acceptedBy: String(data.accepted_by ?? ""), isShareLink: !data.email }, pool: { id: String(pool.id), slug: String(pool.slug), name: String(pool.name), ownerId: String(pool.owner_id), templateVersionId: String(pool.template_version_id), settings }, existingSubmission, deadlineHasPassed: rankedFinishDeadlineHasPassed(settings) };
 }
@@ -172,7 +173,7 @@ export async function updateRankedFinishPoolBasics({ poolId, templateSlug, basic
 }
 
 export async function getPublicRankedFinishPool(poolSlug: string, templateSlug: string): Promise<RankedFinishPublicPool | null> {
-  if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,settings").eq("slug", poolSlug).maybeSingle(); if (error || !pool) return null; const settings = rankedSettings(pool.settings, templateSlug); if (!settings) return null;
+  if (!isSupabaseConfigured()) return null; const admin = createSupabaseAdminClient(); const { data: pool, error } = await admin.from("pools").select("id,slug,name,status,settings").eq("slug", poolSlug).maybeSingle(); if (error || !pool || isArchivedPool(pool.status)) return null; const settings = rankedSettings(pool.settings, templateSlug); if (!settings) return null;
   const [{ data: entries, error: entriesError }, { data: snapshot }] = await Promise.all([admin.from("entries").select("id,display_name,entry_picks(status,submitted_at)").eq("pool_id", pool.id), admin.from("standings_snapshots").select("rows,calculated_at").eq("pool_id", pool.id).order("calculated_at", { ascending: false }).limit(1).maybeSingle()]); if (entriesError) throw new Error(entriesError.message);
   return { poolId: String(pool.id), poolSlug: String(pool.slug), poolName: String(pool.name), settings, entries: (entries ?? []).flatMap((entry) => { const pick = Array.isArray(entry.entry_picks) ? entry.entry_picks[0] : entry.entry_picks; return pick && ["submitted", "locked"].includes(String(pick.status)) ? [{ entryId: String(entry.id), entryName: String(entry.display_name), submittedAt: String(pick.submitted_at ?? "") }] : []; }), latestStandings: Array.isArray(snapshot?.rows) ? snapshot.rows as RankedFinishStoredLeaderboardRow[] : [], latestStandingsCalculatedAt: String(snapshot?.calculated_at ?? "") };
 }
