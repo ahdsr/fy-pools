@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { connection } from "next/server";
 import { Suspense } from "react";
 import {
   ArrowRight,
@@ -218,6 +219,8 @@ export default function DashboardPage() {
 }
 
 async function DashboardWorkspaceContent() {
+  await connection();
+
   const [pools, notifications, auditEvents] = await Promise.all([
     getCommissionerPoolSummaries(),
     getCommissionerNotifications(),
